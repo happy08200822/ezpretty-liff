@@ -6,6 +6,7 @@
   <title>ezPretty 任務回報</title>
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <style>
+    /* ...樣式維持不變... */
     :root { --line-green: #06C755; --bg-gray: #f8f9fa; }
     body { font-family: -apple-system, sans-serif; background-color: var(--bg-gray); padding: 20px; }
     .container { background: white; padding: 25px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); max-width: 500px; margin: auto; }
@@ -28,54 +29,68 @@
   </div>
   <div class="form-group"><label>展示結果</label><input type="text" id="result" placeholder="請輸入展示結果..."></div>
   <button class="submit-btn" onclick="submitData()">提交並回報群組</button>
-  <div id="loadingMsg" class="loading">正在儲存回報資料...</div>
+  <div id="loadingMsg" class="loading">正在儲存並關閉...</div>
 </div>
 
 <script>
   const MY_LIFF_ID = '2009100097-iaxmBNtB'; 
+  // ⚠️ 請確認這串網址是你最新部署 GAS 的網址！
   const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzIKHpWcWj0bOhaQsx-OynY5FVVorMJvTNON5PBOywj1q-Nd5EylLCSl-zTlFW9Rb5U/exec';
 
-  let currentUserName = ""; // 儲存當下填單人的名字
+  let currentUserName = ""; 
 
   async function main() {
     await liff.init({ liffId: MY_LIFF_ID });
     if (!liff.isLoggedIn()) { liff.login(); return; }
     
-    // 獲取當下填單人的 LINE 名字
     const profile = await liff.getProfile();
     currentUserName = profile.displayName;
 
-    // 抓取網址參數
     const params = new URLSearchParams(window.location.search);
-    document.getElementById('storeName').innerText = params.get('store') || '未指定店家';
+    // 使用 decodeURIComponent 確保中文正常顯示
+    const store = params.get('store');
+    document.getElementById('storeName').innerText = store ? decodeURIComponent(store) : '未指定店家';
   }
 
-  async function submitData() {
+  function submitData() {
     const params = new URLSearchParams(window.location.search);
     const resultVal = document.getElementById('result').value;
+    const rowVal = params.get('row'); // 確保這裡抓得到 row
+
     if(!resultVal) { alert('請輸入展示結果'); return; }
+    if(!rowVal) { alert('系統錯誤：找不到行號 (Row)，請重新從 LINE 開啟'); return; }
 
     const reportData = {
-      row: params.get('row'),
+      row: rowVal,
       storeName: document.getElementById('storeName').innerText,
       intent: document.getElementById('intent').value,
       result: resultVal,
-      user: currentUserName // 傳送是誰填的
+      user: currentUserName
     };
 
     document.querySelector('.submit-btn').style.display = 'none';
     document.getElementById('loadingMsg').style.display = 'block';
 
-    fetch(GAS_WEB_APP_URL, { method: 'POST', body: JSON.stringify(reportData) })
-    .then(async () => {
-      // 成功後發送訊息到群組
-      await liff.sendMessages([{
-        "type": "text",
-        "text": `🎊【 任務回報完成 】🎊\n━━━━━━━━━━━━━━\n📍 店家：${reportData.storeName}\n👤 負責業務：${currentUserName}\n📊 意願：展示完，${reportData.intent}\n📝 結果：${reportData.result}\n━━━━━━━━━━━━━━\n祝這單能順利成交！💰💪`
-      }]);
-      liff.closeWindow();
+    // 使用 no-cors 模式避免跨域問題，雖然抓不到回傳值，但資料會送達
+    fetch(GAS_WEB_APP_URL, { 
+      method: 'POST', 
+      body: JSON.stringify(reportData),
+      mode: 'no-cors' 
     })
-    .catch(err => alert('儲存失敗：' + err));
+    .then(() => {
+        // 因為 no-cors 抓不到成功回應，我們假設送出就成功，直接發訊息並關閉
+        liff.sendMessages([{
+          "type": "text",
+          "text": `🎊【 任務回報完成 】🎊\n━━━━━━━━━━━━━━\n📍 店家：${reportData.storeName}\n👤 負責業務：${currentUserName}\n📊 意願：展示完，${reportData.intent}\n📝 結果：${reportData.result}\n━━━━━━━━━━━━━━\n祝這單能順利成交！💰💪`
+        }]).then(() => {
+            liff.closeWindow(); // 🚀 這裡會自動關閉視窗
+        });
+    })
+    .catch(err => {
+        alert('發送失敗，請截圖給管理員：' + err);
+        document.querySelector('.submit-btn').style.display = 'block';
+        document.getElementById('loadingMsg').style.display = 'none';
+    });
   }
   main();
 </script>
