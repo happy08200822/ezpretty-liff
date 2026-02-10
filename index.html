@@ -3,118 +3,81 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ezPretty 業務回報系統</title>
+  <title>ezPretty 任務回報</title>
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <style>
     :root { --line-green: #06C755; --bg-gray: #f8f9fa; }
-    body { font-family: -apple-system, sans-serif; background-color: var(--bg-gray); margin: 0; padding: 20px; color: #333; }
+    body { font-family: -apple-system, sans-serif; background-color: var(--bg-gray); padding: 20px; }
     .container { background: white; padding: 25px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); max-width: 500px; margin: auto; }
-    h2 { margin-top: 0; color: var(--line-green); text-align: center; margin-bottom: 25px; }
+    h2 { color: var(--line-green); text-align: center; margin-bottom: 25px; }
     .form-group { margin-bottom: 20px; }
     label { display: block; font-size: 15px; font-weight: bold; margin-bottom: 8px; color: #444; }
     .readonly-field { background-color: #f1f1f1; border: 1px solid #ddd; padding: 12px; border-radius: 8px; font-size: 16px; color: #333; font-weight: 500; }
-    select, input[type="text"] { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; font-size: 16px; box-sizing: border-box; outline: none; }
-    select:focus, input[type="text"]:focus { border-color: var(--line-green); }
-    .submit-btn { background-color: var(--line-green); color: white; border: none; padding: 16px; width: 100%; border-radius: 12px; font-size: 18px; font-weight: bold; margin-top: 10px; cursor: pointer; }
-    .submit-btn:active { opacity: 0.8; }
-    .loading { display: none; text-align: center; color: #888; margin-top: 15px; font-size: 14px; }
+    select, input[type="text"] { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; font-size: 16px; box-sizing: border-box; }
+    .submit-btn { background-color: var(--line-green); color: white; border: none; padding: 16px; width: 100%; border-radius: 12px; font-size: 18px; font-weight: bold; margin-top: 10px; cursor: pointer; width: 100%; }
+    .loading { display: none; text-align: center; color: #888; margin-top: 15px; }
   </style>
 </head>
 <body>
 
 <div class="container">
-  <h2>業務展示回報</h2>
-
-  <div class="form-group">
-    <label>店家名稱</label>
-    <div id="storeName" class="readonly-field">讀取中...</div>
+  <h2>展示完成回報</h2>
+  <div class="form-group"><label>店家名稱</label><div id="storeName" class="readonly-field">讀取中...</div></div>
+  <div class="form-group"><label>成交意願度</label>
+    <select id="intent"><option value="意願度高">意願度高</option><option value="意願度中">意願度中</option><option value="意願度低">意願度低</option></select>
   </div>
-
-  <div class="form-group">
-    <label>成交意願度</label>
-    <select id="intent">
-      <option value="意願度高">意願度高</option>
-      <option value="意願度中">意願度中</option>
-      <option value="意願度低">意願度低</option>
-    </select>
-  </div>
-
-  <div class="form-group">
-    <label>展示結果</label>
-    <input type="text" id="result" placeholder="請輸入展示詳細結果...">
-  </div>
-
-  <button class="submit-btn" onclick="submitData()">提交回報</button>
-  <div id="loadingMsg" class="loading">正在儲存資料至試算表...</div>
+  <div class="form-group"><label>展示結果</label><input type="text" id="result" placeholder="請輸入展示結果..."></div>
+  <button class="submit-btn" onclick="submitData()">提交並回報群組</button>
+  <div id="loadingMsg" class="loading">正在儲存回報資料...</div>
 </div>
 
 <script>
-  // 你的設定資訊
   const MY_LIFF_ID = '2009100097-iaxmBNtB'; 
   const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzIKHpWcWj0bOhaQsx-OynY5FVVorMJvTNON5PBOywj1q-Nd5EylLCSl-zTlFW9Rb5U/exec';
 
+  let currentUserName = ""; // 儲存當下填單人的名字
+
   async function main() {
-    try {
-      await liff.init({ liffId: MY_LIFF_ID });
-      if (!liff.isLoggedIn()) {
-        liff.login();
-        return;
-      }
-      
-      // 解析網址參數 ?store=店名+地點
-      const params = new URLSearchParams(window.location.search);
-      const store = params.get('store');
-      document.getElementById('storeName').innerText = store ? decodeURIComponent(store) : '未指定店家';
-    } catch (err) {
-      console.error('LIFF 初始化失敗', err);
-    }
+    await liff.init({ liffId: MY_LIFF_ID });
+    if (!liff.isLoggedIn()) { liff.login(); return; }
+    
+    // 獲取當下填單人的 LINE 名字
+    const profile = await liff.getProfile();
+    currentUserName = profile.displayName;
+
+    // 抓取網址參數
+    const params = new URLSearchParams(window.location.search);
+    document.getElementById('storeName').innerText = params.get('store') || '未指定店家';
   }
 
   async function submitData() {
-    const resultValue = document.getElementById('result').value;
-    if (!resultValue) {
-      alert('請填寫展示結果再送出');
-      return;
-    }
+    const params = new URLSearchParams(window.location.search);
+    const resultVal = document.getElementById('result').value;
+    if(!resultVal) { alert('請輸入展示結果'); return; }
 
-    const btn = document.querySelector('.submit-btn');
-    const loader = document.getElementById('loadingMsg');
-    
     const reportData = {
+      row: params.get('row'),
       storeName: document.getElementById('storeName').innerText,
       intent: document.getElementById('intent').value,
-      result: resultValue
+      result: resultVal,
+      user: currentUserName // 傳送是誰填的
     };
 
-    btn.style.display = 'none';
-    loader.style.display = 'block';
+    document.querySelector('.submit-btn').style.display = 'none';
+    document.getElementById('loadingMsg').style.display = 'block';
 
-    // 1. 傳送到 GAS 後端
-    fetch(GAS_WEB_APP_URL, {
-      method: 'POST',
-      body: JSON.stringify(reportData)
+    fetch(GAS_WEB_APP_URL, { method: 'POST', body: JSON.stringify(reportData) })
+    .then(async () => {
+      // 成功後發送訊息到群組
+      await liff.sendMessages([{
+        "type": "text",
+        "text": `🎊【 任務回報完成 】🎊\n━━━━━━━━━━━━━━\n📍 店家：${reportData.storeName}\n👤 負責業務：${currentUserName}\n📊 意願：展示完，${reportData.intent}\n📝 結果：${reportData.result}\n━━━━━━━━━━━━━━\n祝這單能順利成交！💰💪`
+      }]);
+      liff.closeWindow();
     })
-    .then(async (response) => {
-      // 2. 存檔成功後，在 LINE 群組發送訊息
-      try {
-        await liff.sendMessages([{
-          "type": "text",
-          "text": `✅ 【展示回報】\n店家：${reportData.storeName}\n意願：${reportData.intent}\n結果：${reportData.result}`
-        }]);
-      } catch (e) {
-        console.log('訊息發送失敗，可能不在群組環境');
-      }
-      liff.closeWindow(); // 關閉 LIFF 視窗
-    })
-    .catch(err => {
-      alert('儲存失敗，請檢查網路連線：' + err);
-      btn.style.display = 'block';
-      loader.style.display = 'none';
-    });
+    .catch(err => alert('儲存失敗：' + err));
   }
-
   main();
 </script>
-
 </body>
 </html>
