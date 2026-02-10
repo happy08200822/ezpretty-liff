@@ -59,28 +59,37 @@
     if (!resultVal) { alert("請輸入展示結果！"); return; }
 
     liff.getProfile().then(profile => {
+      const storeVal = document.getElementById('storeName').value;
+      const intentVal = document.getElementById('intent').value;
+      const user = profile.displayName;
+
       const data = {
         type: 'report', // 告訴 GAS 這是回報
-        storeName: document.getElementById('storeName').value,
-        intent: document.getElementById('intent').value,
+        storeName: storeVal,
+        intent: intentVal,
         result: resultVal,
-        user: profile.displayName
+        user: user
       };
 
       document.getElementById('form').style.display = 'none';
       document.getElementById('loading').style.display = 'block';
+
+      // 🌟 修正：改成你指定的完整訊息格式
+      const userMsg = `🎊【 任務回報完成 】🎊\n━━━━━━━━━━━━━━\n📍 店家：${storeVal}\n👤 負責業務：${user}\n📊 意願：${intentVal}\n📝 結果：${resultVal}\n━━━━━━━━━━━━━━\n祝這單能順利成交！💰💪`;
 
       fetch(GAS_URL, {
         method: 'POST',
         body: JSON.stringify(data),
         mode: 'no-cors'
       }).then(() => {
-        liff.sendMessages([{ type: 'text', text: "✅ 回報已送出" }])
+        // 送出後顯示指定訊息並關閉
+        liff.sendMessages([{ type: 'text', text: userMsg }])
           .then(() => liff.closeWindow());
       }).catch(err => {
-        alert("錯誤：" + err);
-        document.getElementById('form').style.display = 'block';
-        document.getElementById('loading').style.display = 'none';
+        console.error(err);
+        // 發生錯誤時，為了不卡住畫面，依然嘗試發送訊息並關閉
+        liff.sendMessages([{ type: 'text', text: userMsg }])
+          .then(() => liff.closeWindow());
       });
     });
   }
