@@ -20,16 +20,9 @@
 
 <div class="container" id="form">
   <h2>📅 設定展示時間</h2>
-  
-  <label>店家名稱</label>
-  <input id="storeName" class="readonly" readonly>
-  
-  <label>日期</label>
-  <input type="date" id="date">
-  
-  <label>時間</label>
-  <input type="time" id="time">
-
+  <label>店家名稱</label><input id="storeName" class="readonly" readonly>
+  <label>日期</label><input type="date" id="date">
+  <label>時間</label><input type="time" id="time">
   <button onclick="submitData()">確認預約</button>
 </div>
 
@@ -61,32 +54,51 @@
     
     if (!dateVal || !timeVal) { alert("請選擇完整的日期與時間！"); return; }
 
-    // 組合完整的 ISO 時間格式 (YYYY-MM-DDTHH:mm)
     const fullDateTime = `${dateVal}T${timeVal}`;
-
     const params = new URLSearchParams(window.location.search);
+    const staffName = decodeURIComponent(params.get('staff') || "未知業務");
+    const storeName = document.getElementById('storeName').value;
     
+    // 格式化日期時間 (例如：02/11 16:33)
+    const datePart = dateVal.substring(5).replace('-', '/');
+    const displayTime = `${datePart} ${timeVal}`;
+
     const data = {
-      type: 'booking', // 告訴 GAS 這是約時間
+      type: 'booking',
       key: params.get('key'),
       city: decodeURIComponent(params.get('city') || ""),
       shop: decodeURIComponent(params.get('store') || "").replace(decodeURIComponent(params.get('city')||""),"").trim(),
-      staff: params.get('staff'), // 記得從網址參數抓業務
-      storeName: document.getElementById('storeName').value,
+      staff: staffName,
+      storeName: storeName,
       datetime: fullDateTime
     };
 
     document.getElementById('form').style.display = 'none';
     document.getElementById('loading').style.display = 'block';
 
+    // 🌟 業務自己講話的內容
+    const userMsg = `✅ 【約展成功】\n📍 店家：${storeName}\n👤 業務：${staffName}\n📅 時間：${displayTime}`;
+
     fetch(GAS_URL, {
       method: 'POST',
-      body: JSON.stringify(data),
-      mode: 'no-cors'
-    }).then(() => {
-      // 成功後直接關閉，由機器人回報
-      liff.closeWindow();
-    }).catch(err => {
+      body: JSON.stringify(data)
+    })
+    .then(response => response.text())
+    .then(text => {
+      if (text.includes("Success")) {
+        // ✅ 成功：業務自己發話
+        liff.sendMessages([{ type: 'text', text: userMsg }])
+          .then(() => liff.closeWindow());
+      } else if (text.includes("Conflict")) {
+        // ⚠️ 衝突：後端機器人已經推播卡片了，前端只要關閉就好
+        // alert("⚠️ 時間衝突，機器人已發送確認卡片到群組。");
+        liff.closeWindow();
+      } else {
+        alert("錯誤：" + text);
+        liff.closeWindow();
+      }
+    })
+    .catch(err => {
       console.error(err);
       liff.closeWindow();
     });
