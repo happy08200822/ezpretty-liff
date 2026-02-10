@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ezPretty 展示回報系統</title>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <style>
+    :root { --line-green: #06C755; --bg-gray: #f8f9fa; }
+    body { font-family: -apple-system, sans-serif; background-color: var(--bg-gray); margin: 0; padding: 20px; color: #333; }
+    .container { background: white; padding: 20px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); max-width: 500px; margin: auto; }
+    h2 { margin-top: 0; color: var(--line-green); font-size: 20px; text-align: center; }
+    .form-group { margin-bottom: 18px; }
+    label { display: block; font-size: 14px; font-weight: bold; margin-bottom: 6px; color: #666; }
+    .readonly-field { background-color: #f1f1f1; border: 1px solid #ddd; padding: 10px; border-radius: 8px; font-size: 15px; color: #555; }
+    select, textarea { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; font-size: 16px; box-sizing: border-box; }
+    .submit-btn { background-color: var(--line-green); color: white; border: none; padding: 16px; width: 100%; border-radius: 12px; font-size: 18px; font-weight: bold; margin-top: 10px; }
+    .loading { display: none; text-align: center; color: #888; margin-top: 10px; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h2>展示完成回報</h2>
+  <div class="form-group"><label>客戶名稱</label><div id="customerName" class="readonly-field">讀取中...</div></div>
+  <div class="form-group"><label>訂單編號</label><div id="orderId" class="readonly-field">讀取中...</div></div>
+  <hr style="border: 0.5px solid #eee; margin: 20px 0;">
+  <div class="form-group"><label>成交意願度</label>
+    <select id="intent"><option value="5">⭐⭐⭐⭐⭐ 必簽</option><option value="4">⭐⭐⭐⭐ 高</option><option value="3">⭐⭐⭐ 中</option><option value="2">⭐⭐ 低</option><option value="1">⭐ 沒救</option></select>
+  </div>
+  <div class="form-group"><label>展示結果</label>
+    <select id="result"><option value="直接成交">✅ 直接成交</option><option value="考慮中">⏳ 考慮中</option><option value="失敗">❌ 失敗</option></select>
+  </div>
+  <div class="form-group"><label>業務備註</label><textarea id="note" rows="4"></textarea></div>
+  <button class="submit-btn" onclick="submitData()">提交回報</button>
+  <div id="loadingMsg" class="loading">正在儲存資料...</div>
+</div>
+
+<script>
+  const MY_LIFF_ID = '2009100097-iaxmBNtB'; 
+  const GAS_WEB_APP_URL = '你的_GAS_部署網址'; // 重要：這裡填入你的 GAS 網址
+
+  async function main() {
+    await liff.init({ liffId: MY_LIFF_ID });
+    if (!liff.isLoggedIn()) { liff.login(); return; }
+    const params = new URLSearchParams(window.location.search);
+    document.getElementById('customerName').innerText = params.get('name') || '未知客戶';
+    document.getElementById('orderId').innerText = params.get('id') || '無編號';
+  }
+
+  async function submitData() {
+    const btn = document.querySelector('.submit-btn');
+    const loader = document.getElementById('loadingMsg');
+    const reportData = {
+      customerName: document.getElementById('customerName').innerText,
+      orderId: document.getElementById('orderId').innerText,
+      intent: document.getElementById('intent').value,
+      result: document.getElementById('result').value,
+      note: document.getElementById('note').value
+    };
+
+    btn.style.display = 'none';
+    loader.style.display = 'block';
+
+    // 改用 fetch 傳送資料到 GAS 的 doPost
+    fetch(GAS_WEB_APP_URL, {
+      method: 'POST',
+      body: JSON.stringify(reportData)
+    })
+    .then(async () => {
+      await liff.sendMessages([{
+        "type": "text",
+        "text": `📢 【展示回報】\n客戶：${reportData.customerName}\n結果：${reportData.result}\n意願：${reportData.intent}星`
+      }]);
+      liff.closeWindow();
+    })
+    .catch(err => {
+      alert('儲存失敗：' + err);
+      btn.style.display = 'block';
+      loader.style.display = 'none';
+    });
+  }
+  main();
+</script>
+</body>
+</html>
