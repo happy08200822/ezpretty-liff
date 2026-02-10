@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>💼 指派業務</title>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <style>
+    body { font-family: -apple-system, sans-serif; padding: 20px; background-color: #f8f9fa; }
+    .container { background: white; padding: 25px; border-radius: 12px; max-width: 500px; margin: auto; }
+    h2 { color: #00B900; text-align: center; margin-bottom: 20px; }
+    label { display: block; font-weight: bold; margin: 15px 0 5px; color: #333; }
+    input, select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
+    button { width: 100%; background: #00B900; color: white; border: none; padding: 15px; border-radius: 10px; font-size: 18px; margin-top: 30px; font-weight: bold; cursor: pointer; }
+    .readonly { background: #eee; color: #555; }
+    #loading { display:none; text-align:center; margin-top:20px; color: #666; }
+  </style>
+</head>
+<body>
+
+<div class="container" id="form">
+  <h2>💼 指派業務</h2>
+  
+  <label>店家名稱</label>
+  <input id="storeName" class="readonly" readonly>
+  
+  <label>群組邀請連結</label>
+  <input type="text" id="link" placeholder="請貼上 LINE 群組連結">
+  
+  <label>額外需求備註</label>
+  <input type="text" id="req" placeholder="無特別需求可填「無」">
+  
+  <label>指派給哪位業務？</label>
+  <select id="staff">
+    <option value="Kelvin">Kelvin</option>
+    <option value="David">David</option>
+    <option value="WT">WT</option>
+  </select>
+
+  <button onclick="submitData()">確認指派</button>
+</div>
+
+<div id="loading">正在傳送派單指令...</div>
+
+<script>
+  // ⚠️ 請換成你最新的 GAS 網址
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbzIKHpWcWj0bOhaQsx-OynY5FVVorMJvTNON5PBOywj1q-Nd5EylLCSl-zTlFW9Rb5U/exec';
+  const MY_LIFF_ID = '2009100097-iaxmBNtB';
+
+  async function main() {
+    await liff.init({ liffId: MY_LIFF_ID });
+    if (!liff.isLoggedIn()) { liff.login(); return; }
+    
+    const params = new URLSearchParams(window.location.search);
+    const store = decodeURIComponent(params.get('store') || "");
+    document.getElementById('storeName').value = store;
+  }
+
+  function submitData() {
+    const params = new URLSearchParams(window.location.search);
+    const linkVal = document.getElementById('link').value;
+    
+    if (!linkVal) { alert("請輸入群組連結！"); return; }
+
+    const data = {
+      type: 'dispatch', // 告訴 GAS 這是派單
+      key: params.get('key'),
+      city: decodeURIComponent(params.get('city') || ""),
+      shop: decodeURIComponent(params.get('store') || "").replace(decodeURIComponent(params.get('city')||""),"").trim(),
+      storeName: document.getElementById('storeName').value,
+      link: linkVal,
+      req: document.getElementById('req').value || "無",
+      staff: document.getElementById('staff').value
+    };
+
+    document.getElementById('form').style.display = 'none';
+    document.getElementById('loading').style.display = 'block';
+
+    fetch(GAS_URL, {
+      method: 'POST',
+      body: JSON.stringify(data),
+      mode: 'no-cors'
+    }).then(() => {
+      liff.sendMessages([{ type: 'text', text: "✅ 派單資料已送出" }])
+        .then(() => liff.closeWindow());
+    }).catch(err => {
+      alert("錯誤：" + err);
+      document.getElementById('form').style.display = 'block';
+      document.getElementById('loading').style.display = 'none';
+    });
+  }
+
+  main();
+</script>
+</body>
+</html>

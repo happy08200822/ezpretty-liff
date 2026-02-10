@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>✅ 展示回報</title>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <style>
+    body { font-family: -apple-system, sans-serif; padding: 20px; background-color: #f8f9fa; }
+    .container { background: white; padding: 25px; border-radius: 12px; max-width: 500px; margin: auto; }
+    h2 { color: #FFA500; text-align: center; margin-bottom: 20px; }
+    label { display: block; font-weight: bold; margin: 15px 0 5px; color: #333; }
+    input, select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
+    button { width: 100%; background: #FFA500; color: white; border: none; padding: 15px; border-radius: 10px; font-size: 18px; margin-top: 30px; font-weight: bold; cursor: pointer; }
+    .readonly { background: #eee; color: #555; }
+    #loading { display:none; text-align:center; margin-top:20px; color: #666; }
+  </style>
+</head>
+<body>
+
+<div class="container" id="form">
+  <h2>✅ 展示回報</h2>
+  
+  <label>店家名稱</label>
+  <input id="storeName" class="readonly" readonly>
+  
+  <label>意願度</label>
+  <select id="intent">
+    <option value="展示完，意願度高">展示完，意願度高</option>
+    <option value="展示完，意願度中">展示完，意願度中</option>
+    <option value="展示完，意願度低">展示完，意願度低</option>
+    <option value="拒絕">拒絕</option>
+  </select>
+
+  <label>展示結果</label>
+  <input type="text" id="result" placeholder="請輸入詳細結果...">
+
+  <button onclick="submitData()">提交回報</button>
+</div>
+
+<div id="loading">正在儲存回報紀錄...</div>
+
+<script>
+  // ⚠️ 請換成你最新的 GAS 網址
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbzIKHpWcWj0bOhaQsx-OynY5FVVorMJvTNON5PBOywj1q-Nd5EylLCSl-zTlFW9Rb5U/exec';
+  const MY_LIFF_ID = '2009100097-iaxmBNtB';
+
+  async function main() {
+    await liff.init({ liffId: MY_LIFF_ID });
+    if (!liff.isLoggedIn()) { liff.login(); return; }
+    
+    const params = new URLSearchParams(window.location.search);
+    const store = decodeURIComponent(params.get('store') || "");
+    document.getElementById('storeName').value = store;
+  }
+
+  function submitData() {
+    const resultVal = document.getElementById('result').value;
+    if (!resultVal) { alert("請輸入展示結果！"); return; }
+
+    liff.getProfile().then(profile => {
+      const data = {
+        type: 'report', // 告訴 GAS 這是回報
+        storeName: document.getElementById('storeName').value,
+        intent: document.getElementById('intent').value,
+        result: resultVal,
+        user: profile.displayName
+      };
+
+      document.getElementById('form').style.display = 'none';
+      document.getElementById('loading').style.display = 'block';
+
+      fetch(GAS_URL, {
+        method: 'POST',
+        body: JSON.stringify(data),
+        mode: 'no-cors'
+      }).then(() => {
+        liff.sendMessages([{ type: 'text', text: "✅ 回報已送出" }])
+          .then(() => liff.closeWindow());
+      }).catch(err => {
+        alert("錯誤：" + err);
+        document.getElementById('form').style.display = 'block';
+        document.getElementById('loading').style.display = 'none';
+      });
+    });
+  }
+
+  main();
+</script>
+</body>
+</html>
