@@ -69,20 +69,18 @@
     document.getElementById('form').style.display = 'none';
     document.getElementById('loading').style.display = 'block';
 
-    // 🌟 這裡改成你要的格式！
-    const userMsg = `✅ 【指派成功】\n📍 店家：${storeVal}\n👤 業務：${staffVal}\n📊 狀態：約展中`;
-
     fetch(GAS_URL, {
       method: 'POST',
       body: JSON.stringify(data),
       mode: 'no-cors'
     }).then(() => {
-      liff.sendMessages([{ type: 'text', text: userMsg }])
-        .then(() => liff.closeWindow());
+      // 🌟 修改：拿掉 liff.sendMessages，直接關閉視窗
+      // 這樣你自己不會發話，只會由機器人推播
+      liff.closeWindow();
     }).catch(err => {
-      alert("錯誤：" + err);
-      document.getElementById('form').style.display = 'block';
-      document.getElementById('loading').style.display = 'none';
+      // 發生錯誤也直接關閉，不卡畫面
+      console.error(err);
+      liff.closeWindow();
     });
   }
 
