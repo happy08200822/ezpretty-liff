@@ -92,6 +92,11 @@
     const staffVal = document.getElementById('staff').value;
     const storeVal = document.getElementById('storeName').value;
     const groupIdVal = document.getElementById('groupId').value; // 🌟 抓取 ID
+
+    // 🛑 加入這行！
+    alert("我現在抓到的 ID 是：" + groupIdVal);
+    
+    // ...
     
     if (!linkVal) { alert("請輸入群組連結！"); return; }
 
