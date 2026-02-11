@@ -1,58 +1,73 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ezPretty 系統導向中...</title>
+    <title>ezPretty 系統導向中</title>
     <style>
-        body { font-family: -apple-system, sans-serif; padding: 20px; background-color: #f0f0f0; word-break: break-all; }
-        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        h3 { color: #d9534f; }
-        code { background: #eee; padding: 4px; border-radius: 4px; color: #333; display: block; margin: 10px 0; }
-        .btn { display: inline-block; background: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 8px; margin-top: 10px; }
+        body { font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f4f7f9; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; color: #333; }
+        .card { background: white; padding: 30px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); max-width: 90%; width: 400px; text-align: center; }
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #007bff; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 20px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        h2 { margin: 0 0 15px; font-size: 20px; color: #007bff; }
+        .debug-box { background: #eee; padding: 12px; border-radius: 8px; text-align: left; font-size: 12px; font-family: monospace; word-break: break-all; margin-top: 20px; color: #666; }
+        .error-text { color: #d9534f; font-weight: bold; }
     </style>
-    <script>
-        window.onload = function() {
-            // 1. 抓取完整的網址參數
-            const currentUrl = window.location.href;
-            const urlParams = new URLSearchParams(window.location.search);
-            const page = urlParams.get('page');
-            
-            // 2. 顯示除錯資訊 (讓你知道網頁看到了什麼)
-            document.getElementById('debug-url').innerText = currentUrl;
-            document.getElementById('debug-page').innerText = page ? page : "(空值)";
-
-            // 3. 執行導向邏輯
-            const currentPath = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
-            const fullSearch = window.location.search;
-
-            if (page === 'dispatch') {
-                document.getElementById('status').innerHTML = "✅ 參數正確！正在前往派單頁...";
-                setTimeout(() => {
-                    window.location.href = currentPath + 'dispatch.html' + fullSearch;
-                }, 1500); // 延遲 1.5 秒讓你看到成功訊息
-            } else if (page === 'report') {
-                document.getElementById('status').innerHTML = "✅ 參數正確！正在前往回報頁...";
-                window.location.href = currentPath + 'report.html' + fullSearch;
-            } else {
-                document.getElementById('status').innerHTML = "❌ 參數遺失或錯誤，導向停止。";
-            }
-        };
-    </script>
 </head>
 <body>
-    <div class="card">
-        <h2 id="status">⏳ 系統檢查中...</h2>
-        <hr>
-        <p><strong>目前網址 (Current URL):</strong></p>
-        <code id="debug-url">讀取中...</code>
-        
-        <p><strong>偵測到的 Page 參數:</strong></p>
-        <code id="debug-page">讀取中...</code>
-        
-        <p style="color:#666; font-size: 12px; margin-top:20px;">
-            如果上面的 "Page 參數" 是 (空值)，代表參數在進入網頁前就被吃掉了。
-        </p>
+
+<div class="card">
+    <div id="loader" class="loader"></div>
+    <h2 id="status">系統檢查中...</h2>
+    <p id="message">正在為您導向正確的頁面，請稍候。</p>
+
+    <div class="debug-box">
+        <div><strong>目前網址:</strong> <span id="debug-url">讀取中...</span></div>
+        <div style="margin-top:8px;"><strong>偵測暗號:</strong> <span id="debug-page">讀取中...</span></div>
     </div>
+</div>
+
+<script>
+    window.onload = function() {
+        // --- 1. 強效參數抓取邏輯 ---
+        // 同時檢查 window.location.search (?之後) 與 window.location.hash (#之後)
+        // 有些手機 LINE 會把參數塞在 # 之後，這行能確保都抓得到
+        const rawSearch = window.location.search || (window.location.hash.includes('?') ? window.location.hash.substring(window.location.hash.indexOf('?')) : '');
+        const urlParams = new URLSearchParams(rawSearch);
+        const page = urlParams.get('page');
+        
+        // 顯示除錯資訊
+        document.getElementById('debug-url').innerText = window.location.href;
+        document.getElementById('debug-page').innerText = page ? page : "(無參數)";
+
+        // --- 2. 取得路徑與組合參數 ---
+        const currentPath = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
+        
+        // --- 3. 判斷跳轉 ---
+        if (page === 'dispatch') {
+            document.getElementById('status').innerText = "✅ 驗證成功";
+            document.getElementById('message').innerText = "正在開啟【派單系統】...";
+            // 使用 replace 確保使用者按返回鍵時不會卡在中轉站
+            setTimeout(() => {
+                window.location.replace(currentPath + 'dispatch.html' + rawSearch);
+            }, 500);
+        } 
+        else if (page === 'report') {
+            document.getElementById('status').innerText = "✅ 驗證成功";
+            document.getElementById('message').innerText = "正在開啟【任務回報】...";
+            setTimeout(() => {
+                window.location.replace(currentPath + 'report.html' + rawSearch);
+            }, 500);
+        } 
+        else {
+            // 沒有參數或參數錯誤
+            document.getElementById('loader').style.display = 'none';
+            document.getElementById('status').innerText = "❌ 導向失敗";
+            document.getElementById('status').className = "error-text";
+            document.getElementById('message').innerHTML = "請從 LINE 官方訊息中點擊正確連結。<br>若持續失敗，請聯絡系統管理員。";
+        }
+    };
+</script>
+
 </body>
 </html>
