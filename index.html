@@ -5,37 +5,54 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ezPretty 系統導向中...</title>
     <style>
-        body { font-family: -apple-system, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background-color: #f8f9fa; }
-        .error-card { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); text-align: center; max-width: 80%; }
-        .error-icon { font-size: 48px; margin-bottom: 10px; }
-        .error-msg { color: #d9534f; font-weight: bold; font-size: 18px; }
-        .loading-msg { color: #888; }
+        body { font-family: -apple-system, sans-serif; padding: 20px; background-color: #f0f0f0; word-break: break-all; }
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        h3 { color: #d9534f; }
+        code { background: #eee; padding: 4px; border-radius: 4px; color: #333; display: block; margin: 10px 0; }
+        .btn { display: inline-block; background: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 8px; margin-top: 10px; }
     </style>
     <script>
         window.onload = function() {
+            // 1. 抓取完整的網址參數
+            const currentUrl = window.location.href;
             const urlParams = new URLSearchParams(window.location.search);
             const page = urlParams.get('page');
+            
+            // 2. 顯示除錯資訊 (讓你知道網頁看到了什麼)
+            document.getElementById('debug-url').innerText = currentUrl;
+            document.getElementById('debug-page').innerText = page ? page : "(空值)";
+
+            // 3. 執行導向邏輯
             const currentPath = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
             const fullSearch = window.location.search;
 
             if (page === 'dispatch') {
-                window.location.href = currentPath + 'dispatch.html' + fullSearch;
+                document.getElementById('status').innerHTML = "✅ 參數正確！正在前往派單頁...";
+                setTimeout(() => {
+                    window.location.href = currentPath + 'dispatch.html' + fullSearch;
+                }, 1500); // 延遲 1.5 秒讓你看到成功訊息
             } else if (page === 'report') {
+                document.getElementById('status').innerHTML = "✅ 參數正確！正在前往回報頁...";
                 window.location.href = currentPath + 'report.html' + fullSearch;
             } else {
-                // 沒有符合的參數，顯示錯誤提示
-                document.getElementById('status-container').innerHTML = `
-                    <div class="error-icon">❌</div>
-                    <div class="error-msg">無效的訪問路徑</div>
-                    <p style="color:#666;">請從 LINE 官方訊息中點擊正確連結。</p>
-                `;
+                document.getElementById('status').innerHTML = "❌ 參數遺失或錯誤，導向停止。";
             }
         };
     </script>
 </head>
 <body>
-    <div id="status-container" class="error-card">
-        <p class="loading-msg">⏳ 系統導向中，請稍候...</p>
+    <div class="card">
+        <h2 id="status">⏳ 系統檢查中...</h2>
+        <hr>
+        <p><strong>目前網址 (Current URL):</strong></p>
+        <code id="debug-url">讀取中...</code>
+        
+        <p><strong>偵測到的 Page 參數:</strong></p>
+        <code id="debug-page">讀取中...</code>
+        
+        <p style="color:#666; font-size: 12px; margin-top:20px;">
+            如果上面的 "Page 參數" 是 (空值)，代表參數在進入網頁前就被吃掉了。
+        </p>
     </div>
 </body>
 </html>
