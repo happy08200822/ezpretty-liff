@@ -7,13 +7,15 @@
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <style>
     body { font-family: -apple-system, sans-serif; padding: 20px; background-color: #f8f9fa; }
-    .container { background: white; padding: 25px; border-radius: 12px; max-width: 500px; margin: auto; }
+    .container { background: white; padding: 25px; border-radius: 12px; max-width: 500px; margin: auto; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
     h2 { color: #FFA500; text-align: center; margin-bottom: 20px; }
     label { display: block; font-weight: bold; margin: 15px 0 5px; color: #333; }
-    input, select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
-    button { width: 100%; background: #FFA500; color: white; border: none; padding: 15px; border-radius: 10px; font-size: 18px; margin-top: 30px; font-weight: bold; cursor: pointer; }
+    input, select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; margin-bottom: 10px; }
+    input:focus, select:focus { outline: none; border-color: #FFA500; }
+    button { width: 100%; background: #FFA500; color: white; border: none; padding: 15px; border-radius: 10px; font-size: 18px; margin-top: 20px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+    button:active { background: #e69500; transform: translateY(2px); }
     .readonly { background: #eee; color: #555; }
-    #loading { display:none; text-align:center; margin-top:20px; color: #666; }
+    #loading { display:none; text-align:center; margin-top:20px; color: #666; font-weight: bold; }
   </style>
 </head>
 <body>
@@ -22,7 +24,7 @@
   <h2>✅ 展示回報</h2>
   
   <label>店家名稱</label>
-  <input id="storeName" class="readonly" readonly>
+  <input id="storeName" class="readonly" readonly value="讀取中...">
   
   <label>意願度</label>
   <select id="intent">
@@ -32,31 +34,36 @@
     <option value="拒絕">拒絕</option>
   </select>
 
-  <label>展示結果</label>
+  <label>展示結果 (心得備註)</label>
   <input type="text" id="result" placeholder="請輸入詳細結果...">
 
   <button onclick="submitData()">提交回報</button>
 </div>
 
-<div id="loading">正在儲存回報紀錄...</div>
+<div id="loading">🚀 正在儲存回報紀錄...</div>
 
 <script>
-  // ⚠️ 請換成你最新的 GAS 網址
   const GAS_URL = 'https://script.google.com/macros/s/AKfycbzIKHpWcWj0bOhaQsx-OynY5FVVorMJvTNON5PBOywj1q-Nd5EylLCSl-zTlFW9Rb5U/exec';
   const MY_LIFF_ID = '2009100097-iaxmBNtB';
+  let currentKey = ""; // 用來存網址傳來的 Key
 
   async function main() {
-    await liff.init({ liffId: MY_LIFF_ID });
-    if (!liff.isLoggedIn()) { liff.login(); return; }
-    
-    const params = new URLSearchParams(window.location.search);
-    const store = decodeURIComponent(params.get('store') || "");
-    document.getElementById('storeName').value = store;
+    try {
+      await liff.init({ liffId: MY_LIFF_ID });
+      const params = new URLSearchParams(window.location.search);
+      const store = decodeURIComponent(params.get('store') || "未指定店家");
+      currentKey = params.get('key') || ""; // 抓取 Key
+      
+      document.getElementById('storeName').value = store;
+    } catch (err) {
+      console.error("LIFF 初始化失敗", err);
+    }
   }
 
   function submitData() {
     const resultVal = document.getElementById('result').value;
     if (!resultVal) { alert("請輸入展示結果！"); return; }
+    if (!currentKey) { alert("缺少單號(Key)，無法送出回報！"); return; }
 
     liff.getProfile().then(profile => {
       const storeVal = document.getElementById('storeName').value;
@@ -64,17 +71,17 @@
       const user = profile.displayName;
 
       const data = {
-        type: 'report', // 告訴 GAS 這是回報
+        action: 'receiveReportData', // 對應 GAS 的分流名稱
+        key: currentKey,
         storeName: storeVal,
         intent: intentVal,
         result: resultVal,
-        user: user
+        staff: user
       };
 
       document.getElementById('form').style.display = 'none';
       document.getElementById('loading').style.display = 'block';
 
-      // 🌟 修正：改成你指定的完整訊息格式
       const userMsg = `🎊【 任務回報完成 】🎊\n━━━━━━━━━━━━━━\n📍 店家：${storeVal}\n👤 負責業務：${user}\n📊 意願：${intentVal}\n📝 結果：${resultVal}\n━━━━━━━━━━━━━━\n祝這單能順利成交！💰💪`;
 
       fetch(GAS_URL, {
@@ -82,14 +89,17 @@
         body: JSON.stringify(data),
         mode: 'no-cors'
       }).then(() => {
-        // 送出後顯示指定訊息並關閉
-        liff.sendMessages([{ type: 'text', text: userMsg }])
-          .then(() => liff.closeWindow());
+        if (liff.isInClient()) {
+          liff.sendMessages([{ type: 'text', text: userMsg }])
+            .then(() => liff.closeWindow());
+        } else {
+          alert("回報成功！");
+          window.close();
+        }
       }).catch(err => {
-        console.error(err);
-        // 發生錯誤時，為了不卡住畫面，依然嘗試發送訊息並關閉
-        liff.sendMessages([{ type: 'text', text: userMsg }])
-          .then(() => liff.closeWindow());
+        alert("網路錯誤，請稍後再試");
+        document.getElementById('form').style.display = 'block';
+        document.getElementById('loading').style.display = 'none';
       });
     });
   }
