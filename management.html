@@ -68,7 +68,7 @@
   // 1. 初始化讀取後端資料
   async function loadData() {
     // 這裡請替換為你的 GAS Web App URL
-    const gasUrl = "YOUR_GAS_WEB_APP_URL?action=getManagementList";
+    const gasUrl = "https://script.google.com/macros/s/AKfycbzIKHpWcWj0bOhaQsx-OynY5FVVorMJvTNON5PBOywj1q-Nd5EylLCSl-zTlFW9Rb5U/exec";
     try {
       const response = await fetch(gasUrl);
       allData = await response.json();
