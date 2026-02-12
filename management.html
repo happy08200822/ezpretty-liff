@@ -22,23 +22,23 @@
     .card-ice { border-top-color: #5D9CEC; } .card-stall { border-top-color: #FFCE54; }
     .card-hot { border-top-color: #ED5565; } .card-dead { border-top-color: #AAB2BD; }
 
-    /* 12 種細節標籤 */
     .detail-label { display: inline-block; background: #434A54; color: white; font-size: 11px; padding: 2px 10px; border-radius: 20px; margin-bottom: 10px; }
-
     .store-name { font-size: 19px; font-weight: bold; color: #333; margin-bottom: 8px; }
     .key-badge { font-size: 11px; color: #999; font-weight: normal; }
 
-    /* B-K 完整資訊區 */
+    /* 資訊區 */
     .info-box { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 13px; color: #555; background: #f8faff; padding: 12px; border-radius: 12px; border: 1px solid #eef2f7; }
     .info-item b { color: #333; }
     .full-row { grid-column: span 2; border-top: 1px solid #edf1f7; padding-top: 6px; margin-top: 4px; }
+    
+    /* L-Q 延伸紀錄專用樣式 */
+    .note-box { background: #fff; border: 1px dashed #d1d9e6; padding: 8px; border-radius: 6px; margin-top: 5px; color: #555; font-style: italic; }
 
     .status-tags { display: flex; gap: 6px; margin: 12px 0; flex-wrap: wrap; }
     .tag { font-size: 11px; padding: 3px 8px; border-radius: 6px; background: #e9ecef; }
 
-    /* 動作按鈕組 */
     .action-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 15px; }
-    .btn-tool { display: flex; flex-direction: column; align-items: center; padding: 8px 0; border-radius: 12px; border: 1px solid #ddd; font-size: 10px; font-weight: bold; text-decoration: none; color: #444; background: #fff; transition: 0.2s; }
+    .btn-tool { display: flex; flex-direction: column; align-items: center; padding: 8px 0; border-radius: 12px; border: 1px solid #ddd; font-size: 10px; font-weight: bold; text-decoration: none; color: #444; background: #fff; }
     .btn-tool i { font-size: 18px; margin-bottom: 2px; }
     .btn-call { background: #eafaf1; border-color: #2ecc71; color: #27ae60; }
     .btn-line { background: #ebf9f0; border-color: #06C755; color: #06C755; }
@@ -47,7 +47,7 @@
 <body>
 
   <div class="header-sticky">
-    <input type="text" class="search-input" id="searchInput" placeholder="🔍 搜尋店名、負責人或單號..." oninput="render()">
+    <input type="text" class="search-input" id="searchInput" placeholder="🔍 搜店名、負責人、需求、紀錄..." oninput="render()">
     <div class="filter-grid">
       <div class="filter-btn btn-ice active" id="f-ice" onclick="setFilter('ice')">🧊 冰封<span>全新名單</span></div>
       <div class="filter-btn btn-stall" id="f-stall" onclick="setFilter('stall')">⚡ 僵局<span>已加賴/不回</span></div>
@@ -64,38 +64,35 @@
   let allData = [];
   let currentFilter = 'ice';
 
-  // 1. 初始化讀取後端資料
   async function loadData() {
-    // 🌟 已加上 action 參數，確保 GAS 回傳 JSON 資料
     const gasUrl = "https://script.google.com/macros/s/AKfycbzIKHpWcWj0bOhaQsx-OynY5FVVorMJvTNON5PBOywj1q-Nd5EylLCSl-zTlFW9Rb5U/exec?action=getManagementList";
-    
     try {
       const response = await fetch(gasUrl);
       allData = await response.json();
       render();
     } catch (e) {
-      console.error(e);
       document.getElementById('storeList').innerHTML = `<div style="text-align:center; padding:20px; color:red;">載入失敗<br><small>${e.message}</small></div>`;
     }
   }
 
-  // 2. 渲染清單
   function render() {
     const list = document.getElementById('storeList');
-    const search = document.getElementById('searchInput').value.toLowerCase();
+    const search = document.getElementById('searchInput').value.trim().toLowerCase();
     
+    // 🌟 強化搜尋：若有輸入文字，則無視分類過濾器 (搜尋優先)
     const filtered = allData.filter(i => {
-      // 支援搜尋：店名、負責人、單號、地區
-      const matchSearch = i.name.toLowerCase().includes(search) || 
-                          i.boss.toLowerCase().includes(search) || 
-                          i.key.toLowerCase().includes(search) ||
-                          i.area.toLowerCase().includes(search);
-      const matchFilter = i.type === currentFilter;
-      return matchSearch && matchFilter;
+      const content = (i.name + i.boss + i.area + i.key + i.req + i.noteL + i.noteM + i.noteN).toLowerCase();
+      const matchSearch = content.includes(search);
+      
+      if (search !== "") {
+          return matchSearch; 
+      } else {
+          return matchSearch && i.type === currentFilter;
+      }
     });
 
     if (filtered.length === 0) {
-      list.innerHTML = '<div style="text-align:center; padding:50px; color:#999;">此分類暫無匹配名單</div>';
+      list.innerHTML = `<div style="text-align:center; padding:50px; color:#999;">${search ? '找不到符合關鍵字的店家' : '此分類暫無名單'}</div>`;
       return;
     }
 
@@ -109,11 +106,15 @@
         <div class="info-box">
           <div class="info-item"><b>來源:</b> ${item.source}</div>
           <div class="info-item"><b>填單日:</b> ${item.date}</div>
-          <div class="info-item"><b>產業:</b> ${item.industry}</div>
           <div class="info-item"><b>負責人:</b> ${item.boss}</div>
-          <div class="info-item"><b>Line ID:</b> ${item.lineId}</div>
           <div class="info-item"><b>電話:</b> ${item.phone}</div>
-          <div class="info-item full-row"><b>Email:</b> ${item.email}</div>
+          
+          ${(item.noteL || item.noteM || item.noteN) ? `
+            <div class="info-item full-row note-box">
+              <b>📝 延伸紀錄:</b> ${item.noteL} ${item.noteM} ${item.noteN}
+            </div>
+          ` : ''}
+
           <div class="info-item full-row" style="color:#d35400;"><b>填單需求:</b> ${item.req}</div>
         </div>
 
@@ -138,16 +139,17 @@
     currentFilter = t;
     document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
     document.getElementById('f-'+t).classList.add('active');
+    // 切換分類時清空搜尋，或是維持搜尋，這邊我設定為切換時清空，體驗較好
+    document.getElementById('searchInput').value = "";
     render();
   }
 
-  // 🌟 新增：按鈕點擊函式，避免報錯
   function openUpdate(key) {
-    alert("正在為您開啟單號 " + key + " 的進度更新視窗...\n(此功能即將完成)");
+    alert("正在開啟單號 " + key + " 的進度更新視窗...");
   }
 
   function openDispatch(key) {
-    alert("正在為您準備單號 " + key + " 的派單作業...\n(此功能將連動到 dispatch 頁面)");
+    alert("正在準備單號 " + key + " 的派單作業...");
   }
 
   window.onload = loadData;
