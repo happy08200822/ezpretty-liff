@@ -12,6 +12,8 @@
     .form-label { font-weight: bold; color: #333; }
     .btn-submit { width: 100%; padding: 12px; font-weight: bold; font-size: 18px; margin-top: 20px; }
     #loadingOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); z-index: 999; display: flex; align-items: center; justify-content: center; flex-direction: column; }
+    /* 優化歷史紀錄顯示的字體 */
+    pre { font-family: "Microsoft JhengHei", sans-serif; }
   </style>
 </head>
 <body>
@@ -29,7 +31,7 @@
     <form id="progressForm">
       
       <div class="mb-3">
-        <label class="form-label">1. 是否加 Line (L欄)</label>
+        <label class="form-label">1. 加 Line </label>
         <select id="addedLine" class="form-select">
           <option value="❌">❌ 否</option>
           <option value="✅">✅ 是</option>
@@ -37,7 +39,7 @@
       </div>
 
       <div class="mb-3">
-        <label class="form-label">2. 是否已讀 (M欄)</label>
+        <label class="form-label">2. 已讀 </label>
         <select id="isRead" class="form-select">
           <option value="❌">❌ 否</option>
           <option value="✅">✅ 是</option>
@@ -45,7 +47,7 @@
       </div>
 
       <div class="mb-3">
-        <label class="form-label">3. 是否撥電話過 (N欄)</label>
+        <label class="form-label">3. 打電話 </label>
         <select id="called" class="form-select">
           <option value="❌">❌ 否</option>
           <option value="✅">✅ 是</option>
@@ -53,7 +55,7 @@
       </div>
 
       <div class="mb-3">
-        <label class="form-label">4. 是否撥通 (O欄)</label>
+        <label class="form-label">4. 是否撥通 </label>
         <select id="connected" class="form-select">
           <option value="❌">❌ 否</option>
           <option value="✅">✅ 是</option>
@@ -61,16 +63,23 @@
       </div>
 
       <div class="mb-3">
-        <label class="form-label">5. 撥打次數 (P欄)</label>
-        <div class="input-group">
+        <label class="form-label">5. 撥打次數紀錄 </label>
+        <div class="input-group mb-2">
           <button class="btn btn-outline-secondary" type="button" onclick="adjustCount(-1)">-</button>
-          <input type="number" id="callCount" class="form-control text-center" value="0" readonly>
+          <input type="number" id="callCount" class="form-control text-center" value="0" readonly style="font-weight: bold; font-size: 1.2rem;">
           <button class="btn btn-outline-primary" type="button" onclick="adjustCount(1)">+</button>
         </div>
+        
+        <div class="card bg-light">
+          <div class="card-body p-2">
+            <small class="text-muted fw-bold">📜 詳細撥打時間：</small>
+            <pre id="historyDisplay" style="margin-bottom: 0; font-size: 0.85rem; color: #555; white-space: pre-wrap;">(讀取中...)</pre>
+          </div>
+        </div>
       </div>
-
+      
       <div class="mb-3">
-        <label class="form-label">6. 聯絡不到是否寄 Email (Q欄)</label>
+        <label class="form-label">6. 聯絡不到是否寄 Email </label>
         <select id="emailed" class="form-select">
           <option value="❌">❌ 否</option>
           <option value="✅">✅ 是</option>
@@ -83,10 +92,10 @@
 </div>
 
 <script>
-  // 🌟 請在此填入你的 GAS 部署網址
+  // 🌟 GAS 部署網址
   const GAS_URL = 'https://script.google.com/macros/s/AKfycbzIKHpWcWj0bOhaQsx-OynY5FVVorMJvTNON5PBOywj1q-Nd5EylLCSl-zTlFW9Rb5U/exec';
-  
-  // 🌟 請在此填入這個頁面的 LIFF ID
+   
+  // 🌟 LIFF ID
   const LIFF_ID = '2009117067-6y3yHx9o'; 
 
   let currentKey = "";
@@ -114,13 +123,25 @@
         if (data.error) {
           alert("讀取失敗：" + data.error);
         } else {
-          // 自動填入欄位
+          // 自動填入下拉選單
           document.getElementById('addedLine').value = data.addedLine;
           document.getElementById('isRead').value = data.isRead;
           document.getElementById('called').value = data.called;
           document.getElementById('connected').value = data.connected;
-          document.getElementById('callCount').value = data.callCount;
           document.getElementById('emailed').value = data.emailed;
+          
+          // 🌟 處理計數器與歷史紀錄
+          document.getElementById('callCount').value = data.callCount;
+
+          // 判斷是否為新格式的歷史紀錄
+          const historyEl = document.getElementById('historyDisplay');
+          if (data.rawHistory && data.rawHistory.includes("共撥打過")) {
+             // 如果是新格式，直接顯示
+             historyEl.innerText = data.rawHistory; 
+          } else {
+             // 如果是舊格式或空的，顯示提示
+             historyEl.innerText = data.rawHistory ? "(舊資料: " + data.rawHistory + ")" : "(尚無紀錄)";
+          }
         }
         // 關閉讀取遮罩
         document.getElementById('loadingOverlay').style.display = 'none';
@@ -143,6 +164,7 @@
 
   // 送出資料
   function submitData() {
+    // 開啟遮罩
     document.getElementById('loadingOverlay').innerHTML = '<div class="spinner-border text-light"></div><div class="mt-2 text-white">儲存中...</div>';
     document.getElementById('loadingOverlay').style.backgroundColor = "rgba(0,0,0,0.7)";
     document.getElementById('loadingOverlay').style.display = 'flex';
