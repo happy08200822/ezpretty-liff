@@ -7,45 +7,71 @@
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <style>
     body { font-family: -apple-system, sans-serif; padding: 20px; background-color: #f8f9fa; }
-    .container { background: white; padding: 25px; border-radius: 12px; max-width: 500px; margin: auto; }
+    .container { background: white; padding: 25px; border-radius: 12px; max-width: 500px; margin: auto; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
     h2 { color: #F7B500; text-align: center; margin-bottom: 20px; }
     label { display: block; font-weight: bold; margin: 15px 0 5px; color: #333; }
     input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
     button { width: 100%; background: #F7B500; color: white; border: none; padding: 15px; border-radius: 10px; font-size: 18px; margin-top: 30px; font-weight: bold; cursor: pointer; }
-    .readonly { background: #eee; color: #555; }
-    #loading { display:none; text-align:center; margin-top:20px; color: #666; }
+    button:active { background: #d99e00; }
+    .readonly { background: #eee; color: #555; cursor: not-allowed; }
+    #loading { display:none; text-align:center; margin-top:20px; color: #666; font-weight: bold; }
   </style>
 </head>
 <body>
 
 <div class="container" id="form">
   <h2>📅 設定展示時間</h2>
-  <label>店家名稱</label><input id="storeName" class="readonly" readonly>
-  <label>日期</label><input type="date" id="date">
-  <label>時間</label><input type="time" id="time">
+  <label>店家名稱</label>
+  <input id="storeName" class="readonly" readonly value="讀取中...">
+  
+  <label>日期</label>
+  <input type="date" id="date">
+  
+  <label>時間</label>
+  <input type="time" id="time">
+  
   <button onclick="submitData()">確認預約</button>
 </div>
 
-<div id="loading">正在同步行事曆...</div>
+<div id="loading">🚀 資料傳送中...</div>
 
 <script>
-  // ⚠️ 請換成你最新的 GAS 網址
+  // 🌟 GAS 網址
   const GAS_URL = 'https://script.google.com/macros/s/AKfycbzIKHpWcWj0bOhaQsx-OynY5FVVorMJvTNON5PBOywj1q-Nd5EylLCSl-zTlFW9Rb5U/exec';
-  const MY_LIFF_ID = '2009100097-iaxmBNtB';
+  const MY_LIFF_ID = '2009118016-b8TEz1K6';
 
-  async function main() {
-    await liff.init({ liffId: MY_LIFF_ID });
-    if (!liff.isLoggedIn()) { liff.login(); return; }
-    
+  // 1. 頁面載入時馬上執行 (不等 LIFF init，避免畫面空白)
+  window.onload = function() {
     const params = new URLSearchParams(window.location.search);
-    const store = decodeURIComponent(params.get('store') || "");
-    document.getElementById('storeName').value = store;
     
-    // 預設日期為明天
-    const tomorrow = new Date();
+    // A. 填寫店名 (直接抓 store 參數)
+    const store = params.get('store');
+    document.getElementById('storeName').value = store ? decodeURIComponent(store) : "無店家資料";
+
+    // B. 設定預設日期 (明天)
+    const now = new Date();
+    const tomorrow = new Date(now);
     tomorrow.setDate(tomorrow.getDate() + 1);
-    document.getElementById('date').valueAsDate = tomorrow;
+    
+    // 手動組裝 YYYY-MM-DD 避免時區問題
+    const yyyy = tomorrow.getFullYear();
+    const mm = String(tomorrow.getMonth() + 1).padStart(2, '0');
+    const dd = String(tomorrow.getDate()).padStart(2, '0');
+    document.getElementById('date').value = `${yyyy}-${mm}-${dd}`;
+    
+    // C. 設定時間
     document.getElementById('time').value = "14:00";
+    
+    // D. 初始化 LIFF (為了最後能關閉視窗)
+    initLiff();
+  };
+
+  async function initLiff() {
+    try {
+      await liff.init({ liffId: MY_LIFF_ID });
+    } catch (err) {
+      console.error('LIFF Init Error', err);
+    }
   }
 
   function submitData() {
@@ -54,57 +80,53 @@
     
     if (!dateVal || !timeVal) { alert("請選擇完整的日期與時間！"); return; }
 
-    const fullDateTime = `${dateVal}T${timeVal}`;
     const params = new URLSearchParams(window.location.search);
-    const staffName = decodeURIComponent(params.get('staff') || "未知業務");
-    const storeName = document.getElementById('storeName').value;
     
-    // 格式化日期時間 (例如：02/11 16:33)
-    const datePart = dateVal.substring(5).replace('-', '/');
-    const displayTime = `${datePart} ${timeVal}`;
+    // 🌟 格式化日期：2026/02/12 (四) 14:00
+    const d = new Date(dateVal);
+    const days = ['日', '一', '二', '三', '四', '五', '六'];
+    const displayTime = `${dateVal.replace(/-/g, '/')} (${days[d.getDay()]}) ${timeVal}`;
 
     const data = {
-      type: 'booking',
+      // 🚨 這裡一定要改！這才是我們新系統認識的暗號
+      action: 'receiveBookingData', 
+      
       key: params.get('key'),
-      city: decodeURIComponent(params.get('city') || ""),
-      shop: decodeURIComponent(params.get('store') || "").replace(decodeURIComponent(params.get('city')||""),"").trim(),
-      staff: staffName,
-      storeName: storeName,
-      datetime: fullDateTime
+      storeName: document.getElementById('storeName').value,
+      staff: decodeURIComponent(params.get('staff') || "業務"),
+      bookingTime: displayTime
     };
 
+    // 切換 Loading
     document.getElementById('form').style.display = 'none';
     document.getElementById('loading').style.display = 'block';
 
-    // 🌟 業務自己講話的內容
-    const userMsg = `✅ 【約展成功】\n📍 店家：${storeName}\n👤 業務：${staffName}\n📅 時間：${displayTime}`;
+    // 業務回報的訊息
+    const userMsg = `✅ 【約展成功】\n📍 店家：${data.storeName}\n👤 業務：${data.staff}\n📅 時間：${displayTime}`;
 
     fetch(GAS_URL, {
       method: 'POST',
+      mode: 'no-cors', // 避免跨域錯誤
       body: JSON.stringify(data)
     })
-    .then(response => response.text())
-    .then(text => {
-      if (text.includes("Success")) {
-        // ✅ 成功：業務自己發話
+    .then(() => {
+      // 成功後嘗試發送訊息並關閉
+      if (liff.isInClient()) {
         liff.sendMessages([{ type: 'text', text: userMsg }])
-          .then(() => liff.closeWindow());
-      } else if (text.includes("Conflict")) {
-        // ⚠️ 衝突：後端機器人已經推播卡片了，前端只要關閉就好
-        // alert("⚠️ 時間衝突，機器人已發送確認卡片到群組。");
-        liff.closeWindow();
+          .then(() => liff.closeWindow())
+          .catch(() => liff.closeWindow());
       } else {
-        alert("錯誤：" + text);
+        alert("預約成功！");
         liff.closeWindow();
       }
     })
     .catch(err => {
       console.error(err);
-      liff.closeWindow();
+      alert("傳送失敗，請檢查網路");
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('form').style.display = 'block';
     });
   }
-
-  main();
 </script>
 </body>
 </html>
