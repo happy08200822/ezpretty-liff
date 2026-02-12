@@ -12,10 +12,13 @@
 
     /* 4 大分類按鈕 */
     .filter-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-    .filter-btn { padding: 10px 5px; border-radius: 12px; border: none; font-weight: bold; color: white; text-align: center; font-size: 13px; cursor: pointer; transition: 0.2s; }
+    .filter-btn { padding: 8px 5px; border-radius: 12px; border: none; font-weight: bold; color: white; text-align: center; font-size: 13px; cursor: pointer; transition: 0.2s; display: flex; flex-direction: column; align-items: center; justify-content: center; }
     .btn-ice { background: #5D9CEC; } .btn-stall { background: #FFCE54; color: #656D78; }
     .btn-hot { background: #ED5565; } .btn-dead { background: #AAB2BD; }
     .filter-btn.active { box-shadow: 0 0 0 3px #434A54; transform: scale(0.98); }
+
+    /* 🌟 新增：單數小標籤樣式 */
+    .count-text { font-size: 11px; margin-top: 2px; opacity: 0.9; font-weight: normal; }
 
     /* 店家卡片 */
     .store-card { background: white; border-radius: 16px; padding: 16px; margin-bottom: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border-top: 6px solid #ccc; }
@@ -53,10 +56,18 @@
   <div class="header-sticky">
     <input type="text" class="search-input" id="searchInput" placeholder="🔍 搜店名、負責人、需求、紀錄..." oninput="render()">
     <div class="filter-grid">
-      <div class="filter-btn btn-ice active" id="f-ice" onclick="setFilter('ice')">🧊 冰封<span>全新名單</span></div>
-      <div class="filter-btn btn-stall" id="f-stall" onclick="setFilter('stall')">⚡ 僵局<span>進行中</span></div>
-      <div class="filter-btn btn-hot" id="f-hot" onclick="setFilter('hot')">🔥 熱度<span>已撥通</span></div>
-      <div class="filter-btn btn-dead" id="f-dead" onclick="setFilter('dead')">⚠️ 瀕死<span>招式用盡</span></div>
+      <div class="filter-btn btn-ice active" id="f-ice" onclick="setFilter('ice')">
+        🧊 冰封新名單 <span class="count-text" id="count-ice">(0 單)</span>
+      </div>
+      <div class="filter-btn btn-stall" id="f-stall" onclick="setFilter('stall')">
+        ⚡ 聯絡進行中 <span class="count-text" id="count-stall">(0 單)</span>
+      </div>
+      <div class="filter-btn btn-hot" id="f-hot" onclick="setFilter('hot')">
+        🔥 撥通追蹤中 <span class="count-text" id="count-hot">(0 單)</span>
+      </div>
+      <div class="filter-btn btn-dead" id="f-dead" onclick="setFilter('dead')">
+        ⚠️ 瀕死/已斷線 <span class="count-text" id="count-dead">(0 單)</span>
+      </div>
     </div>
   </div>
 
@@ -73,10 +84,26 @@
     try {
       const response = await fetch(gasUrl);
       allData = await response.json();
+      updateCategoryCounts(); // 🌟 讀取後立刻統計
       render();
     } catch (e) {
       document.getElementById('storeList').innerHTML = `<div style="text-align:center; padding:20px; color:red;">連線失敗<br><small>${e.message}</small></div>`;
     }
+  }
+
+  // 🌟 新增：計算四大分類單數的邏輯
+  function updateCategoryCounts() {
+    const counts = { ice: 0, stall: 0, hot: 0, dead: 0 };
+    allData.forEach(item => {
+      if(counts.hasOwnProperty(item.type)) {
+        counts[item.type]++;
+      }
+    });
+    // 更新到介面
+    document.getElementById('count-ice').innerText = `(${counts.ice} 單)`;
+    document.getElementById('count-stall').innerText = `(${counts.stall} 單)`;
+    document.getElementById('count-hot').innerText = `(${counts.hot} 單)`;
+    document.getElementById('count-dead').innerText = `(${counts.dead} 單)`;
   }
 
   function render() {
@@ -84,9 +111,9 @@
     const search = document.getElementById('searchInput').value.trim().toLowerCase();
     
     const filtered = allData.filter(i => {
-      // 全域搜尋包含：店名、負責人、地區、單號、需求、通話紀錄
       const content = (i.name + i.boss + i.area + i.key + i.req + i.rawP).toLowerCase();
       const matchSearch = content.includes(search);
+      // 如果有輸入搜尋文字，就跨分類搜尋；沒搜尋時才顯示當前按鈕分類
       return (search !== "") ? matchSearch : (matchSearch && i.type === currentFilter);
     });
 
