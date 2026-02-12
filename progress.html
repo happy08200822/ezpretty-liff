@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>更新聯絡進度</title>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body { background-color: #f4f7f6; padding: 20px; }
+    .card { border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    .form-label { font-weight: bold; color: #333; }
+    .btn-submit { width: 100%; padding: 12px; font-weight: bold; font-size: 18px; margin-top: 20px; }
+    #loadingOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); z-index: 999; display: flex; align-items: center; justify-content: center; flex-direction: column; }
+  </style>
+</head>
+<body>
+
+<div id="loadingOverlay">
+  <div class="spinner-border text-primary" role="status"></div>
+  <div class="mt-2 fw-bold text-secondary">正在讀取舊資料...</div>
+</div>
+
+<div class="container" style="max-width: 500px;">
+  <div class="card p-4">
+    <h4 class="text-center mb-3">📝 更新聯絡紀錄</h4>
+    <div id="displayStore" class="alert alert-info text-center fw-bold">...</div>
+
+    <form id="progressForm">
+      
+      <div class="mb-3">
+        <label class="form-label">1. 是否加 Line (L欄)</label>
+        <select id="addedLine" class="form-select">
+          <option value="❌">❌ 否</option>
+          <option value="✅">✅ 是</option>
+        </select>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">2. 是否已讀 (M欄)</label>
+        <select id="isRead" class="form-select">
+          <option value="❌">❌ 否</option>
+          <option value="✅">✅ 是</option>
+        </select>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">3. 是否撥電話過 (N欄)</label>
+        <select id="called" class="form-select">
+          <option value="❌">❌ 否</option>
+          <option value="✅">✅ 是</option>
+        </select>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">4. 是否撥通 (O欄)</label>
+        <select id="connected" class="form-select">
+          <option value="❌">❌ 否</option>
+          <option value="✅">✅ 是</option>
+        </select>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">5. 撥打次數 (P欄)</label>
+        <div class="input-group">
+          <button class="btn btn-outline-secondary" type="button" onclick="adjustCount(-1)">-</button>
+          <input type="number" id="callCount" class="form-control text-center" value="0" readonly>
+          <button class="btn btn-outline-primary" type="button" onclick="adjustCount(1)">+</button>
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">6. 聯絡不到是否寄 Email (Q欄)</label>
+        <select id="emailed" class="form-select">
+          <option value="❌">❌ 否</option>
+          <option value="✅">✅ 是</option>
+        </select>
+      </div>
+
+      <button type="button" onclick="submitData()" class="btn btn-primary btn-submit">💾 儲存更新</button>
+    </form>
+  </div>
+</div>
+
+<script>
+  // 🌟 請在此填入你的 GAS 部署網址
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbzIKHpWcWj0bOhaQsx-OynY5FVVorMJvTNON5PBOywj1q-Nd5EylLCSl-zTlFW9Rb5U/exec';
+  
+  // 🌟 請在此填入這個頁面的 LIFF ID
+  const LIFF_ID = '你的新LIFF_ID'; 
+
+  let currentKey = "";
+  let currentStore = "";
+
+  async function main() {
+    await liff.init({ liffId: LIFF_ID });
+    if (!liff.isLoggedIn()) { liff.login(); return; }
+
+    const params = new URLSearchParams(window.location.search);
+    currentKey = params.get('key');
+    currentStore = params.get('store');
+    
+    document.getElementById('displayStore').innerText = currentStore || "店家資料";
+
+    // 🚀 核心：初始化時，先去 GAS 抓舊資料
+    fetchDataFromGAS(currentKey);
+  }
+
+  // 從 GAS 讀取資料
+  function fetchDataFromGAS(key) {
+    fetch(`${GAS_URL}?action=getProgress&key=${key}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.error) {
+          alert("讀取失敗：" + data.error);
+        } else {
+          // 自動填入欄位
+          document.getElementById('addedLine').value = data.addedLine;
+          document.getElementById('isRead').value = data.isRead;
+          document.getElementById('called').value = data.called;
+          document.getElementById('connected').value = data.connected;
+          document.getElementById('callCount').value = data.callCount;
+          document.getElementById('emailed').value = data.emailed;
+        }
+        // 關閉讀取遮罩
+        document.getElementById('loadingOverlay').style.display = 'none';
+      })
+      .catch(err => {
+        console.error(err);
+        alert("連線錯誤，請稍後再試");
+        document.getElementById('loadingOverlay').style.display = 'none';
+      });
+  }
+
+  // 調整計數器
+  function adjustCount(delta) {
+    const input = document.getElementById('callCount');
+    let val = parseInt(input.value) || 0;
+    val += delta;
+    if (val < 0) val = 0;
+    input.value = val;
+  }
+
+  // 送出資料
+  function submitData() {
+    document.getElementById('loadingOverlay').innerHTML = '<div class="spinner-border text-light"></div><div class="mt-2 text-white">儲存中...</div>';
+    document.getElementById('loadingOverlay').style.backgroundColor = "rgba(0,0,0,0.7)";
+    document.getElementById('loadingOverlay').style.display = 'flex';
+
+    const data = {
+      action: 'receiveProgressData',
+      key: currentKey,
+      storeName: currentStore,
+      addedLine: document.getElementById('addedLine').value,
+      isRead: document.getElementById('isRead').value,
+      called: document.getElementById('called').value,
+      connected: document.getElementById('connected').value,
+      callCount: document.getElementById('callCount').value,
+      emailed: document.getElementById('emailed').value
+    };
+
+    fetch(GAS_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      body: JSON.stringify(data)
+    }).then(() => {
+      // 成功後關閉視窗
+      setTimeout(() => liff.closeWindow(), 500);
+    }).catch(err => {
+      alert("儲存失敗：" + err);
+      document.getElementById('loadingOverlay').style.display = 'none';
+    });
+  }
+
+  main();
+</script>
+</body>
+</html>
