@@ -18,11 +18,13 @@
     .filter-btn.active { box-shadow: 0 0 0 3px #434A54; transform: scale(0.98); }
 
     /* 店家卡片 */
-    .store-card { background: white; border-radius: 16px; padding: 16px; margin-bottom: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border-top: 6px solid #ccc; position: relative; }
+    .store-card { background: white; border-radius: 16px; padding: 16px; margin-bottom: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border-top: 6px solid #ccc; }
     .card-ice { border-top-color: #5D9CEC; } .card-stall { border-top-color: #FFCE54; }
     .card-hot { border-top-color: #ED5565; } .card-dead { border-top-color: #AAB2BD; }
 
-    .detail-label { display: inline-block; background: #434A54; color: white; font-size: 11px; padding: 2px 10px; border-radius: 20px; margin-bottom: 10px; }
+    /* 12種狀態精密標籤 */
+    .detail-label { display: inline-block; background: #434A54; color: white; font-size: 11px; padding: 3px 12px; border-radius: 20px; margin-bottom: 10px; }
+
     .store-name { font-size: 19px; font-weight: bold; color: #333; margin-bottom: 8px; }
     .key-badge { font-size: 11px; color: #999; font-weight: normal; }
 
@@ -31,15 +33,16 @@
     .info-item b { color: #333; }
     .full-row { grid-column: span 2; border-top: 1px solid #edf1f7; padding-top: 6px; margin-top: 4px; }
 
-    /* 6 大狀態進度標籤 (L-Q) */
+    /* 狀態標籤區 */
     .status-tags { display: flex; gap: 5px; margin: 12px 0; flex-wrap: wrap; }
-    .tag { font-size: 10px; padding: 3px 6px; border-radius: 6px; background: #e9ecef; border: 1px solid #dee2e6; color: #444; }
-    .tag-active { background: #e3f2fd; border-color: #90caf9; color: #1976d2; font-weight: bold; }
+    .tag { font-size: 10px; padding: 3px 6px; border-radius: 6px; background: #f1f3f5; border: 1px solid #dee2e6; color: #444; }
+    .tag-active { background: #e7f5ff; border-color: #a5d8ff; color: #1971c2; font-weight: bold; }
+    
+    /* 通話紀錄專用框 (P欄) */
+    .call-log-box { width: 100%; font-size: 11px; background: #fffdf0; padding: 8px; border-radius: 6px; border: 1px dashed #f6e05e; margin-top: 5px; color: #744210; }
 
-    /* 底部按鈕 */
     .action-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 15px; }
     .btn-tool { display: flex; flex-direction: column; align-items: center; padding: 8px 0; border-radius: 12px; border: 1px solid #ddd; font-size: 10px; font-weight: bold; text-decoration: none; color: #444; background: #fff; transition: 0.2s; }
-    .btn-tool:active { background: #f0f0f0; transform: scale(0.95); }
     .btn-tool i { font-size: 18px; margin-bottom: 2px; font-style: normal; }
     .btn-call { background: #eafaf1; border-color: #2ecc71; color: #27ae60; }
     .btn-line { background: #ebf9f0; border-color: #06C755; color: #06C755; }
@@ -48,7 +51,7 @@
 <body>
 
   <div class="header-sticky">
-    <input type="text" class="search-input" id="searchInput" placeholder="🔍 搜店名、負責人、需求、編號..." oninput="render()">
+    <input type="text" class="search-input" id="searchInput" placeholder="🔍 搜店名、負責人、需求、紀錄..." oninput="render()">
     <div class="filter-grid">
       <div class="filter-btn btn-ice active" id="f-ice" onclick="setFilter('ice')">🧊 冰封<span>全新名單</span></div>
       <div class="filter-btn btn-stall" id="f-stall" onclick="setFilter('stall')">⚡ 僵局<span>進行中</span></div>
@@ -65,7 +68,6 @@
   let allData = [];
   let currentFilter = 'ice';
 
-  // 1. 初始化讀取後端資料
   async function loadData() {
     const gasUrl = "https://script.google.com/macros/s/AKfycbzIKHpWcWj0bOhaQsx-OynY5FVVorMJvTNON5PBOywj1q-Nd5EylLCSl-zTlFW9Rb5U/exec?action=getManagementList";
     try {
@@ -77,46 +79,48 @@
     }
   }
 
-  // 2. 渲染清單
   function render() {
     const list = document.getElementById('storeList');
     const search = document.getElementById('searchInput').value.trim().toLowerCase();
     
-    // 🌟 全域搜尋邏輯：打字時無視按鈕分類
     const filtered = allData.filter(i => {
-      const content = (i.name + i.boss + i.area + i.key + i.req).toLowerCase();
+      // 全域搜尋包含：店名、負責人、地區、單號、需求、通話紀錄
+      const content = (i.name + i.boss + i.area + i.key + i.req + i.rawP).toLowerCase();
       const matchSearch = content.includes(search);
-      if (search !== "") return matchSearch;
-      return i.type === currentFilter;
+      return (search !== "") ? matchSearch : (matchSearch && i.type === currentFilter);
     });
 
     if (filtered.length === 0) {
-      list.innerHTML = `<div style="text-align:center; padding:50px; color:#999;">${search ? '找不到符合關鍵字的店家' : '此分類暫無名單'}</div>`;
+      list.innerHTML = `<div style="text-align:center; padding:50px; color:#999;">暫無符合名單</div>`;
       return;
     }
 
     list.innerHTML = filtered.map(item => `
       <div class="store-card card-${item.type}">
-        <div class="detail-label">📍 ${item.type === 'hot' ? '撥通追蹤' : item.type === 'ice' ? '全新待辦' : '聯絡僵局'}</div>
+        <div class="detail-label">📍 ${item.detailLabel}</div>
+        
         <div class="store-name">
-          [${item.area}] ${item.name} <span class="key-badge">#${item.key}</span>
+          ${item.area}${item.name} <span class="key-badge">#${item.key}</span>
         </div>
         
         <div class="info-box">
           <div class="info-item"><b>來源:</b> ${item.source}</div>
-          <div class="info-item"><b>填單日:</b> ${item.date}</div>
+          <div class="info-item"><b>日期:</b> ${item.date}</div>
           <div class="info-item"><b>負責人:</b> ${item.boss}</div>
           <div class="info-item"><b>電話:</b> ${item.phone}</div>
           <div class="info-item full-row" style="color:#d35400;"><b>需求:</b> ${item.req}</div>
         </div>
 
         <div class="status-tags">
-          <span class="tag ${item.lineStatus ? 'tag-active' : ''}">加Line: ${item.lineStatus ? '✅' : '❌'}</span>
-          <span class="tag ${item.readStatus ? 'tag-active' : ''}">已讀: ${item.readStatus ? '✅' : '❌'}</span>
-          <span class="tag ${item.callAttempt ? 'tag-active' : ''}">已打: ${item.callAttempt ? '✅' : '❌'}</span>
-          <span class="tag ${item.callSuccess ? 'tag-active' : ''}">撥通: ${item.callSuccess ? '✅' : '❌'}</span>
-          <span class="tag">次數: ${item.callCount}次</span>
-          <span class="tag ${item.emailSent ? 'tag-active' : ''}">Email: ${item.emailSent ? '✅' : '❌'}</span>
+          <span class="tag ${item.isL?'tag-active':''}">加Line: ${item.isL?'✅':'❌'}</span>
+          <span class="tag ${item.isM?'tag-active':''}">已讀: ${item.isM?'✅':'❌'}</span>
+          <span class="tag ${item.isN?'tag-active':''}">已打: ${item.isN?'✅':'❌'}</span>
+          <span class="tag ${item.isO?'tag-active':''}">撥通: ${item.isO?'✅':'❌'}</span>
+          <span class="tag ${item.isQ?'tag-active':''}">Email: ${item.isQ?'✅':'❌'}</span>
+          
+          <div class="call-log-box">
+             <b>📝 通話次數與紀錄:</b> ${item.rawP}
+          </div>
         </div>
 
         <div class="action-grid">
@@ -133,16 +137,16 @@
     currentFilter = t;
     document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
     document.getElementById('f-'+t).classList.add('active');
-    document.getElementById('searchInput').value = ""; // 切換時清空搜尋
+    document.getElementById('searchInput').value = ""; 
     render();
   }
 
   function openUpdate(key) {
-    alert("正在連線單號 " + key + " 的進度資料表...");
+    alert("單號 " + key + " 進度更新功能開發中...");
   }
 
   function openDispatch(key) {
-    alert("準備派發單號 " + key + " 給對應業務...");
+    alert("準備派發單號 " + key + "...");
   }
 
   window.onload = loadData;
