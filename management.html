@@ -18,7 +18,7 @@
     .filter-btn.active { box-shadow: 0 0 0 3px #434A54; transform: scale(0.98); }
 
     /* 店家卡片 */
-    .store-card { background: white; border-radius: 16px; padding: 16px; margin-bottom: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border-top: 6px solid #ccc; }
+    .store-card { background: white; border-radius: 16px; padding: 16px; margin-bottom: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border-top: 6px solid #ccc; position: relative; }
     .card-ice { border-top-color: #5D9CEC; } .card-stall { border-top-color: #FFCE54; }
     .card-hot { border-top-color: #ED5565; } .card-dead { border-top-color: #AAB2BD; }
 
@@ -30,16 +30,17 @@
     .info-box { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 13px; color: #555; background: #f8faff; padding: 12px; border-radius: 12px; border: 1px solid #eef2f7; }
     .info-item b { color: #333; }
     .full-row { grid-column: span 2; border-top: 1px solid #edf1f7; padding-top: 6px; margin-top: 4px; }
-    
-    /* L-Q 延伸紀錄專用樣式 */
-    .note-box { background: #fff; border: 1px dashed #d1d9e6; padding: 8px; border-radius: 6px; margin-top: 5px; color: #555; font-style: italic; }
 
-    .status-tags { display: flex; gap: 6px; margin: 12px 0; flex-wrap: wrap; }
-    .tag { font-size: 11px; padding: 3px 8px; border-radius: 6px; background: #e9ecef; }
+    /* 6 大狀態進度標籤 (L-Q) */
+    .status-tags { display: flex; gap: 5px; margin: 12px 0; flex-wrap: wrap; }
+    .tag { font-size: 10px; padding: 3px 6px; border-radius: 6px; background: #e9ecef; border: 1px solid #dee2e6; color: #444; }
+    .tag-active { background: #e3f2fd; border-color: #90caf9; color: #1976d2; font-weight: bold; }
 
+    /* 底部按鈕 */
     .action-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 15px; }
-    .btn-tool { display: flex; flex-direction: column; align-items: center; padding: 8px 0; border-radius: 12px; border: 1px solid #ddd; font-size: 10px; font-weight: bold; text-decoration: none; color: #444; background: #fff; }
-    .btn-tool i { font-size: 18px; margin-bottom: 2px; }
+    .btn-tool { display: flex; flex-direction: column; align-items: center; padding: 8px 0; border-radius: 12px; border: 1px solid #ddd; font-size: 10px; font-weight: bold; text-decoration: none; color: #444; background: #fff; transition: 0.2s; }
+    .btn-tool:active { background: #f0f0f0; transform: scale(0.95); }
+    .btn-tool i { font-size: 18px; margin-bottom: 2px; font-style: normal; }
     .btn-call { background: #eafaf1; border-color: #2ecc71; color: #27ae60; }
     .btn-line { background: #ebf9f0; border-color: #06C755; color: #06C755; }
   </style>
@@ -47,11 +48,11 @@
 <body>
 
   <div class="header-sticky">
-    <input type="text" class="search-input" id="searchInput" placeholder="🔍 搜店名、負責人、需求、紀錄..." oninput="render()">
+    <input type="text" class="search-input" id="searchInput" placeholder="🔍 搜店名、負責人、需求、編號..." oninput="render()">
     <div class="filter-grid">
       <div class="filter-btn btn-ice active" id="f-ice" onclick="setFilter('ice')">🧊 冰封<span>全新名單</span></div>
-      <div class="filter-btn btn-stall" id="f-stall" onclick="setFilter('stall')">⚡ 僵局<span>已加賴/不回</span></div>
-      <div class="filter-btn btn-hot" id="f-hot" onclick="setFilter('hot')">🔥 熱度<span>電話已通</span></div>
+      <div class="filter-btn btn-stall" id="f-stall" onclick="setFilter('stall')">⚡ 僵局<span>進行中</span></div>
+      <div class="filter-btn btn-hot" id="f-hot" onclick="setFilter('hot')">🔥 熱度<span>已撥通</span></div>
       <div class="filter-btn btn-dead" id="f-dead" onclick="setFilter('dead')">⚠️ 瀕死<span>招式用盡</span></div>
     </div>
   </div>
@@ -64,6 +65,7 @@
   let allData = [];
   let currentFilter = 'ice';
 
+  // 1. 初始化讀取後端資料
   async function loadData() {
     const gasUrl = "https://script.google.com/macros/s/AKfycbzIKHpWcWj0bOhaQsx-OynY5FVVorMJvTNON5PBOywj1q-Nd5EylLCSl-zTlFW9Rb5U/exec?action=getManagementList";
     try {
@@ -71,24 +73,21 @@
       allData = await response.json();
       render();
     } catch (e) {
-      document.getElementById('storeList').innerHTML = `<div style="text-align:center; padding:20px; color:red;">載入失敗<br><small>${e.message}</small></div>`;
+      document.getElementById('storeList').innerHTML = `<div style="text-align:center; padding:20px; color:red;">連線失敗<br><small>${e.message}</small></div>`;
     }
   }
 
+  // 2. 渲染清單
   function render() {
     const list = document.getElementById('storeList');
     const search = document.getElementById('searchInput').value.trim().toLowerCase();
     
-    // 🌟 強化搜尋：若有輸入文字，則無視分類過濾器 (搜尋優先)
+    // 🌟 全域搜尋邏輯：打字時無視按鈕分類
     const filtered = allData.filter(i => {
-      const content = (i.name + i.boss + i.area + i.key + i.req + i.noteL + i.noteM + i.noteN).toLowerCase();
+      const content = (i.name + i.boss + i.area + i.key + i.req).toLowerCase();
       const matchSearch = content.includes(search);
-      
-      if (search !== "") {
-          return matchSearch; 
-      } else {
-          return matchSearch && i.type === currentFilter;
-      }
+      if (search !== "") return matchSearch;
+      return i.type === currentFilter;
     });
 
     if (filtered.length === 0) {
@@ -98,7 +97,7 @@
 
     list.innerHTML = filtered.map(item => `
       <div class="store-card card-${item.type}">
-        <div class="detail-label">📍 ${item.detailLabel}</div>
+        <div class="detail-label">📍 ${item.type === 'hot' ? '撥通追蹤' : item.type === 'ice' ? '全新待辦' : '聯絡僵局'}</div>
         <div class="store-name">
           [${item.area}] ${item.name} <span class="key-badge">#${item.key}</span>
         </div>
@@ -108,21 +107,16 @@
           <div class="info-item"><b>填單日:</b> ${item.date}</div>
           <div class="info-item"><b>負責人:</b> ${item.boss}</div>
           <div class="info-item"><b>電話:</b> ${item.phone}</div>
-          
-          ${(item.noteL || item.noteM || item.noteN) ? `
-            <div class="info-item full-row note-box">
-              <b>📝 延伸紀錄:</b> ${item.noteL} ${item.noteM} ${item.noteN}
-            </div>
-          ` : ''}
-
-          <div class="info-item full-row" style="color:#d35400;"><b>填單需求:</b> ${item.req}</div>
+          <div class="info-item full-row" style="color:#d35400;"><b>需求:</b> ${item.req}</div>
         </div>
 
         <div class="status-tags">
-          <span class="tag">LINE: ${item.lineStatus ? '✅' : '❌'}</span>
-          <span class="tag">已讀: ${item.readStatus ? '✅' : '❌'}</span>
-          <span class="tag">通話: ${item.callCount}次</span>
-          <span class="tag">${item.emailSent ? '✉️ Email已寄' : '✉️ 未寄信'}</span>
+          <span class="tag ${item.lineStatus ? 'tag-active' : ''}">加Line: ${item.lineStatus ? '✅' : '❌'}</span>
+          <span class="tag ${item.readStatus ? 'tag-active' : ''}">已讀: ${item.readStatus ? '✅' : '❌'}</span>
+          <span class="tag ${item.callAttempt ? 'tag-active' : ''}">已打: ${item.callAttempt ? '✅' : '❌'}</span>
+          <span class="tag ${item.callSuccess ? 'tag-active' : ''}">撥通: ${item.callSuccess ? '✅' : '❌'}</span>
+          <span class="tag">次數: ${item.callCount}次</span>
+          <span class="tag ${item.emailSent ? 'tag-active' : ''}">Email: ${item.emailSent ? '✅' : '❌'}</span>
         </div>
 
         <div class="action-grid">
@@ -139,17 +133,16 @@
     currentFilter = t;
     document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
     document.getElementById('f-'+t).classList.add('active');
-    // 切換分類時清空搜尋，或是維持搜尋，這邊我設定為切換時清空，體驗較好
-    document.getElementById('searchInput').value = "";
+    document.getElementById('searchInput').value = ""; // 切換時清空搜尋
     render();
   }
 
   function openUpdate(key) {
-    alert("正在開啟單號 " + key + " 的進度更新視窗...");
+    alert("正在連線單號 " + key + " 的進度資料表...");
   }
 
   function openDispatch(key) {
-    alert("正在準備單號 " + key + " 的派單作業...");
+    alert("準備派發單號 " + key + " 給對應業務...");
   }
 
   window.onload = loadData;
