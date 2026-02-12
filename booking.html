@@ -10,20 +10,16 @@
     .container { background: white; padding: 25px; border-radius: 12px; max-width: 500px; margin: auto; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
     h2 { color: #F7B500; text-align: center; margin-bottom: 20px; }
     label { display: block; font-weight: bold; margin: 15px 0 5px; color: #333; }
-    input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
+    input, select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; margin-bottom: 10px; }
     
     button { width: 100%; background: #ccc; color: white; border: none; padding: 15px; border-radius: 10px; font-size: 18px; margin-top: 30px; font-weight: bold; cursor: not-allowed; transition: 0.2s; }
     button.active { background: #F7B500; cursor: pointer; }
-    button.active:active { background: #d99e00; }
     
-    /* 警告區塊 */
-    .warning-box { display: none; background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; padding: 15px; border-radius: 8px; margin-bottom: 20px; font-size: 0.95rem; line-height: 1.5; }
-    .warning-highlight { color: #d9534f; font-weight: bold; font-size: 1.1rem; display: block; margin-top: 5px; }
-    
+    .warning-box { display: none; background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; padding: 15px; border-radius: 8px; margin-bottom: 20px; font-size: 0.95rem; }
+    .warning-highlight { color: #d9534f; font-weight: bold; }
     .readonly { background: #eee; color: #555; cursor: not-allowed; }
+    #addressSection { display: none; } /* 預設隱藏地址欄位 */
     #loading { display:none; text-align:center; margin-top:20px; color: #666; font-weight: bold; }
-    
-    /* 同步遮罩 */
     #syncOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); display: flex; justify-content: center; align-items: center; z-index: 999; flex-direction: column; }
   </style>
 </head>
@@ -34,12 +30,11 @@
   <div>正在同步最新預約狀態...</div>
 </div>
 
-<div class="container" id="form" style="display:none;"> <h2 id="pageTitle">📅 設定展示時間</h2>
+<div class="container" id="form" style="display:none;"> 
+  <h2 id="pageTitle">📅 設定展示時間</h2>
   
   <div id="warningMsg" class="warning-box">
-    ⚠️ 注意：此店家目前已預約
-    <span id="oldTimeDisplay" class="warning-highlight"></span>
-    您確定要修改時間嗎？
+    ⚠️ 注意：此店家目前已預約 <span id="oldTimeDisplay" class="warning-highlight"></span>，確定要修改嗎？
   </div>
 
   <label>店家名稱</label>
@@ -50,7 +45,18 @@
   
   <label>時間</label>
   <input type="time" id="time">
-  
+
+  <label>展示方式</label>
+  <select id="method" onchange="toggleAddress()">
+    <option value="線上">線上展示 (Google Meet)</option>
+    <option value="現場">現場展示 (親訪門市)</option>
+  </select>
+
+  <div id="addressSection">
+    <label>現場地址</label>
+    <input type="text" id="address" placeholder="請輸入門市地址...">
+  </div>
+
   <button onclick="submitData()" id="submitBtn" disabled>確認預約</button>
 </div>
 
@@ -59,7 +65,6 @@
 <script>
   const GAS_URL = 'https://script.google.com/macros/s/AKfycbzIKHpWcWj0bOhaQsx-OynY5FVVorMJvTNON5PBOywj1q-Nd5EylLCSl-zTlFW9Rb5U/exec';
   const MY_LIFF_ID = '2009118016-b8TEz1K6';
-
   let isEditMode = false;
 
   window.onload = async function() {
@@ -67,54 +72,38 @@
     const key = params.get('key');
     const store = params.get('store');
     
-    // 1. 填寫基本資料
     document.getElementById('storeName').value = store ? decodeURIComponent(store) : "無店家資料";
 
-    // 2. 呼叫後端查詢最新狀態
     if (key) {
       try {
         const response = await fetch(`${GAS_URL}?action=getBookingStatus&key=${key}`);
         const result = await response.json();
-        
-        if (result.status === 'booked') {
-          enableEditMode(result.time);
-        } else {
-          enableNewMode();
-        }
-      } catch (e) {
-        console.error("同步失敗", e);
-        alert("無法同步最新狀態，將以新預約處理");
-        enableNewMode();
-      }
-    } else {
-      enableNewMode();
-    }
+        if (result.status === 'booked') enableEditMode(result.time);
+        else enableNewMode();
+      } catch (e) { enableNewMode(); }
+    } else { enableNewMode(); }
     
-    // 3. 顯示表單，隱藏遮罩
     document.getElementById('syncOverlay').style.display = 'none';
     document.getElementById('form').style.display = 'block';
     
-    // 4. 啟用按鈕
     const btn = document.getElementById('submitBtn');
     btn.disabled = false;
     btn.classList.add('active');
     btn.style.backgroundColor = isEditMode ? "#1E90FF" : "#F7B500";
-
     initLiff();
   };
 
+  function toggleAddress() {
+    const method = document.getElementById('method').value;
+    const addrSection = document.getElementById('addressSection');
+    addrSection.style.display = (method === '現場') ? 'block' : 'none';
+  }
+
   function enableNewMode() {
     isEditMode = false;
-    // 設定預設日期 (明天)
-    const now = new Date();
-    const tomorrow = new Date(now);
+    const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
-    
-    const yyyy = tomorrow.getFullYear();
-    const mm = String(tomorrow.getMonth() + 1).padStart(2, '0');
-    const dd = String(tomorrow.getDate()).padStart(2, '0');
-    
-    document.getElementById('date').value = `${yyyy}-${mm}-${dd}`;
+    document.getElementById('date').value = tomorrow.toISOString().split('T')[0];
     document.getElementById('time').value = "14:00";
   }
 
@@ -122,33 +111,26 @@
     isEditMode = true;
     document.getElementById('pageTitle').innerText = "🔄 修改展示時間";
     document.getElementById('submitBtn').innerText = "確認修改";
-    
     document.getElementById('warningMsg').style.display = 'block';
     document.getElementById('oldTimeDisplay').innerText = currentBooking;
-
-    // 解析舊時間 (2026/02/13 (五) 14:00)
     try {
       const datePart = currentBooking.split(' ')[0].replace(/\//g, '-'); 
       const timePart = currentBooking.split(' ').pop(); 
       document.getElementById('date').value = datePart;
       document.getElementById('time').value = timePart;
-    } catch (e) {
-      console.error("解析舊時間失敗", e);
-    }
+    } catch (e) {}
   }
 
-  async function initLiff() {
-    try { await liff.init({ liffId: MY_LIFF_ID }); } catch (err) {}
-  }
+  async function initLiff() { try { await liff.init({ liffId: MY_LIFF_ID }); } catch (err) {} }
 
   function submitData() {
-    const btn = document.getElementById('submitBtn');
-    if (btn.disabled) return;
-
     const dateVal = document.getElementById('date').value;
     const timeVal = document.getElementById('time').value;
+    const methodVal = document.getElementById('method').value;
+    const addressVal = document.getElementById('address').value;
     
-    if (!dateVal || !timeVal) { alert("請選擇完整的日期與時間！"); return; }
+    if (!dateVal || !timeVal) { alert("請填寫時間！"); return; }
+    if (methodVal === '現場' && !addressVal) { alert("請輸入現場地址！"); return; }
 
     const params = new URLSearchParams(window.location.search);
     const d = new Date(dateVal);
@@ -161,14 +143,17 @@
       storeName: document.getElementById('storeName').value,
       staff: decodeURIComponent(params.get('staff') || "業務"),
       bookingTime: displayTime,
-      rawDateTime: `${dateVal}T${timeVal}`
+      rawDateTime: `${dateVal}T${timeVal}`,
+      method: methodVal,
+      address: methodVal === '現場' ? addressVal : ""
     };
 
     document.getElementById('form').style.display = 'none';
     document.getElementById('loading').style.display = 'block';
 
     let userMsgHead = isEditMode ? "🔄 【修改時間回報】" : "✅ 【約展成功】";
-    const userMsg = `${userMsgHead}\n📍 店家：${data.storeName}\n👤 業務：${data.staff}\n📅 時間：${displayTime}`;
+    let addrText = methodVal === '現場' ? `\n📍 地址：${addressVal}` : "";
+    const userMsg = `${userMsgHead}\n📍 店家：${data.storeName}\n👤 業務：${data.staff}\n📅 時間：${displayTime}\n📺 方式：${methodVal}${addrText}`;
 
     fetch(GAS_URL, {
       method: 'POST',
@@ -177,19 +162,8 @@
     })
     .then(() => {
       if (liff.isInClient()) {
-        liff.sendMessages([{ type: 'text', text: userMsg }])
-          .then(() => liff.closeWindow())
-          .catch(() => liff.closeWindow());
-      } else {
-        alert("操作成功！");
-        liff.closeWindow();
-      }
-    })
-    .catch(err => {
-      console.error(err);
-      alert("失敗，請檢查網路");
-      document.getElementById('loading').style.display = 'none';
-      document.getElementById('form').style.display = 'block';
+        liff.sendMessages([{ type: 'text', text: userMsg }]).then(() => liff.closeWindow());
+      } else { alert("操作成功！"); window.close(); }
     });
   }
 </script>
