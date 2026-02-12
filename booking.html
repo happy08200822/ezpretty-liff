@@ -36,7 +36,7 @@
 <div id="loading">🚀 資料傳送中...</div>
 
 <script>
-  // 🌟 GAS 網址
+  // 🌟 GAS 網址 (請確認是否正確)
   const GAS_URL = 'https://script.google.com/macros/s/AKfycbzIKHpWcWj0bOhaQsx-OynY5FVVorMJvTNON5PBOywj1q-Nd5EylLCSl-zTlFW9Rb5U/exec';
   const MY_LIFF_ID = '2009118016-b8TEz1K6';
 
@@ -88,13 +88,16 @@
     const displayTime = `${dateVal.replace(/-/g, '/')} (${days[d.getDay()]}) ${timeVal}`;
 
     const data = {
-      // 🚨 這裡一定要改！這才是我們新系統認識的暗號
+      // 🚨 這裡必須是 receiveBookingData，對應 Main.gs 的分流
       action: 'receiveBookingData', 
       
       key: params.get('key'),
       storeName: document.getElementById('storeName').value,
       staff: decodeURIComponent(params.get('staff') || "業務"),
-      bookingTime: displayTime
+      bookingTime: displayTime,
+      
+      // 🌟 [補上] 這行很重要！後端行事曆是靠這個來設定時間的
+      rawDateTime: `${dateVal}T${timeVal}`
     };
 
     // 切換 Loading
