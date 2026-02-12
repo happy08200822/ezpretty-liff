@@ -12,22 +12,29 @@
     label { display: block; font-weight: bold; margin: 15px 0 5px; color: #333; }
     input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
     
-    /* 按鈕樣式 */
-    button { width: 100%; background: #F7B500; color: white; border: none; padding: 15px; border-radius: 10px; font-size: 18px; margin-top: 30px; font-weight: bold; cursor: pointer; transition: 0.2s; }
-    button:active { background: #d99e00; }
+    button { width: 100%; background: #ccc; color: white; border: none; padding: 15px; border-radius: 10px; font-size: 18px; margin-top: 30px; font-weight: bold; cursor: not-allowed; transition: 0.2s; }
+    button.active { background: #F7B500; cursor: pointer; }
+    button.active:active { background: #d99e00; }
     
-    /* 警告區塊樣式 */
+    /* 警告區塊 */
     .warning-box { display: none; background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; padding: 15px; border-radius: 8px; margin-bottom: 20px; font-size: 0.95rem; line-height: 1.5; }
     .warning-highlight { color: #d9534f; font-weight: bold; font-size: 1.1rem; display: block; margin-top: 5px; }
     
     .readonly { background: #eee; color: #555; cursor: not-allowed; }
     #loading { display:none; text-align:center; margin-top:20px; color: #666; font-weight: bold; }
+    
+    /* 同步遮罩 */
+    #syncOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); display: flex; justify-content: center; align-items: center; z-index: 999; flex-direction: column; }
   </style>
 </head>
 <body>
 
-<div class="container" id="form">
-  <h2 id="pageTitle">📅 設定展示時間</h2>
+<div id="syncOverlay">
+  <div style="font-size: 24px; margin-bottom: 10px;">🔄</div>
+  <div>正在同步最新預約狀態...</div>
+</div>
+
+<div class="container" id="form" style="display:none;"> <h2 id="pageTitle">📅 設定展示時間</h2>
   
   <div id="warningMsg" class="warning-box">
     ⚠️ 注意：此店家目前已預約
@@ -44,7 +51,7 @@
   <label>時間</label>
   <input type="time" id="time">
   
-  <button onclick="submitData()" id="submitBtn">確認預約</button>
+  <button onclick="submitData()" id="submitBtn" disabled>確認預約</button>
 </div>
 
 <div id="loading">🚀 資料傳送中...</div>
@@ -53,66 +60,97 @@
   const GAS_URL = 'https://script.google.com/macros/s/AKfycbzIKHpWcWj0bOhaQsx-OynY5FVVorMJvTNON5PBOywj1q-Nd5EylLCSl-zTlFW9Rb5U/exec';
   const MY_LIFF_ID = '2009118016-b8TEz1K6';
 
-  let isEditMode = false; // 判斷是否為修改模式
+  let isEditMode = false;
 
-  window.onload = function() {
+  window.onload = async function() {
     const params = new URLSearchParams(window.location.search);
-    
-    // 1. 填店名
+    const key = params.get('key');
     const store = params.get('store');
+    
+    // 1. 填寫基本資料
     document.getElementById('storeName').value = store ? decodeURIComponent(store) : "無店家資料";
 
-    // 2. 🌟 核心邏輯：檢查是否有舊預約 (current 參數)
-    const current = params.get('current') ? decodeURIComponent(params.get('current')) : "";
-    
-    if (current && current.length > 5) {
-      // --- A. 修改模式 (有舊資料) ---
-      isEditMode = true;
-      document.getElementById('pageTitle').innerText = "🔄 修改展示時間";
-      document.getElementById('submitBtn').innerText = "確認修改";
-      document.getElementById('submitBtn').style.backgroundColor = "#1E90FF"; // 藍色按鈕區隔
-      
-      // 顯示紅色警告
-      document.getElementById('warningMsg').style.display = 'block';
-      document.getElementById('oldTimeDisplay').innerText = current;
-
-      // 嘗試解析舊時間填入 (假設格式：2026/02/13 (五) 14:00)
+    // 2. 呼叫後端查詢最新狀態
+    if (key) {
       try {
-        // 拆解日期與時間
-        // 取出前面的日期部分 2026/02/13
-        const datePart = current.split(' ')[0].replace(/\//g, '-'); 
-        // 取出最後面的時間部分 14:00
-        const timePart = current.split(' ').pop(); 
-
-        document.getElementById('date').value = datePart;
-        document.getElementById('time').value = timePart;
+        const response = await fetch(`${GAS_URL}?action=getBookingStatus&key=${key}`);
+        const result = await response.json();
+        
+        if (result.status === 'booked') {
+          enableEditMode(result.time);
+        } else {
+          enableNewMode();
+        }
       } catch (e) {
-        console.error("解析舊時間失敗", e);
+        console.error("同步失敗", e);
+        alert("無法同步最新狀態，將以新預約處理");
+        enableNewMode();
       }
-
     } else {
-      // --- B. 新增模式 (無舊資料) ---
-      // 按照你的需求：如果是新單，日期時間顯示「空白」讓業務自己選
-      document.getElementById('date').value = ""; 
-      document.getElementById('time').value = "";
+      enableNewMode();
     }
+    
+    // 3. 顯示表單，隱藏遮罩
+    document.getElementById('syncOverlay').style.display = 'none';
+    document.getElementById('form').style.display = 'block';
+    
+    // 4. 啟用按鈕
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = false;
+    btn.classList.add('active');
+    btn.style.backgroundColor = isEditMode ? "#1E90FF" : "#F7B500";
 
     initLiff();
   };
+
+  function enableNewMode() {
+    isEditMode = false;
+    // 設定預設日期 (明天)
+    const now = new Date();
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    const yyyy = tomorrow.getFullYear();
+    const mm = String(tomorrow.getMonth() + 1).padStart(2, '0');
+    const dd = String(tomorrow.getDate()).padStart(2, '0');
+    
+    document.getElementById('date').value = `${yyyy}-${mm}-${dd}`;
+    document.getElementById('time').value = "14:00";
+  }
+
+  function enableEditMode(currentBooking) {
+    isEditMode = true;
+    document.getElementById('pageTitle').innerText = "🔄 修改展示時間";
+    document.getElementById('submitBtn').innerText = "確認修改";
+    
+    document.getElementById('warningMsg').style.display = 'block';
+    document.getElementById('oldTimeDisplay').innerText = currentBooking;
+
+    // 解析舊時間 (2026/02/13 (五) 14:00)
+    try {
+      const datePart = currentBooking.split(' ')[0].replace(/\//g, '-'); 
+      const timePart = currentBooking.split(' ').pop(); 
+      document.getElementById('date').value = datePart;
+      document.getElementById('time').value = timePart;
+    } catch (e) {
+      console.error("解析舊時間失敗", e);
+    }
+  }
 
   async function initLiff() {
     try { await liff.init({ liffId: MY_LIFF_ID }); } catch (err) {}
   }
 
   function submitData() {
+    const btn = document.getElementById('submitBtn');
+    if (btn.disabled) return;
+
     const dateVal = document.getElementById('date').value;
     const timeVal = document.getElementById('time').value;
     
     if (!dateVal || !timeVal) { alert("請選擇完整的日期與時間！"); return; }
 
     const params = new URLSearchParams(window.location.search);
-    
-    // 格式化：2026/02/12 (四) 14:00
     const d = new Date(dateVal);
     const days = ['日', '一', '二', '三', '四', '五', '六'];
     const displayTime = `${dateVal.replace(/-/g, '/')} (${days[d.getDay()]}) ${timeVal}`;
@@ -129,7 +167,6 @@
     document.getElementById('form').style.display = 'none';
     document.getElementById('loading').style.display = 'block';
 
-    // 🌟 判斷業務講的話
     let userMsgHead = isEditMode ? "🔄 【修改時間回報】" : "✅ 【約展成功】";
     const userMsg = `${userMsgHead}\n📍 店家：${data.storeName}\n👤 業務：${data.staff}\n📅 時間：${displayTime}`;
 
