@@ -6,67 +6,199 @@
   <title>ezPretty 開發戰情室</title>
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <style>
-    body { font-family: -apple-system, "Noto Sans TC", sans-serif; background: #f4f6f9; padding: 10px; margin: 0; }
-    .header-sticky { position: sticky; top: 0; background: #f4f6f9; z-index: 100; padding-bottom: 10px; }
-    .search-input { width: 100%; padding: 12px 20px; border-radius: 25px; border: none; box-sizing: border-box; font-size: 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 12px; }
+    body { font-family: -apple-system, "Noto Sans TC", sans-serif; background: #f4f6f9; padding: 10px; margin: 0; padding-bottom: 80px; }
+    .header-sticky { position: sticky; top: 0; background: #f4f6f9; z-index: 100; padding-bottom: 5px; }
+    
+    /* 控制面板 */
+    .control-panel { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
+    .control-row { display: flex; gap: 8px; }
+
+    .custom-select {
+      padding: 8px 4px;
+      border-radius: 20px;
+      border: none;
+      background: white;
+      font-size: 13px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+      appearance: none;
+      text-align: center;
+      font-weight: bold;
+      color: #555;
+    }
+
+    .flex-1 { flex: 1; }
+    .sel-status { flex: 1.5; text-align: left; padding-left: 12px; }
+    
+    .search-input { 
+      flex: 1; 
+      padding: 8px 15px;
+      border-radius: 20px; 
+      border: none; 
+      box-sizing: border-box; 
+      font-size: 14px; 
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05); 
+      outline: none;
+    }
 
     /* 4 大分類按鈕 */
-    .filter-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-    .filter-btn { padding: 8px 5px; border-radius: 12px; border: none; font-weight: bold; color: white; text-align: center; font-size: 13px; cursor: pointer; transition: 0.2s; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .filter-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
+    .filter-btn { 
+      padding: 6px 2px;
+      border-radius: 10px; 
+      border: none; 
+      font-weight: bold; 
+      color: white; 
+      text-align: center; 
+      font-size: 11px;
+      cursor: pointer; 
+      transition: 0.2s; 
+      display: flex; 
+      flex-direction: column; 
+      align-items: center; 
+      justify-content: center; 
+      min-height: 42px;
+    }
     .btn-ice { background: #5D9CEC; } .btn-stall { background: #FFCE54; color: #656D78; }
     .btn-hot { background: #ED5565; } .btn-dead { background: #AAB2BD; }
-    .filter-btn.active { box-shadow: 0 0 0 3px #434A54; transform: scale(0.98); }
+    .filter-btn.active { box-shadow: 0 0 0 2px #434A54; transform: scale(0.98); }
 
-    /* 🌟 新增：單數小標籤樣式 */
-    .count-text { font-size: 11px; margin-top: 2px; opacity: 0.9; font-weight: normal; }
+    .count-text { 
+      font-size: 10px; 
+      margin-top: 1px; 
+      opacity: 0.9; 
+      font-weight: normal; 
+      background: rgba(0,0,0,0.1);
+      padding: 0 4px;
+      border-radius: 4px;
+    }
 
-    /* 店家卡片 */
-    .store-card { background: white; border-radius: 16px; padding: 16px; margin-bottom: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border-top: 6px solid #ccc; }
+    /* 卡片樣式 */
+    .store-card { position: relative; background: white; border-radius: 16px; padding: 16px; margin-bottom: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border-top: 6px solid #ccc; }
     .card-ice { border-top-color: #5D9CEC; } .card-stall { border-top-color: #FFCE54; }
     .card-hot { border-top-color: #ED5565; } .card-dead { border-top-color: #AAB2BD; }
 
-    /* 12種狀態精密標籤 */
-    .detail-label { display: inline-block; background: #434A54; color: white; font-size: 11px; padding: 3px 12px; border-radius: 20px; margin-bottom: 10px; }
+    .top-right-badge {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        text-align: right;
+        font-size: 11px;
+        color: #888;
+        line-height: 1.4;
+    }
+    .badge-source { 
+        font-weight: bold; 
+        padding: 2px 6px; 
+        border-radius: 4px; 
+        margin-bottom: 3px; 
+        display: inline-block;
+        color: #fff; 
+        box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
 
-    .store-name { font-size: 19px; font-weight: bold; color: #333; margin-bottom: 8px; }
+    .detail-label { display: inline-block; background: #434A54; color: white; font-size: 11px; padding: 3px 12px; border-radius: 20px; margin-bottom: 8px; }
+    
+    /* 🌟 店名樣式 (含產業別) */
+    .store-name { font-size: 18px; font-weight: bold; color: #333; margin-bottom: 8px; padding-right: 80px; line-height: 1.4; }
+    .industry-text { font-size: 0.9em; color: #555; font-weight: normal; margin-right: 4px; }
     .key-badge { font-size: 11px; color: #999; font-weight: normal; }
 
-    /* 資訊區 */
-    .info-box { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 13px; color: #555; background: #f8faff; padding: 12px; border-radius: 12px; border: 1px solid #eef2f7; }
-    .info-item b { color: #333; }
-    .full-row { grid-column: span 2; border-top: 1px solid #edf1f7; padding-top: 6px; margin-top: 4px; }
+    .info-box { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: #555; background: #f8faff; padding: 10px; border-radius: 12px; border: 1px solid #eef2f7; }
+    .info-item b { color: #333; margin-right: 5px; }
+    .req-text { color: #d35400; font-weight: bold; border-top: 1px dashed #ddd; padding-top: 4px; margin-top: 2px; }
 
-    /* 狀態標籤區 */
-    .status-tags { display: flex; gap: 5px; margin: 12px 0; flex-wrap: wrap; }
-    .tag { font-size: 10px; padding: 3px 6px; border-radius: 6px; background: #f1f3f5; border: 1px solid #dee2e6; color: #444; }
+    .status-tags { display: flex; gap: 4px; margin: 10px 0; flex-wrap: wrap; }
+    .tag { font-size: 10px; padding: 2px 5px; border-radius: 4px; background: #f1f3f5; border: 1px solid #dee2e6; color: #444; }
     .tag-active { background: #e7f5ff; border-color: #a5d8ff; color: #1971c2; font-weight: bold; }
     
-    /* 通話紀錄專用框 (P欄) */
-    .call-log-box { width: 100%; font-size: 11px; background: #fffdf0; padding: 8px; border-radius: 6px; border: 1px dashed #f6e05e; margin-top: 5px; color: #744210; }
+    .call-log-box { width: 100%; font-size: 11px; background: #fffdf0; padding: 6px; border-radius: 6px; border: 1px dashed #f6e05e; margin-top: 4px; color: #744210; }
 
-    .action-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 15px; }
-    .btn-tool { display: flex; flex-direction: column; align-items: center; padding: 8px 0; border-radius: 12px; border: 1px solid #ddd; font-size: 10px; font-weight: bold; text-decoration: none; color: #444; background: #fff; transition: 0.2s; }
-    .btn-tool i { font-size: 18px; margin-bottom: 2px; font-style: normal; }
-    .btn-call { background: #eafaf1; border-color: #2ecc71; color: #27ae60; }
+    /* 6個按鈕 (3x2) */
+    .action-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin-top: 10px; }
+    .btn-tool { display: flex; flex-direction: row; justify-content: center; align-items: center; padding: 6px 0; border-radius: 8px; border: 1px solid #ddd; font-size: 11px; font-weight: bold; text-decoration: none; color: #444; background: #fff; transition: 0.2s; gap: 4px; }
+    .btn-tool i { font-size: 14px; margin-bottom: 0; font-style: normal; }
+    
     .btn-line { background: #ebf9f0; border-color: #06C755; color: #06C755; }
+    .btn-call { background: #e0f7fa; border-color: #00acc1; color: #00838f; }
+    .btn-email { background: #fce8e6; border-color: #ea4335; color: #c0392b; }
+    .btn-map { background: #e8f0fe; border-color: #4285F4; color: #4285F4; }
+
+    /* 懸浮按鈕 */
+    .fab-switch {
+      position: fixed;
+      bottom: 25px;
+      right: 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 12px 24px;
+      border-radius: 50px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+      font-size: 14px;
+      font-weight: bold;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      z-index: 1000;
+      transition: transform 0.2s;
+    }
+    .fab-switch:active { transform: scale(0.95); }
+    .fab-switch i { font-style: normal; font-size: 18px; }
   </style>
 </head>
 <body>
 
   <div class="header-sticky">
-    <input type="text" class="search-input" id="searchInput" placeholder="🔍 搜店名、負責人、需求、紀錄..." oninput="render()">
+    
+    <div class="control-panel">
+      <div class="control-row">
+        <select id="dateSelect" class="custom-select flex-1" onchange="updateAllCounts(); render()">
+          <option value="all">📅 日期</option>
+        </select>
+        
+        <select id="areaSelect" class="custom-select flex-1" onchange="updateAllCounts(); render()">
+          <option value="all">🏙️ 地區</option>
+        </select>
+      </div>
+
+      <div class="control-row">
+        <select id="detailSelect" class="custom-select sel-status" onchange="render()">
+          <option value="all">🏷️ 所有狀態</option>
+          <optgroup label="🔥 已撥通 (Hot)">
+              <option value="溝通順暢">🔥 溝通順暢</option>
+              <option value="敷衍應付">🔥 敷衍應付</option>
+              <option value="傳統開發">🔥 傳統開發</option>
+          </optgroup>
+          <optgroup label="⚡ 數位僵局 (Stall)">
+              <option value="門市忙碌">⚡ 門市忙碌</option>
+              <option value="數位裝死">⚡ 數位裝死</option>
+              <option value="幽靈封鎖">⚡ 幽靈封鎖</option>
+              <option value="數位待機">⚡ 數位待機</option>
+              <option value="傳統僵局">⚡ 傳統僵局</option>
+              <option value="郵件追蹤">⚡ 郵件追蹤</option>
+          </optgroup>
+          <optgroup label="🧊/⚠️ 特殊狀態">
+              <option value="冰封新名單">🧊 冰封名單</option>
+              <option value="瀕死名單">⚠️ 瀕死名單</option>
+          </optgroup>
+        </select>
+
+        <input type="text" class="search-input" id="searchInput" placeholder="🔍 搜店名、負責人、電話..." oninput="render()">
+      </div>
+    </div>
+
     <div class="filter-grid">
       <div class="filter-btn btn-ice active" id="f-ice" onclick="setFilter('ice')">
-        🧊 冰封新名單 <span class="count-text" id="count-ice">(0 單)</span>
+        🧊 冰封 <span class="count-text" id="count-ice">0</span>
       </div>
       <div class="filter-btn btn-stall" id="f-stall" onclick="setFilter('stall')">
-        ⚡ 聯絡進行中 <span class="count-text" id="count-stall">(0 單)</span>
+        ⚡ 進行 <span class="count-text" id="count-stall">0</span>
       </div>
       <div class="filter-btn btn-hot" id="f-hot" onclick="setFilter('hot')">
-        🔥 撥通追蹤中 <span class="count-text" id="count-hot">(0 單)</span>
+        🔥 追蹤 <span class="count-text" id="count-hot">0</span>
       </div>
       <div class="filter-btn btn-dead" id="f-dead" onclick="setFilter('dead')">
-        ⚠️ 瀕死/已斷線 <span class="count-text" id="count-dead">(0 單)</span>
+        ⚠️ 瀕死 <span class="count-text" id="count-dead">0</span>
       </div>
     </div>
   </div>
@@ -74,6 +206,10 @@
   <div id="storeList">
     <div style="text-align:center; padding:50px; color:#999;">名單載入中...</div>
   </div>
+
+  <a href="https://liff.line.me/YOUR_BACKEND_LIFF_ID" class="fab-switch">
+    🎯 前往後段 <i>→</i>
+  </a>
 
 <script>
   let allData = [];
@@ -83,59 +219,198 @@
     const gasUrl = "https://script.google.com/macros/s/AKfycbzIKHpWcWj0bOhaQsx-OynY5FVVorMJvTNON5PBOywj1q-Nd5EylLCSl-zTlFW9Rb5U/exec?action=getManagementList";
     try {
       const response = await fetch(gasUrl);
-      allData = await response.json();
-      updateCategoryCounts(); // 🌟 讀取後立刻統計
+      const rawData = await response.json();
+      // 排除已有業務的
+      allData = rawData.filter(item => !item.sales || item.sales.toString().trim() === "");
+
+      initDateSelect();
+      initAreaSelect(); 
+      updateAllCounts(); 
       render();
     } catch (e) {
       document.getElementById('storeList').innerHTML = `<div style="text-align:center; padding:20px; color:red;">連線失敗<br><small>${e.message}</small></div>`;
     }
   }
 
-  // 🌟 新增：計算四大分類單數的邏輯
-  function updateCategoryCounts() {
-    const counts = { ice: 0, stall: 0, hot: 0, dead: 0 };
+  function initDateSelect() {
+    const select = document.getElementById('dateSelect');
+    const yearSet = new Set();
+    const monthSet = new Set();
+    allData.forEach(d => {
+      if (!d.date) return;
+      const parts = d.date.split('/'); 
+      if (parts.length >= 1) yearSet.add(parts[0]); 
+      if (parts.length >= 2) monthSet.add(parts[0] + '/' + parts[1]);
+    });
+    const sortedYears = [...yearSet].sort((a, b) => b - a);
+    sortedYears.forEach(year => {
+      const yearOption = document.createElement('option');
+      yearOption.value = year;
+      yearOption.text = `📂 ${year}`;
+      yearOption.style.fontWeight = "bold";
+      select.appendChild(yearOption);
+      const monthsInYear = [...monthSet]
+        .filter(m => m.startsWith(year + '/'))
+        .sort((a, b) => parseInt(b.split('/')[1]) - parseInt(a.split('/')[1]));
+      monthsInYear.forEach(m => {
+        const monOption = document.createElement('option');
+        monOption.value = m;
+        monOption.text = `　${m.split('/')[1]}月`;
+        select.appendChild(monOption);
+      });
+    });
+  }
+
+  function initAreaSelect() {
+    const select = document.getElementById('areaSelect');
+    const areaSet = new Set();
     allData.forEach(item => {
-      if(counts.hasOwnProperty(item.type)) {
-        counts[item.type]++;
+      if (item.area && item.area.trim() !== "") {
+        areaSet.add(item.area.trim());
       }
     });
-    // 更新到介面
-    document.getElementById('count-ice').innerText = `(${counts.ice} 單)`;
-    document.getElementById('count-stall').innerText = `(${counts.stall} 單)`;
-    document.getElementById('count-hot').innerText = `(${counts.hot} 單)`;
-    document.getElementById('count-dead').innerText = `(${counts.dead} 單)`;
+    const sortedAreas = [...areaSet].sort((a, b) => a.localeCompare(b, 'zh-Hant'));
+    sortedAreas.forEach(area => {
+      const option = document.createElement('option');
+      option.value = area;
+      option.text = area;
+      select.appendChild(option);
+    });
+  }
+
+  function updateAllCounts() {
+    const selectedDate = document.getElementById('dateSelect').value;
+    const selectedArea = document.getElementById('areaSelect').value; 
+    
+    const mainCounts = { ice: 0, stall: 0, hot: 0, dead: 0 };
+    const detailCounts = {}; 
+    let totalMatch = 0; 
+
+    allData.forEach(item => {
+      let matchDate = true;
+      if (selectedDate !== 'all') {
+         if (!item.date) matchDate = false;
+         else {
+           const dP = item.date.split('/');
+           const sP = selectedDate.split('/');
+           matchDate = (sP.length===1) ? (dP[0]===sP[0]) : (dP[0]===sP[0] && dP[1]===sP[1]);
+         }
+      }
+
+      let matchArea = true;
+      if (selectedArea !== 'all') {
+         matchArea = item.area === selectedArea;
+      }
+
+      if (matchDate && matchArea) {
+        totalMatch++; 
+        if (mainCounts.hasOwnProperty(item.type)) mainCounts[item.type]++;
+        if (item.detailLabel) updateOptionCount(detailCounts, item.detailLabel);
+      }
+    });
+
+    document.getElementById('count-ice').innerText = `${mainCounts.ice}`;
+    document.getElementById('count-stall').innerText = `${mainCounts.stall}`;
+    document.getElementById('count-hot').innerText = `${mainCounts.hot}`;
+    document.getElementById('count-dead').innerText = `${mainCounts.dead}`;
+    refreshSelectOptions(detailCounts, totalMatch);
+  }
+
+  function updateOptionCount(counter, label) {
+    const options = document.getElementById('detailSelect').querySelectorAll('option');
+    options.forEach(opt => {
+        if (opt.value !== 'all' && label.includes(opt.value)) {
+            counter[opt.value] = (counter[opt.value] || 0) + 1;
+        }
+    });
+  }
+
+  function refreshSelectOptions(counts, total) {
+    const select = document.getElementById('detailSelect');
+    const options = select.querySelectorAll('option');
+    options.forEach(opt => {
+        if (opt.value === 'all') {
+             opt.text = `🏷️ 所有狀態 (${total})`;
+             return;
+        }
+        let baseText = opt.text.replace(/\s\(\d+\)$/, ''); 
+        const count = counts[opt.value] || 0;
+        opt.text = `${baseText} (${count})`;
+    });
+  }
+
+  function getSourceStyle(source) {
+    const s = String(source || ""); 
+    if (s.includes("講座件")) return { bg: "#6F4E37", label: "🔥 " + s };
+    if (s.includes("LINE@") || s.includes("公司件")) return { bg: "#06C755", label: "🍀 " + s };
+    if (s.includes("Meta"))  return { bg: "#1877F2", label: "🔵 " + s };
+    if (s.includes("Google")) return { bg: "#DB4437", label: "🔴 " + s };
+    return { bg: "#808080", label: "🔔 " + s };
   }
 
   function render() {
     const list = document.getElementById('storeList');
     const search = document.getElementById('searchInput').value.trim().toLowerCase();
-    
+    const selectedDate = document.getElementById('dateSelect').value;
+    const selectedArea = document.getElementById('areaSelect').value; 
+    const selectedDetail = document.getElementById('detailSelect').value; 
+
     const filtered = allData.filter(i => {
       const content = (i.name + i.boss + i.area + i.key + i.req + i.rawP).toLowerCase();
-      const matchSearch = content.includes(search);
-      // 如果有輸入搜尋文字，就跨分類搜尋；沒搜尋時才顯示當前按鈕分類
-      return (search !== "") ? matchSearch : (matchSearch && i.type === currentFilter);
+      const matchSearch = (search === "") || content.includes(search);
+      const matchType = (search !== "") ? true : (i.type === currentFilter);
+      
+      let matchDate = true;
+      if (selectedDate !== 'all') {
+         if (!i.date) matchDate = false;
+         else {
+           const dP = i.date.split('/');
+           const sP = selectedDate.split('/');
+           matchDate = (sP.length===1) ? (dP[0]===sP[0]) : (dP[0]===sP[0] && dP[1]===sP[1]);
+         }
+      }
+
+      let matchArea = true;
+      if (selectedArea !== 'all') {
+         matchArea = i.area === selectedArea;
+      }
+
+      let matchDetail = true;
+      if (selectedDetail !== 'all') {
+        matchDetail = i.detailLabel && i.detailLabel.includes(selectedDetail);
+      }
+      return matchSearch && matchType && matchDate && matchArea && matchDetail;
     });
 
     if (filtered.length === 0) {
-      list.innerHTML = `<div style="text-align:center; padding:50px; color:#999;">暫無符合名單</div>`;
+      list.innerHTML = `<div style="text-align:center; padding:50px; color:#999;">無符合名單</div>`;
       return;
     }
 
-    list.innerHTML = filtered.map(item => `
+    list.innerHTML = filtered.map(item => {
+      const style = getSourceStyle(item.source);
+      
+      return `
       <div class="store-card card-${item.type}">
+        <div class="top-right-badge">
+            <span class="badge-source" style="background:${style.bg}">${style.label}</span><br>
+            ${item.date}
+        </div>
+
         <div class="detail-label">📍 ${item.detailLabel}</div>
         
         <div class="store-name">
-          ${item.area}${item.name} <span class="key-badge">#${item.key}</span>
+            <span class="industry-text">🏭 ${item.industry || '未分類'}</span>｜
+            ${item.area}${item.name} 
+            <span class="key-badge">#${item.key}</span>
         </div>
         
         <div class="info-box">
-          <div class="info-item"><b>來源:</b> ${item.source}</div>
-          <div class="info-item"><b>日期:</b> ${item.date}</div>
-          <div class="info-item"><b>負責人:</b> ${item.boss}</div>
-          <div class="info-item"><b>電話:</b> ${item.phone}</div>
-          <div class="info-item full-row" style="color:#d35400;"><b>需求:</b> ${item.req}</div>
+          <div><b>👤 負責人:</b> ${item.boss}</div>
+          <div></div> 
+          <div><b>📞 電話:</b> ${item.phone}</div>
+          <div><b>🆔 Line:</b> ${item.lineId}</div>
+          <div class="req-text">📝 需求: ${item.req}</div>
         </div>
 
         <div class="status-tags">
@@ -144,20 +419,19 @@
           <span class="tag ${item.isN?'tag-active':''}">已打: ${item.isN?'✅':'❌'}</span>
           <span class="tag ${item.isO?'tag-active':''}">撥通: ${item.isO?'✅':'❌'}</span>
           <span class="tag ${item.isQ?'tag-active':''}">Email: ${item.isQ?'✅':'❌'}</span>
-          
-          <div class="call-log-box">
-             <b>📝 通話次數與紀錄:</b> ${item.rawP}
-          </div>
+          <div class="call-log-box"><b>📝 通話:</b> ${item.rawP}</div>
         </div>
-
+        
         <div class="action-grid">
-          <a href="tel:${item.phone}" class="btn-tool btn-call"><i>📞</i>撥電話</a>
           <a href="https://line.me/ti/p/~${item.lineId}" class="btn-tool btn-line"><i>💬</i>加LINE</a>
+          <a href="tel:${item.phone}" class="btn-tool btn-call"><i>📞</i>電話</a>
+          <a href="mailto:${item.email}" class="btn-tool btn-email"><i>✉️</i>Email</a>
+          <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.area + item.name)}" target="_blank" class="btn-tool btn-map"><i>🗺️</i>地圖</a>
           <div class="btn-tool" style="color:#d35400;" onclick="openUpdate('${item.key}')"><i>📝</i>進度</div>
           <div class="btn-tool" style="color:#2980b9;" onclick="openDispatch('${item.key}')"><i>🚀</i>派單</div>
         </div>
       </div>
-    `).join('');
+    `}).join('');
   }
 
   function setFilter(t) {
@@ -168,13 +442,8 @@
     render();
   }
 
-  function openUpdate(key) {
-    alert("單號 " + key + " 進度更新功能開發中...");
-  }
-
-  function openDispatch(key) {
-    alert("準備派發單號 " + key + "...");
-  }
+  function openUpdate(key) { alert("更新 " + key); }
+  function openDispatch(key) { alert("派單 " + key); }
 
   window.onload = loadData;
 </script>
