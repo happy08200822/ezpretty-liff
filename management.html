@@ -9,15 +9,9 @@
   
   <style>
     body { font-family: -apple-system, "Noto Sans TC", sans-serif; background: #f4f6f9; padding: 10px; margin: 0; padding-bottom: 80px; }
-    
-    /* 🌟 固定頂部 */
     .header-sticky { position: sticky; top: 0; background: #f4f6f9; z-index: 100; padding-bottom: 5px; }
     
-    /* 🌟 新增：最頂端的搜尋列容器 */
-    .top-search-container {
-      margin-bottom: 8px;
-    }
-    /* 搜尋框樣式優化 */
+    .top-search-container { margin-bottom: 8px; }
     .main-search-input { 
       width: 100%; padding: 12px 15px; border-radius: 12px; border: 2px solid #e0e0e0; 
       background: #fff; box-sizing: border-box; font-size: 15px; outline: none;
@@ -28,14 +22,20 @@
     /* 工具列 */
     .top-toolbar { display: flex; gap: 8px; margin-bottom: 8px; justify-content: space-between; }
     .tool-btn {
-      flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
-      background: white; border: none; padding: 10px; border-radius: 12px;
-      font-size: 13px; font-weight: bold; color: #555;
+      flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+      background: white; border: none; padding: 8px 5px; border-radius: 12px;
+      font-size: 12px; font-weight: bold; color: #555;
       box-shadow: 0 2px 5px rgba(0,0,0,0.05); cursor: pointer; transition: 0.2s;
+      min-height: 52px; /* 稍微加高以容納提示字 */
     }
-    .tool-btn:active { transform: scale(0.96); }
-    .tool-btn.active { background: #e8f0fe; color: #007bff; border: 1px solid #b3d7ff; }
     .tool-btn i { font-style: normal; font-size: 16px; }
+    .tool-btn.active { background: #e8f0fe; color: #007bff; border: 1px solid #b3d7ff; }
+    
+    /* 🌟 新增：篩選提示文字樣式 */
+    .filter-hint { 
+      font-size: 10px; color: #007bff; font-weight: normal; 
+      max-width: 90px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; 
+    }
 
     /* 隱藏面板 */
     .hidden-panel {
@@ -54,6 +54,14 @@
     }
     .flex-1 { flex: 1; }
     .sel-status { flex: 1.5; text-align: left; padding-left: 12px; }
+
+    /* 🌟 新增：重置按鈕樣式 */
+    .btn-reset {
+      background: #fff0f0; color: #e03131; border: 1px solid #ffc9c9;
+      padding: 8px 12px; border-radius: 20px; font-size: 12px; font-weight: bold;
+      cursor: pointer; white-space: nowrap;
+    }
+    .btn-reset:active { background: #ffe3e3; }
 
     /* 圖表 Tabs */
     .chart-tabs { 
@@ -142,13 +150,14 @@
 
     <div class="top-toolbar">
         <button class="tool-btn" id="filterToggleBtn" onclick="togglePanel('filterPanel')">
-            <i>🌪️</i> 篩選條件
+            <span><i>🌪️</i> 篩選條件</span>
+            <span id="filterSummary" class="filter-hint"></span>
         </button>
         <button class="tool-btn" id="chartToggleBtn" onclick="togglePanel('chartPanel')">
-            <i>📊</i> 統計圖表
+            <span><i>📊</i> 統計圖表</span>
         </button>
         <button class="tool-btn" id="sortToggleBtn" onclick="toggleSort()">
-            <i>⇅</i> 日期排序
+            <span><i>⇅</i> 日期排序</span>
         </button>
     </div>
 
@@ -163,7 +172,7 @@
                 <select id="industrySelect" class="custom-select flex-1" onchange="render()"><option value="all">🏭 產業</option></select>
             </div>
             <div class="control-row">
-                <select id="detailSelect" class="custom-select sel-status" onchange="render()">
+                <select id="detailSelect" class="custom-select flex-1" onchange="render()">
                     <option value="all">🏷️ 所有狀態</option>
                     <optgroup label="🔥 已撥通 (Hot)">
                         <option value="溝通順暢">🔥 溝通順暢</option>
@@ -183,6 +192,7 @@
                         <option value="瀕死名單">⚠️ 瀕死名單</option>
                     </optgroup>
                 </select>
+                <button class="btn-reset" onclick="resetAllFilters()">重置 ✕</button>
             </div>
         </div>
     </div>
@@ -223,7 +233,7 @@
   <div id="storeList"></div>
 
   <a href="https://liff.line.me/YOUR_BACKEND_LIFF_ID" class="fab-switch">
-    🎯 前往後段 <i>→</i>
+    🎯 前往已派 <i>→</i>
   </a>
 
   <div id="toast">已複製店家資料！</div>
@@ -232,6 +242,7 @@
   let allData = [];
   let currentFilter = 'ice';
   let sortDesc = true; 
+  // 🌟 確認所有圖表參數都保留
   const charts = { status: null, detail: null, date: null, source: null, area: null, industry: null };
 
   function showSkeleton() {
@@ -252,7 +263,7 @@
       const response = await fetch(gasUrl);
       const rawData = await response.json();
       
-      // 🌟 3. 關鍵過濾：排除已指派業務 (U欄有值) 的資料
+      // 🌟 保留 U 欄過濾邏輯
       allData = rawData.filter(item => !item.sales || item.sales.toString().trim() === "");
 
       checkDuplicates(allData);
@@ -270,6 +281,50 @@
     }
   }
 
+  // 🌟 重置所有篩選功能
+  function resetAllFilters() {
+    document.getElementById('dateSelect').value = 'all';
+    document.getElementById('sourceSelect').value = 'all';
+    document.getElementById('areaSelect').value = 'all';
+    document.getElementById('industrySelect').value = 'all';
+    document.getElementById('detailSelect').value = 'all';
+    document.getElementById('searchInput').value = '';
+    
+    // 重新渲染，這會觸發 updateFilterHint 並清空按鈕提示
+    render();
+  }
+
+  // 🌟 更新篩選按鈕上的提示文字
+  function updateFilterHint() {
+    const date = document.getElementById('dateSelect').value;
+    const source = document.getElementById('sourceSelect').value;
+    const area = document.getElementById('areaSelect').value;
+    const industry = document.getElementById('industrySelect').value;
+    const detail = document.getElementById('detailSelect').value;
+    
+    const hints = [];
+    if (date !== 'all') hints.push(date === 'today' ? '今天' : date.split('/').pop() + '月');
+    if (source !== 'all') hints.push(source);
+    if (area !== 'all') hints.push(area);
+    if (industry !== 'all') hints.push(industry);
+    if (detail !== 'all') hints.push(detail.substring(2,6)); // 簡短顯示狀態
+
+    const hintEl = document.getElementById('filterSummary');
+    const btn = document.getElementById('filterToggleBtn');
+
+    if (hints.length > 0) {
+        hintEl.innerText = hints.join(' / ');
+        btn.classList.add('active'); // 亮起提示有篩選
+        btn.style.background = '#f3f0ff';
+        btn.style.color = '#764ba2';
+    } else {
+        hintEl.innerText = '';
+        btn.classList.remove('active');
+        btn.style.background = '';
+        btn.style.color = '';
+    }
+  }
+
   function togglePanel(panelId) {
     const panel = document.getElementById(panelId);
     const btnId = panelId === 'filterPanel' ? 'filterToggleBtn' : 'chartToggleBtn';
@@ -281,14 +336,22 @@
     } else {
         document.getElementById('filterPanel').style.display = 'none';
         document.getElementById('filterToggleBtn').classList.remove('active');
+        // 恢復篩選按鈕的狀態 (如果有篩選條件)
+        updateFilterHint();
     }
 
     if (panel.style.display === 'block') {
         panel.style.display = 'none';
-        btn.classList.remove('active');
+        // 如果是篩選面板關閉，仍要檢查是否有 active 狀態 (透過 updateFilterHint)
+        if (panelId === 'filterPanel') updateFilterHint();
+        else btn.classList.remove('active');
     } else {
         panel.style.display = 'block';
         btn.classList.add('active');
+        // 打開時強制移除特殊樣式，避免與 active class 衝突
+        if (panelId === 'filterPanel') {
+             btn.style.background = ''; btn.style.color = '';
+        }
     }
   }
 
@@ -313,7 +376,7 @@
   function initAllCharts() {
     charts.status = new Chart(document.getElementById('canvas-status'), { type: 'doughnut', data: { labels: ['🧊 冰封', '⚡ 進行', '🔥 追蹤', '⚠️ 瀕死'], datasets: [{ data: [], backgroundColor: ['#5D9CEC', '#FFCE54', '#ED5565', '#AAB2BD'] }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' } } } });
     
-    // 🌟 12詳細狀態改為 Doughnut
+    // 🌟 保留 12 詳細狀態
     charts.detail = new Chart(document.getElementById('canvas-detail'), {
       type: 'doughnut',
       data: { labels: [], datasets: [{ data: [], backgroundColor: [] }] },
@@ -354,18 +417,16 @@
     updateChartCount(charts.industry, filteredData, 'industry', 10);
   }
 
-  // 🌟 12種狀態：智慧配色邏輯
   function updateDetailChart(data) {
     const map = {};
     data.forEach(i => { const k = i.detailLabel || '未知'; map[k] = (map[k] || 0) + 1; });
     let keys = Object.keys(map).sort((a,b) => map[b] - map[a]);
     
-    // 根據狀態前面的 Emoji 決定色系，讓圖表顏色統一
     const colors = keys.map(k => {
-        if (k.includes('🔥')) return '#ED5565'; // 紅色系
-        if (k.includes('⚡')) return '#FFCE54'; // 黃色系
-        if (k.includes('🧊')) return '#5D9CEC'; // 藍色系
-        if (k.includes('⚠️')) return '#AAB2BD'; // 灰色系
+        if (k.includes('🔥')) return '#ED5565'; 
+        if (k.includes('⚡')) return '#FFCE54'; 
+        if (k.includes('🧊')) return '#5D9CEC'; 
+        if (k.includes('⚠️')) return '#AAB2BD'; 
         return '#808080';
     });
 
@@ -526,6 +587,7 @@
       document.getElementById('count-stall').innerText = `${mainCounts.stall}`;
       document.getElementById('count-hot').innerText = `${mainCounts.hot}`;
       document.getElementById('count-dead').innerText = `${mainCounts.dead}`;
+      
       refreshSelectOptions(detailCounts, filteredData.length);
       updateAllCharts(filteredData);
   }
@@ -559,6 +621,9 @@
   }
 
   function render() {
+    // 🌟 每次渲染都檢查篩選狀態，更新提示
+    updateFilterHint();
+
     const list = document.getElementById('storeList');
     const search = document.getElementById('searchInput').value.trim().toLowerCase();
     const selDate = document.getElementById('dateSelect').value;
