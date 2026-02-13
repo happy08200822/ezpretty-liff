@@ -11,18 +11,15 @@
     body { font-family: -apple-system, "Noto Sans TC", sans-serif; background: #f4f6f9; padding: 10px; margin: 0; padding-bottom: 80px; }
     .header-sticky { position: sticky; top: 0; background: #f4f6f9; z-index: 100; padding-bottom: 5px; }
     
-    /* 搜尋列 */
     .top-search-container { margin-bottom: 8px; }
     .main-search-input { width: 100%; padding: 12px 15px; border-radius: 12px; border: 2px solid #e0e0e0; background: #fff; box-sizing: border-box; font-size: 15px; outline: none; box-shadow: 0 2px 5px rgba(0,0,0,0.05); transition: 0.3s; }
     .main-search-input:focus { border-color: #007bff; box-shadow: 0 0 0 3px rgba(0,123,255,0.2); }
 
-    /* 工具列 */
     .top-toolbar { display: flex; gap: 8px; margin-bottom: 8px; justify-content: space-between; }
     .tool-btn { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; background: white; border: none; padding: 8px 5px; border-radius: 12px; font-size: 12px; font-weight: bold; color: #555; box-shadow: 0 2px 5px rgba(0,0,0,0.05); cursor: pointer; transition: 0.2s; min-height: 52px; }
     .tool-btn.active { background: #e8f0fe; color: #007bff; border: 1px solid #b3d7ff; }
     .filter-hint { font-size: 10px; color: #007bff; font-weight: normal; max-width: 90px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-    /* 隱藏面板 */
     .hidden-panel { display: none; background: white; border-radius: 16px; padding: 12px; margin-bottom: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); animation: slideDown 0.3s ease-out; }
     @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
 
@@ -33,7 +30,6 @@
     .sel-status { flex: 1.5; text-align: left; padding-left: 12px; }
     .btn-reset { background: #fff0f0; color: #e03131; border: 1px solid #ffc9c9; padding: 8px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; cursor: pointer; white-space: nowrap; }
 
-    /* 圖表 Tabs */
     .chart-tabs { display: flex; gap: 8px; margin-bottom: 10px; overflow-x: auto; padding-bottom: 5px; cursor: grab; scrollbar-width: none; }
     .chart-tabs::-webkit-scrollbar { display: none; }
     .chart-tab-btn { padding: 6px 12px; border-radius: 20px; background: #f1f3f5; color: #555; font-size: 12px; font-weight: bold; border: none; white-space: nowrap; cursor: pointer; }
@@ -41,31 +37,24 @@
     .chart-wrapper { position: relative; height: 260px; width: 100%; display: none; }
     .chart-wrapper.active { display: block; }
 
-    /* 4 大分類按鈕 (重要修正：pointer-events) */
     .filter-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
-    .filter-btn { 
-      padding: 6px 2px; border-radius: 10px; border: none; color: white; font-weight: bold; font-size: 11px; 
-      text-align: center; min-height: 42px; cursor: pointer; 
-      display: flex; flex-direction: column; align-items: center; justify-content: center; 
-      user-select: none; /* 防止選取文字 */
-    }
-    /* 🌟 關鍵修復：讓按鈕內的文字不攔截點擊事件 */
+    .filter-btn { padding: 6px 2px; border-radius: 10px; border: none; color: white; font-weight: bold; font-size: 11px; text-align: center; min-height: 42px; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; }
     .filter-btn * { pointer-events: none; }
-    
-    .btn-ice { background: #5D9CEC; } .btn-stall { background: #FFCE54; color: #656D78; } 
-    .btn-hot { background: #ED5565; } .btn-dead { background: #AAB2BD; }
+    .btn-ice { background: #5D9CEC; } .btn-stall { background: #FFCE54; color: #656D78; } .btn-hot { background: #ED5565; } .btn-dead { background: #AAB2BD; }
     .filter-btn.active { box-shadow: 0 0 0 2px #434A54; transform: scale(0.98); }
     .count-text { font-size: 10px; margin-top: 1px; opacity: 0.9; font-weight: normal; background: rgba(0,0,0,0.1); padding: 0 4px; border-radius: 4px; }
 
-    /* 卡片樣式 */
     .store-card { background: white; border-radius: 16px; padding: 16px; margin-bottom: 16px; border-top: 6px solid #ccc; position: relative; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
     .card-ice { border-top-color: #5D9CEC; } .card-stall { border-top-color: #FFCE54; } .card-hot { border-top-color: #ED5565; } .card-dead { border-top-color: #AAB2BD; }
     .top-right-badge { position: absolute; top: 12px; right: 12px; text-align: right; font-size: 11px; color: #888; line-height: 1.4; }
     .badge-source { font-weight: bold; padding: 2px 6px; border-radius: 4px; margin-bottom: 3px; display: inline-block; color: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
     .detail-label { display: inline-block; background: #434A54; color: white; font-size: 11px; padding: 3px 12px; border-radius: 20px; margin-bottom: 8px; }
     .store-name { font-size: 18px; font-weight: bold; color: #333; margin-bottom: 4px; padding-right: 80px; line-height: 1.4; display: flex; align-items: center; }
+    
+    /* 🌟 複製按鈕樣式 */
     .btn-copy-text { background: none; border: none; font-size: 14px; cursor: pointer; margin-left: 5px; opacity: 0.6; pointer-events: auto; }
     .btn-copy-text:active { transform: scale(0.9); opacity: 1; }
+    
     .dup-alert { background: #ffebee; color: #c62828; border: 1px solid #ffcdd2; font-size: 11px; padding: 6px 8px; border-radius: 6px; margin-bottom: 8px; }
     .info-box { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: #555; background: #f8faff; padding: 10px; border-radius: 12px; border: 1px solid #eef2f7; }
     .req-text { color: #d35400; font-weight: bold; border-top: 1px dashed #ddd; padding-top: 4px; margin-top: 2px; }
@@ -81,6 +70,9 @@
     .btn-map { background: #e8f0fe; border-color: #4285F4; color: #4285F4; }
     .btn-tool i { font-size: 14px; margin-bottom: 0; font-style: normal; }
 
+    /* 更新按鈕數字標籤 (暫存計數) */
+    .update-badge { background: #e74c3c; color: white; border-radius: 10px; padding: 0px 5px; font-size: 10px; margin-left: 2px; height: 16px; line-height: 16px; }
+
     .fab-switch { position: fixed; bottom: 25px; right: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px 24px; border-radius: 50px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); font-size: 14px; font-weight: bold; text-decoration: none; display: flex; align-items: center; gap: 8px; z-index: 1000; transition: transform 0.2s; }
     .fab-switch:active { transform: scale(0.95); }
     #toast { visibility: hidden; min-width: 200px; background-color: #333; color: #fff; text-align: center; border-radius: 20px; padding: 10px; position: fixed; z-index: 2000; left: 50%; bottom: 100px; transform: translateX(-50%); font-size: 13px; }
@@ -89,11 +81,7 @@
     /* 骨架屏 */
     @keyframes shimmer { 0% { background-position: -468px 0; } 100% { background-position: 468px 0; } }
     .skeleton-card { background: #fff; border-radius: 16px; padding: 16px; margin-bottom: 16px; border-top: 6px solid #e0e0e0; }
-    .skeleton-box {
-      background: #f6f7f8; background-image: linear-gradient(to right, #f6f7f8 0%, #edeef1 20%, #f6f7f8 40%, #f6f7f8 100%);
-      background-repeat: no-repeat; background-size: 800px 104px; display: inline-block; position: relative; 
-      animation: shimmer 1s linear infinite forwards; border-radius: 4px;
-    }
+    .skeleton-box { background: #f6f7f8; background-image: linear-gradient(to right, #f6f7f8 0%, #edeef1 20%, #f6f7f8 40%, #f6f7f8 100%); background-repeat: no-repeat; background-size: 800px 104px; display: inline-block; position: relative; animation: shimmer 1s linear infinite forwards; border-radius: 4px; }
     .sk-title { width: 60%; height: 20px; margin-bottom: 10px; }
     .sk-detail { width: 100%; height: 80px; margin-bottom: 10px; }
     .sk-btn { width: 30%; height: 30px; } .sk-row { display: flex; gap: 5px; }
@@ -181,17 +169,21 @@
   </div>
 
   <div id="storeList"></div>
-  <a href="https://liff.line.me/YOUR_BACKEND_LIFF_ID" class="fab-switch">🎯 前往已派 <i>→</i></a>
+  <a href="https://liff.line.me/YOUR_BACKEND_LIFF_ID" class="fab-switch">🎯 前往後段 <i>→</i></a>
   <div id="toast">已複製店家資料！</div>
 
 <script>
-  // 🌟 重要：請填入你的「更新表單」LIFF ID
+  // 🌟 1. 設定你的 LIFF ID 與 GAS URL (使用你提供的 URL)
   const FORM_LIFF_ID = "2009117067-6y3yHx9o"; 
+  const GAS_URL = "https://script.google.com/macros/s/AKfycbzIKHpWcWj0bOhaQsx-OynY5FVVorMJvTNON5PBOywj1q-Nd5EylLCSl-zTlFW9Rb5U/exec";
 
   let allData = [];
   let currentFilter = 'ice';
   let sortDesc = true; 
   const charts = { status: null, detail: null, date: null, source: null, area: null, industry: null };
+  
+  // 🌟 LocalStorage 計數 (個人暫存)
+  let clickCounts = JSON.parse(localStorage.getItem('ezPretty_ClickCounts')) || {};
 
   function showSkeleton() {
     const list = document.getElementById('storeList');
@@ -210,133 +202,61 @@
 
   async function loadData() {
     showSkeleton();
-    const gasUrl = "https://script.google.com/macros/s/AKfycbzIKHpWcWj0bOhaQsx-OynY5FVVorMJvTNON5PBOywj1q-Nd5EylLCSl-zTlFW9Rb5U/exec?action=getManagementList";
+    // 🌟 2. 確保連線網址與參數正確 (不改動你的後端邏輯)
+    const fetchUrl = GAS_URL + "?action=getManagementList";
+    
     try {
-      const response = await fetch(gasUrl);
+      const response = await fetch(fetchUrl);
       const rawData = await response.json();
+      
       // 保留「未派單」的過濾邏輯
       allData = rawData.filter(item => !item.sales || item.sales.toString().trim() === "");
+      
       checkDuplicates(allData);
       initDateSelect(); initAreaSelect(); initSourceSelect(); initIndustrySelect(); 
-      try { initAllCharts(); } catch(e) { console.log('Chart Error', e); } // 圖表防呆
+      try { initAllCharts(); } catch(e) { console.log(e); }
       doSort(); render(); enableDragScroll();
-    } catch (e) { document.getElementById('storeList').innerHTML = `<div style="text-align:center; padding:20px; color:red;">連線失敗<br><small>${e.message}</small></div>`; }
+    } catch (e) { 
+      console.error(e); // 方便 F12 除錯
+      document.getElementById('storeList').innerHTML = `<div style="text-align:center; padding:20px; color:red;">連線失敗<br><small>${e.message}</small></div>`; 
+    }
   }
 
-  // 🌟 跳轉更新頁面
+  // 🌟 點擊更新：記錄次數 + 跳轉
   function openUpdate(key) {
     const item = allData.find(i => i.key === key);
-    let targetKey = item ? (item.key || "") : key;
-    let targetName = item ? (item.name || "") : "未知店家";
+    if (!item) return;
+
+    // 1. 本地計數 +1
+    clickCounts[key] = (clickCounts[key] || 0) + 1;
+    localStorage.setItem('ezPretty_ClickCounts', JSON.stringify(clickCounts));
+    
+    // 2. 更新按鈕文字 (紅字)
+    const btn = document.getElementById('btn-update-' + key);
+    if (btn) btn.innerHTML = `<i>📝</i>進度<span class="update-badge">${clickCounts[key]}</span>`;
+
+    // 3. 跳轉到 LIFF 頁面
+    let targetKey = item.key || ""; 
+    let targetName = item.name || "未知店家";
     const targetUrl = `https://liff.line.me/${FORM_LIFF_ID}?key=${encodeURIComponent(targetKey)}&store=${encodeURIComponent(targetName)}`;
-    liff.openWindow({ url: targetUrl, external: false });
+    
+    liff.openWindow({
+        url: targetUrl,
+        external: false 
+    });
   }
 
   function openDispatch(key) { alert("派單功能待開發"); }
 
-  // 🌟 修正後的篩選切換
-  function setFilter(t) {
-    currentFilter = t;
-    // UI 更新
-    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-    document.getElementById('f-'+t).classList.add('active');
-    // 清除搜尋框，避免邏輯衝突
-    document.getElementById('searchInput').value = ""; 
-    render();
-  }
-
-  function render() {
-    updateFilterHint();
-    const list = document.getElementById('storeList');
-    const search = document.getElementById('searchInput').value.trim().toLowerCase();
-    const selDate = document.getElementById('dateSelect').value;
-    const selSource = document.getElementById('sourceSelect').value; 
-    const selArea = document.getElementById('areaSelect').value; 
-    const selIndustry = document.getElementById('industrySelect').value; 
-    const selDetail = document.getElementById('detailSelect').value; 
-
-    // 1. 下拉選單過濾
-    const commonFiltered = allData.filter(i => {
-      const content = ((i.source || "") + (i.industry || "") + (i.area || "") + (i.name || "") + (i.boss || "") + (i.lineId || "") + (i.phone || "") + (i.email || "") + (i.req || "") + (i.date || "")).toLowerCase();
-      const matchSearch = (search === "") || content.includes(search);
-      
-      let matchDate = true;
-      if (selDate === 'today') {
-         const today = new Date();
-         const todayStr = `${today.getFullYear()}/${today.getMonth()+1}/${today.getDate()}`;
-         matchDate = i.date && i.date.startsWith(todayStr);
-      } else if (selDate !== 'all') {
-         if (!i.date) matchDate = false;
-         else {
-           const dP = i.date.split('/');
-           const sP = selDate.split('/');
-           matchDate = (sP.length===1) ? (dP[0]===sP[0]) : (dP[0]===sP[0] && dP[1]===sP[1]);
-         }
-      }
-      let matchArea = (selArea === 'all') || (i.area === selArea);
-      let matchSource = (selSource === 'all') || (i.source === selSource);
-      let matchIndustry = (selIndustry === 'all') || (i.industry === selIndustry);
-      let matchDetail = (selDetail === 'all') || (i.detailLabel && i.detailLabel.includes(selDetail));
-
-      return matchSearch && matchDate && matchArea && matchSource && matchIndustry && matchDetail;
+  // 🌟 通用複製函式 (支援自訂提示文字)
+  function copyContent(text, label) {
+    if (!text) return;
+    navigator.clipboard.writeText(text).then(() => {
+        const t = document.getElementById("toast");
+        t.innerText = `已複製 ${label}！`;
+        t.className = "show"; 
+        setTimeout(() => t.className = "", 3000);
     });
-
-    calculateCounts(commonFiltered);
-
-    // 2. 按鈕狀態過濾 (如果有搜尋文字，則忽略按鈕狀態，顯示所有結果)
-    const finalFiltered = commonFiltered.filter(i => {
-        return (search !== "") ? true : (i.type === currentFilter);
-    });
-
-    if (finalFiltered.length === 0) {
-      list.innerHTML = `<div style="text-align:center; padding:50px; color:#999;">無符合名單</div>`;
-      return;
-    }
-
-    list.innerHTML = finalFiltered.map(item => {
-      const style = getSourceStyle(item.source);
-      let dupAlert = '';
-      if (item.isDup && item.dupInfo) {
-          const reasonsHtml = item.dupInfo.map(info => 
-              `<div style="margin-top:2px;">🚨 重複：${info.reason} <br><span style="color:#666;font-weight:normal;">↳ 與 ${info.targets.join('、')}</span></div>`
-          ).join('');
-          dupAlert = `<div class="dup-alert">${reasonsHtml}</div>`;
-      }
-      return `
-      <div class="store-card card-${item.type}">
-        <div class="top-right-badge"><span class="badge-source" style="background:${style.bg}">${style.label}</span><br>${item.date}</div>
-        <div class="detail-label">📍 ${item.detailLabel}</div>
-        <div class="store-name">
-            <span class="industry-text">🏭 ${item.industry || '未分類'}</span>｜${item.area}${item.name} 
-            <button class="btn-copy-text" onclick="copyCardInfo('${item.key}')">📄</button>
-        </div>
-        <div style="margin-bottom:8px;"><span class="key-badge">#${item.key}</span></div>
-        ${dupAlert}
-        <div class="info-box">
-          <div><b>👤 負責人:</b> ${item.boss}</div>
-          <div></div> 
-          <div><b>📞 電話:</b> ${item.phone}</div>
-          <div><b>🆔 Line:</b> ${item.lineId}</div>
-          <div class="req-text">📝 需求: ${item.req}</div>
-        </div>
-        <div class="status-tags">
-          <span class="tag ${item.isL?'tag-active':''}">加Line: ${item.isL?'✅':'❌'}</span>
-          <span class="tag ${item.isM?'tag-active':''}">已讀: ${item.isM?'✅':'❌'}</span>
-          <span class="tag ${item.isN?'tag-active':''}">已打: ${item.isN?'✅':'❌'}</span>
-          <span class="tag ${item.isO?'tag-active':''}">撥通: ${item.isO?'✅':'❌'}</span>
-          <span class="tag ${item.isQ?'tag-active':''}">Email: ${item.isQ?'✅':'❌'}</span>
-          <div class="call-log-box"><b>📝 通話:</b> ${item.rawP}</div>
-        </div>
-        <div class="action-grid">
-          <a href="https://line.me/ti/p/~${item.lineId}" class="btn-tool btn-line"><i>💬</i>加LINE</a>
-          <a href="tel:${item.phone}" class="btn-tool btn-call"><i>📞</i>電話</a>
-          <a href="mailto:${item.email}" class="btn-tool btn-email"><i>✉️</i>Email</a>
-          <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.area + item.name)}" target="_blank" class="btn-tool btn-map"><i>🗺️</i>地圖</a>
-          <div class="btn-tool" style="color:#d35400;" onclick="openUpdate('${item.key}')"><i>📝</i>進度</div>
-          <div class="btn-tool" style="color:#2980b9;" onclick="openDispatch('${item.key}')"><i>🚀</i>派單</div>
-        </div>
-      </div>
-    `}).join('');
   }
 
   function resetAllFilters() {
@@ -424,8 +344,6 @@
   }
   function toggleSort() { sortDesc = !sortDesc; const btn = document.getElementById('sortToggleBtn'); if (sortDesc) btn.classList.remove('active'); else btn.classList.add('active'); doSort(); render(); }
   function doSort() { allData.sort((a, b) => { const getVal = (dateStr) => { if (!dateStr) return 0; const match = dateStr.match(/(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})/); if (match) return new Date(match[1], match[2]-1, match[3]).getTime(); return 0; }; const valA = getVal(a.date); const valB = getVal(b.date); return sortDesc ? (valB - valA) : (valA - valB); }); }
-  function copyCardInfo(key) { const item = allData.find(i => i.key === key); if (!item) return; const text = `【${item.industry || '店家'}】${item.area}${item.name}\n👤 負責人：${item.boss}\n📞 電話：${item.phone}\n📝 需求：${item.req}\n📍 狀態：${item.detailLabel}`; navigator.clipboard.writeText(text).then(() => showToast()); }
-  function showToast() { const x = document.getElementById("toast"); x.className = "show"; setTimeout(function(){ x.className = x.className.replace("show", ""); }, 3000); }
   function checkDuplicates(data) { const lookup = { name: {}, boss: {}, lineId: {}, phone: {}, email: {} }; data.forEach(item => { const add = (field, val) => { if (!val || String(val).trim() === "") return; const key = String(val).trim().toLowerCase(); if (!lookup[field][key]) lookup[field][key] = []; lookup[field][key].push(item); }; add('name', item.name); add('boss', item.boss); add('lineId', item.lineId); add('phone', item.phone); add('email', item.email); }); const fields = ['name', 'boss', 'lineId', 'phone', 'email']; const fieldNames = { name: '店名', boss: '負責人', lineId: 'LineID', phone: '電話', email: 'Email' }; fields.forEach(field => { Object.values(lookup[field]).forEach(list => { if (list.length > 1) { list.forEach(item => { item.isDup = true; if (!item.dupInfo) item.dupInfo = []; const others = list.filter(other => other.key !== item.key); const otherNames = others.map(o => `[${o.industry||'未分類'}] ${o.area}${o.name} (#${o.key})`); const uniqueTargets = [...new Set(otherNames)]; item.dupInfo.push({ reason: fieldNames[field], targets: uniqueTargets }); }); } }); }); }
   function initDateSelect() { const select = document.getElementById('dateSelect'); const yearSet = new Set(); const monthSet = new Set(); const today = new Date(); const todayDisplay = `${today.getMonth()+1}/${today.getDate()}`; const todayOpt = document.createElement('option'); todayOpt.value = 'today'; todayOpt.text = `📅 今天 (${todayDisplay})`; todayOpt.style.color = 'blue'; todayOpt.style.fontWeight = 'bold'; select.appendChild(todayOpt); allData.forEach(d => { if (!d.date) return; const parts = d.date.split('/'); if (parts.length >= 1) yearSet.add(parts[0]); if (parts.length >= 2) monthSet.add(parts[0] + '/' + parts[1]); }); const sortedYears = [...yearSet].sort((a, b) => b - a); sortedYears.forEach(year => { const yearOption = document.createElement('option'); yearOption.value = year; yearOption.text = `📂 ${year}`; yearOption.style.fontWeight = "bold"; select.appendChild(yearOption); const monthsInYear = [...monthSet].filter(m => m.startsWith(year + '/')).sort((a, b) => parseInt(b.split('/')[1]) - parseInt(a.split('/')[1])); monthsInYear.forEach(m => { const monOption = document.createElement('option'); monOption.value = m; monOption.text = `　${m.split('/')[1]}月`; select.appendChild(monOption); }); }); }
   function initAreaSelect() { const select = document.getElementById('areaSelect'); const set = new Set(); allData.forEach(i => { if (i.area && i.area.trim() !== "") set.add(i.area.trim()); }); [...set].sort((a, b) => a.localeCompare(b, 'zh-Hant')).forEach(v => { const opt = document.createElement('option'); opt.value = v; opt.text = v; select.appendChild(opt); }); }
@@ -434,9 +352,115 @@
   function calculateCounts(filteredData) { const mainCounts = { ice: 0, stall: 0, hot: 0, dead: 0 }; const detailCounts = {}; filteredData.forEach(item => { if (mainCounts.hasOwnProperty(item.type)) mainCounts[item.type]++; if (item.detailLabel) updateOptionCount(detailCounts, item.detailLabel); }); document.getElementById('count-ice').innerText = `${mainCounts.ice}`; document.getElementById('count-stall').innerText = `${mainCounts.stall}`; document.getElementById('count-hot').innerText = `${mainCounts.hot}`; document.getElementById('count-dead').innerText = `${mainCounts.dead}`; refreshSelectOptions(detailCounts, filteredData.length); updateAllCharts(filteredData); }
   function updateOptionCount(counter, label) { const options = document.getElementById('detailSelect').querySelectorAll('option'); options.forEach(opt => { if (opt.value !== 'all' && label.includes(opt.value)) { counter[opt.value] = (counter[opt.value] || 0) + 1; } }); }
   function refreshSelectOptions(counts, total) { const select = document.getElementById('detailSelect'); const options = select.querySelectorAll('option'); options.forEach(opt => { if (opt.value === 'all') { opt.text = `🏷️ 所有狀態 (${total})`; return; } let baseText = opt.text.replace(/\s\(\d+\)$/, ''); const count = counts[opt.value] || 0; opt.text = `${baseText} (${count})`; }); }
-  function getSourceStyle(source) { const s = String(source || ""); if (s.includes("講座件")) return { bg: "#6F4E37", label: "🔥 " + s }; if (s.includes("LINE@") || s.includes("公司件")) return { bg: "#06C755", label: "🍀 " + s }; if (s.includes("Meta")) return { bg: "#1877F2", label: "🔵 " + s }; if (s.includes("Google")) return { bg: "#DB4437", label: "🔴 " + s }; return { bg: "#808080", label: "🔔 " + s }; }
-  function render() { updateFilterHint(); const list = document.getElementById('storeList'); const search = document.getElementById('searchInput').value.trim().toLowerCase(); const selDate = document.getElementById('dateSelect').value; const selSource = document.getElementById('sourceSelect').value; const selArea = document.getElementById('areaSelect').value; const selIndustry = document.getElementById('industrySelect').value; const selDetail = document.getElementById('detailSelect').value; const commonFiltered = allData.filter(i => { const content = ((i.source || "") + (i.industry || "") + (i.area || "") + (i.name || "") + (i.boss || "") + (i.lineId || "") + (i.phone || "") + (i.email || "") + (i.req || "") + (i.date || "")).toLowerCase(); const matchSearch = (search === "") || content.includes(search); let matchDate = true; if (selDate === 'today') { const today = new Date(); const todayStr = `${today.getFullYear()}/${today.getMonth()+1}/${today.getDate()}`; matchDate = i.date && i.date.startsWith(todayStr); } else if (selDate !== 'all') { if (!i.date) matchDate = false; else { const dP = i.date.split('/'); const sP = selDate.split('/'); matchDate = (sP.length===1) ? (dP[0]===sP[0]) : (dP[0]===sP[0] && dP[1]===sP[1]); } } let matchArea = (selArea === 'all') || (i.area === selArea); let matchSource = (selSource === 'all') || (i.source === selSource); let matchIndustry = (selIndustry === 'all') || (i.industry === selIndustry); let matchDetail = true; if (selDetail !== 'all') matchDetail = i.detailLabel && i.detailLabel.includes(selDetail); return matchSearch && matchDate && matchArea && matchSource && matchIndustry && matchDetail; }); calculateCounts(commonFiltered); const finalFiltered = commonFiltered.filter(i => { const matchType = (search !== "") ? true : (i.type === currentFilter); return matchType; }); if (finalFiltered.length === 0) { list.innerHTML = `<div style="text-align:center; padding:50px; color:#999;">無符合名單</div>`; return; } list.innerHTML = finalFiltered.map(item => { const style = getSourceStyle(item.source); let dupAlert = ''; if (item.isDup && item.dupInfo) { const reasonsHtml = item.dupInfo.map(info => `<div style="margin-top:2px;">🚨 重複：${info.reason} <br><span style="color:#666;font-weight:normal;">↳ 與 ${info.targets.join('、')}</span></div>`).join(''); dupAlert = `<div class="dup-alert">${reasonsHtml}</div>`; } return ` <div class="store-card card-${item.type}"> <div class="top-right-badge"><span class="badge-source" style="background:${style.bg}">${style.label}</span><br>${item.date}</div> <div class="detail-label">📍 ${item.detailLabel}</div> <div class="store-name"> <span class="industry-text">🏭 ${item.industry || '未分類'}</span>｜${item.area}${item.name} <button class="btn-copy-text" onclick="copyCardInfo('${item.key}')">📄</button> </div> <div style="margin-bottom:8px;"><span class="key-badge">#${item.key}</span></div> ${dupAlert} <div class="info-box"> <div><b>👤 負責人:</b> ${item.boss}</div> <div></div> <div><b>📞 電話:</b> ${item.phone}</div> <div><b>🆔 Line:</b> ${item.lineId}</div> <div class="req-text">📝 需求: ${item.req}</div> </div> <div class="status-tags"> <span class="tag ${item.isL?'tag-active':''}">加Line: ${item.isL?'✅':'❌'}</span> <span class="tag ${item.isM?'tag-active':''}">已讀: ${item.isM?'✅':'❌'}</span> <span class="tag ${item.isN?'tag-active':''}">已打: ${item.isN?'✅':'❌'}</span> <span class="tag ${item.isO?'tag-active':''}">撥通: ${item.isO?'✅':'❌'}</span> <span class="tag ${item.isQ?'tag-active':''}">Email: ${item.isQ?'✅':'❌'}</span> <div class="call-log-box"><b>📝 通話:</b> ${item.rawP}</div> </div> <div class="action-grid"> <a href="https://line.me/ti/p/~${item.lineId}" class="btn-tool btn-line"><i>💬</i>加LINE</a> <a href="tel:${item.phone}" class="btn-tool btn-call"><i>📞</i>電話</a> <a href="mailto:${item.email}" class="btn-tool btn-email"><i>✉️</i>Email</a> <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.area + item.name)}" target="_blank" class="btn-tool btn-map"><i>🗺️</i>地圖</a> <div class="btn-tool" style="color:#d35400;" onclick="openUpdate('${item.key}')"><i>📝</i>進度</div> <div class="btn-tool" style="color:#2980b9;" onclick="openDispatch('${item.key}')"><i>🚀</i>派單</div> </div> </div> `}).join(''); }
-  
+  function getSourceStyle(s) { const str = String(s || ""); if (str.includes("講座件")) return { bg: "#6F4E37", label: "🔥 " + str }; if (str.includes("LINE@") || str.includes("公司件")) return { bg: "#06C755", label: "🍀 " + str }; if (str.includes("Meta")) return { bg: "#1877F2", label: "🔵 " + str }; if (s.includes("Google")) return { bg: "#DB4437", label: "🔴 " + str }; return { bg: "#808080", label: "🔔 " + str }; }
+
+  function render() {
+    updateFilterHint();
+    const list = document.getElementById('storeList');
+    const search = document.getElementById('searchInput').value.trim().toLowerCase();
+    const selDate = document.getElementById('dateSelect').value;
+    const selSource = document.getElementById('sourceSelect').value; 
+    const selArea = document.getElementById('areaSelect').value; 
+    const selIndustry = document.getElementById('industrySelect').value; 
+    const selDetail = document.getElementById('detailSelect').value; 
+
+    const commonFiltered = allData.filter(i => {
+      const content = ((i.source || "") + (i.industry || "") + (i.area || "") + (i.name || "") + (i.boss || "") + (i.lineId || "") + (i.phone || "") + (i.email || "") + (i.req || "") + (i.date || "")).toLowerCase();
+      const matchSearch = (search === "") || content.includes(search);
+      
+      let matchDate = true;
+      if (selDate === 'today') {
+         const today = new Date();
+         const todayStr = `${today.getFullYear()}/${today.getMonth()+1}/${today.getDate()}`;
+         matchDate = i.date && i.date.startsWith(todayStr);
+      } else if (selDate !== 'all') {
+         if (!i.date) matchDate = false;
+         else {
+           const dP = i.date.split('/');
+           const sP = selDate.split('/');
+           matchDate = (sP.length===1) ? (dP[0]===sP[0]) : (dP[0]===sP[0] && dP[1]===sP[1]);
+         }
+      }
+      let matchArea = (selArea === 'all') || (i.area === selArea);
+      let matchSource = (selSource === 'all') || (i.source === selSource);
+      let matchIndustry = (selIndustry === 'all') || (i.industry === selIndustry);
+      let matchDetail = true;
+      if (selDetail !== 'all') matchDetail = i.detailLabel && i.detailLabel.includes(selDetail);
+      return matchSearch && matchDate && matchArea && matchSource && matchIndustry && matchDetail;
+    });
+
+    calculateCounts(commonFiltered);
+
+    const finalFiltered = commonFiltered.filter(i => {
+        const matchType = (search !== "") ? true : (i.type === currentFilter);
+        return matchType;
+    });
+
+    if (finalFiltered.length === 0) { list.innerHTML = `<div style="text-align:center; padding:50px; color:#999;">無符合名單</div>`; return; }
+
+    list.innerHTML = finalFiltered.map(item => {
+      const style = getSourceStyle(item.source);
+      let dupAlert = '';
+      if (item.isDup && item.dupInfo) {
+          const reasonsHtml = item.dupInfo.map(info => 
+              `<div style="margin-top:2px;">🚨 重複：${info.reason} <br><span style="color:#666;font-weight:normal;">↳ 與 ${info.targets.join('、')}</span></div>`
+          ).join('');
+          dupAlert = `<div class="dup-alert">${reasonsHtml}</div>`;
+      }
+      
+      const localCount = clickCounts[item.key] || 0;
+      const badgeHtml = localCount > 0 ? `<span class="update-badge">${localCount}</span>` : '';
+
+      // 🌟 加 LINE 救援機制
+      let lineUrl = "#";
+      if (item.lineId && String(item.lineId).trim() !== "") {
+          lineUrl = `https://line.me/ti/p/~${item.lineId}`;
+      } else if (item.phone && String(item.phone).trim() !== "") {
+          lineUrl = `https://line.me/ti/p/~${item.phone}`;
+      }
+
+      return `
+      <div class="store-card card-${item.type}">
+        <div class="top-right-badge"><span class="badge-source" style="background:${style.bg}">${style.label}</span><br>${item.date}</div>
+        <div class="detail-label">📍 ${item.detailLabel}</div>
+        <div class="store-name">
+            <span class="industry-text">🏭 ${item.industry || '未分類'}</span>｜${item.area}${item.name} 
+            <button class="btn-copy-text" onclick="copyContent('${item.area}${item.name}', '店家名稱')">📄</button>
+        </div>
+        <div style="margin-bottom:8px;"><span class="key-badge">#${item.key}</span></div>
+        ${dupAlert}
+        <div class="info-box">
+          <div><b>👤 負責人:</b> ${item.boss}</div>
+          <div></div> 
+          <div>
+             <b>📞 電話:</b> ${item.phone}
+             <button class="btn-copy-text" onclick="copyContent('${item.phone}', '電話號碼')">📄</button>
+          </div>
+          <div><b>🆔 Line:</b> ${item.lineId}</div>
+          <div class="req-text">📝 需求: ${item.req}</div>
+        </div>
+        <div class="status-tags">
+          <span class="tag ${item.isL?'tag-active':''}">L:${item.isL?'✅':'❌'}</span>
+          <span class="tag ${item.isM?'tag-active':''}">讀:${item.isM?'✅':'❌'}</span>
+          <span class="tag ${item.isN?'tag-active':''}">打:${item.isN?'✅':'❌'}</span>
+          <span class="tag ${item.isO?'tag-active':''}">通:${item.isO?'✅':'❌'}</span>
+          <span class="tag ${item.isQ?'tag-active':''}">Email: ${item.isQ?'✅':'❌'}</span>
+          <div class="call-log-box"><b>📝 紀錄:</b> ${item.rawP || '無'}</div>
+        </div>
+        <div class="action-grid">
+          <a href="${lineUrl}" class="btn-tool btn-line"><i>💬</i>加LINE</a>
+          <a href="tel:${item.phone}" class="btn-tool btn-call"><i>📞</i>電話</a>
+          <a href="mailto:${item.email}" class="btn-tool btn-email"><i>✉️</i>Email</a>
+          <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.area + item.name)}" target="_blank" class="btn-tool btn-map"><i>🗺️</i>地圖</a>
+          <div class="btn-tool" style="color:#d35400;" id="btn-update-${item.key}" onclick="openUpdate('${item.key}')"><i>📝</i>進度${badgeHtml}</div>
+          <div class="btn-tool" style="color:#2980b9;" onclick="openDispatch('${item.key}')"><i>🚀</i>派單</div>
+        </div>
+      </div>
+    `}).join('');
+  }
+
+  function setFilter(t) { currentFilter=t; document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active')); document.getElementById('f-'+t).classList.add('active'); document.getElementById('searchInput').value=''; render(); }
+  function openDispatch(key) { alert("派單功能待開發"); }
   window.onload = loadData;
 </script>
 </body>
