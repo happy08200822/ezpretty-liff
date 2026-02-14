@@ -3,130 +3,128 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>ezPretty 戰情室 (最終完美優化版)</title>
+  <title>ezPretty 戰情室 (終極定案版)</title>
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   
   <style>
-    /* --- 基礎設定 --- */
-    body { font-family: -apple-system, "Noto Sans TC", sans-serif; background: #f4f6f9; padding: 0; margin: 0; padding-bottom: 90px; -webkit-tap-highlight-color: transparent; }
+    /* --- 0. 基礎設定 --- */
+    body { font-family: -apple-system, "Noto Sans TC", sans-serif; background: #f4f6f9; padding: 0; margin: 0; padding-bottom: 100px; -webkit-tap-highlight-color: transparent; }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+    /* --- 1. Loading --- */
+    #loadingOverlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255,255,255,0.7); backdrop-filter: blur(5px); z-index: 20000; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.3s; }
+    .spinner { width: 40px; height: 40px; border: 4px solid #e0e0e0; border-top: 4px solid #007bff; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 10px; }
+    .loading-text { font-size: 14px; color: #555; font-weight: bold; letter-spacing: 1px; animation: pulse 1.5s infinite; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    @keyframes pulse { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
+
+    /* --- 2. HUD --- */
+    #hud { 
+        position: fixed; top: 15px; left: 50%; transform: translateX(-50%) translateY(-150%);
+        width: 90%; max-width: 400px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white; border-radius: 50px; padding: 10px 20px;
+        display: flex; align-items: center; justify-content: space-between;
+        z-index: 11000; box-shadow: 0 8px 20px rgba(118, 75, 162, 0.4);
+        font-size: 13px; font-weight: bold;
+        transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    #hud.show { transform: translateX(-50%) translateY(0); }
+    .hud-left { display: flex; align-items: center; gap: 8px; }
+    .hud-icon { background: rgba(255,255,255,0.2); border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+    .hud-btn { background: white; color: #764ba2; border: none; padding: 6px 14px; border-radius: 20px; font-size: 12px; cursor: pointer; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
     
-    /* =========================================
-       🌟 頂部固定區 (Header Sticky)
-       ========================================= */
+    /* --- 3. Header --- */
     .header-sticky { position: sticky; top: 0; background: #f4f6f9; z-index: 100; box-shadow: 0 4px 6px -6px rgba(0,0,0,0.1); }
-    
     .top-row-container { display: flex; align-items: center; gap: 8px; padding: 10px 10px 5px 10px; }
     .main-search-input { flex: 1; padding: 10px 12px; border-radius: 10px; border: 2px solid #e0e0e0; background: #fff; font-size: 14px; outline: none; transition: 0.3s; height: 42px; box-sizing: border-box; }
     .main-search-input:focus { border-color: #007bff; }
-    
     .tool-group { display: flex; gap: 5px; }
-    .tool-btn-small { width: 42px; height: 42px; border-radius: 10px; background: white; border: 1px solid #ddd; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 16px; color: #555; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-    .tool-btn-small:active { background: #f0f0f0; transform: scale(0.95); }
+    .tool-btn-small { width: 42px; height: 42px; border-radius: 10px; background: white; border: 1px solid #ddd; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 16px; color: #555; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.05); transition: 0.2s; }
+    .tool-btn-small:active { transform: scale(0.95); }
+    .tool-btn-small.active-chart { background: #e3f2fd; color: #007bff; border-color: #007bff; }
     
-    /* 🌟 RWD 自適應 Tabs */
+    /* 🌟 [修正] Tabs 真．自適應 */
     .tabs-sticky-container { background: #f4f6f9; padding-bottom: 5px; border-bottom: 1px solid rgba(0,0,0,0.05); }
-    .status-tabs { display: flex; overflow-x: auto; gap: 8px; padding: 0 10px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
-    .status-tabs::-webkit-scrollbar { display: none; }
-    
-    .tab-btn { flex: 0 0 auto; min-width: 68px; padding: 6px 4px; border-radius: 10px; font-size: 11px; font-weight: bold; border: none; cursor: pointer; background: #fff; color: #888; transition: 0.2s; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-    .tab-btn span { font-size: 14px; margin-bottom: 1px; }
-    .tab-btn .count { background: rgba(0,0,0,0.05); padding: 1px 6px; border-radius: 10px; font-size: 9px; margin-top: 1px; }
-    .tab-btn.active { transform: scale(0.96); box-shadow: inset 0 2px 4px rgba(0,0,0,0.1); color: white; }
-    
-    /* 🌟 電腦版優化：按鈕自動填滿 */
-    @media (min-width: 768px) {
-        .status-tabs { flex-wrap: wrap; overflow: visible; }
-        .tab-btn { flex: 1 0 auto; min-width: 80px; } /* 自動變寬 */
-        .chip-container { flex-wrap: wrap; overflow: visible; } /* Chip 也自動換行 */
+    .status-tabs { display: flex; overflow-x: auto; gap: 8px; padding: 0 10px; align-items: center; }
+    .tab-btn { 
+        flex: 0 0 auto; /* 讓內容決定寬度，不強迫拉伸 */
+        min-width: 68px; /* 最小寬度保障 */
+        padding: 8px 12px; /* 增加左右 padding 讓它看起來像膠囊 */
+        border-radius: 12px; 
+        font-size: 11px; font-weight: bold; border: none; cursor: pointer; 
+        background: #fff; color: #666; transition: 0.2s; 
+        display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; 
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05); 
+        white-space: nowrap; /* 禁止文字換行 */
     }
-
-    /* Tabs 顏色定義 */
-    .tab-all.active { background: #555; }
-    .tab-new.active { background: #00C851; }
-    .tab-unread.active { background: #ffbb33; color: #5c3a00; }
-    .tab-read.active { background: #ff4444; }
-    .tab-noline.active { background: #33b5e5; }
-    .tab-dispatched.active { background: #9c27b0; } 
-    .tab-self.active { background: #00897b; }       
-    .tab-invalid.active { background: #6c757d; }
-
-    /* 篩選開關列 */
-    .filter-trigger-row { padding: 5px 10px; display: flex; flex-direction: column; align-items: flex-start; gap: 5px; }
-    .filter-toggle-btn { background: none; border: none; color: #007bff; font-size: 13px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 5px; padding: 5px 0; }
+    .tab-btn span { font-size: 16px; line-height: 1; }
+    .tab-btn .count { background: #f0f0f0; padding: 2px 8px; border-radius: 10px; font-size: 10px; color: #888; }
+    .tab-btn.active { transform: translateY(-1px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); color: white; }
     
-    /* 🌟 優化的篩選提示文字 */
+    /* Tabs Colors */
+    .tab-all.active { background: #555; } .tab-all.active .count { background: rgba(255,255,255,0.3); color: white; }
+    .tab-new.active { background: #00C851; } .tab-new.active .count { background: rgba(255,255,255,0.3); color: white; }
+    .tab-unread.active { background: #ffbb33; color:#5c3a00; } .tab-unread.active .count { background: rgba(0,0,0,0.1); color: #5c3a00; }
+    .tab-read.active { background: #ff4444; } .tab-read.active .count { background: rgba(255,255,255,0.3); color: white; }
+    .tab-noline.active { background: #33b5e5; } .tab-noline.active .count { background: rgba(255,255,255,0.3); color: white; }
+    .tab-dispatched.active { background: #9c27b0; } .tab-dispatched.active .count { background: rgba(255,255,255,0.3); color: white; }
+    .tab-self.active { background: #00897b; } .tab-self.active .count { background: rgba(255,255,255,0.3); color: white; }
+    .tab-invalid.active { background: #6c757d; } .tab-invalid.active .count { background: rgba(255,255,255,0.3); color: white; }
+
+    .filter-trigger-row { padding: 5px 10px; display: flex; flex-direction: column; align-items: flex-start; gap: 5px; }
+    .filter-toggle-btn { background: white; border: 1px solid #ddd; border-radius: 20px; color: #555; font-size: 12px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 6px; padding: 6px 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); transition: 0.2s; }
+    .filter-toggle-btn.active { background: #e3f2fd; color: #007bff; border-color: #007bff; }
     .filter-hint-row { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 5px; padding: 0 10px; }
     .filter-tag { font-size: 10px; background: #e7f5ff; color: #007bff; padding: 2px 8px; border-radius: 10px; border: 1px solid #b3d7ff; white-space: nowrap; }
-
-    /* 業務篩選列 */
-    #salesFilterBar { display: none; white-space: nowrap; overflow-x: auto; padding: 0 10px 8px 10px; -webkit-overflow-scrolling: touch; }
-    #salesFilterBar::-webkit-scrollbar { display: none; }
+    #salesFilterBar { display: none; white-space: nowrap; overflow-x: auto; padding: 0 10px 8px 10px; }
     .sales-pill { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; margin-right: 5px; border-radius: 15px; font-size: 11px; color: #555; background: #e0e0e0; border: 1px solid #ccc; cursor: pointer; transition: 0.2s; }
     .sales-pill.active { background: #333; color: white; border-color: #000; }
     .sales-filter-dispatched .sales-pill.active { background: #9c27b0; border-color: #7b1fa2; }
     .sales-filter-self .sales-pill.active { background: #00897b; border-color: #00695c; }
-    .sales-count { background: rgba(0,0,0,0.1); color: inherit; font-size: 10px; padding: 1px 6px; border-radius: 10px; font-weight: bold; }
-    .sales-pill.active .sales-count { background: rgba(255,255,255,0.25); color: white; }
 
-    /* =========================================
-       🌟 展開區 (篩選面板 & 圖表)
-       ========================================= */
+    /* Expand Area */
     .expand-area { padding: 0 10px; }
-    .hidden-panel { display: none; background: white; border-radius: 16px; padding: 15px; margin-bottom: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); animation: slideDown 0.2s ease-out; }
+    .hidden-panel { display: none; background: linear-gradient(180deg, #f0f7ff 0%, #ffffff 100%); border-radius: 0 0 16px 16px; padding: 20px 15px; margin-bottom: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.08); animation: slideDown 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); position: relative; overflow: hidden; }
+    .hidden-panel::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: linear-gradient(90deg, #667eea, #764ba2); }
     @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
 
-    .date-trigger-btn { width: 100%; padding: 12px; background: #f0f7ff; border: 1px solid #007bff; border-radius: 12px; text-align: left; font-size: 14px; font-weight: bold; color: #007bff; display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; cursor: pointer; box-sizing: border-box; }
-    .date-trigger-btn span { color: #333; font-weight: normal; font-size: 13px; }
-
-    .filter-section-title { font-size: 12px; color: #888; font-weight: bold; margin-bottom: 8px; margin-top: 10px; }
+    .date-trigger-btn { width: 100%; padding: 12px 15px; background: #e3f2fd; border: none; border-radius: 12px; text-align: left; font-size: 14px; font-weight: bold; color: #1565c0; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; cursor: pointer; box-sizing: border-box; box-shadow: 0 4px 10px rgba(33, 150, 243, 0.15); transition: transform 0.1s; }
+    .date-trigger-btn:active { transform: scale(0.98); }
+    .filter-section-title { font-size: 12px; color: #666; font-weight: bold; margin-bottom: 8px; margin-top: 10px; display: flex; align-items: center; gap: 5px; }
+    .chip-container { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 5px; margin-bottom: 5px; }
+    .chip { flex: 0 0 auto; padding: 8px 16px; border-radius: 20px; font-size: 12px; font-weight: bold; color: #555; background: #fff; border: 1px solid #dee2e6; cursor: pointer; transition: 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    .chip.active { background: #e7f5ff; color: #007bff; border-color: #007bff; box-shadow: 0 2px 6px rgba(0,123,255,0.25); }
+    .btn-reset-full { width: 100%; padding: 12px; background: #fff5f5; color: #c0392b; border: 1px solid #ffcdd2; border-radius: 12px; font-size: 13px; font-weight: bold; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 5px; transition: 0.2s; margin-top: 15px; }
     
-    .chip-container { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 5px; margin-bottom: 5px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
-    .chip { flex: 0 0 auto; padding: 8px 16px; border-radius: 20px; font-size: 12px; font-weight: bold; color: #555; background: #f1f3f5; border: 1px solid #dee2e6; cursor: pointer; transition: 0.2s; }
-    .chip.active { background: #e7f5ff; color: #007bff; border-color: #007bff; box-shadow: 0 2px 4px rgba(0,123,255,0.2); }
+    #chartPanel { background: linear-gradient(180deg, #ffffff 0%, #f8faff 100%); border-top: none; }
+    .chart-header-title { text-align: center; font-size: 16px; font-weight: bold; color: #333; margin-bottom: 5px; padding-top: 5px; }
+    .insight-row { display: flex; justify-content: space-around; margin-bottom: 10px; background: white; padding: 8px 5px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); align-items: center; }
+    .insight-item { text-align: center; }
+    .insight-val { font-size: 15px; font-weight: bold; color: #333; line-height: 1.2; }
+    .insight-label { font-size: 10px; color: #888; }
+    .insight-val.good { color: #00C851; }
+    .insight-val.bad { color: #ff4444; }
 
-    /* 🌟 優化的清除按鈕 */
-    .btn-reset-full { width: 100%; padding: 12px; background: #ffebee; color: #c62828; border: 1px solid #ffcdd2; border-radius: 12px; font-size: 13px; font-weight: bold; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 5px; transition: 0.2s; }
-    .btn-reset-full:active { background: #ffcdd2; }
-
-    /* =========================================
-       🌟 Bottom Sheet (日期選擇)
-       ========================================= */
-    .bottom-sheet-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 9999; display: none; opacity: 0; transition: opacity 0.3s; }
-    .bottom-sheet { position: fixed; bottom: 0; left: 0; right: 0; background: white; border-radius: 20px 20px 0 0; z-index: 10000; transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.2, 0.9, 0.3, 1); padding: 20px; padding-bottom: 40px; box-shadow: 0 -5px 25px rgba(0,0,0,0.1); display: flex; flex-direction: column; max-height: 85vh; }
-    .bottom-sheet.show { transform: translateY(0); }
-    .sheet-header { font-size: 16px; font-weight: bold; text-align: center; margin-bottom: 15px; position: relative; }
-    .sheet-close { position: absolute; right: 0; top: -5px; background: none; border: none; font-size: 20px; color: #999; padding: 5px; cursor: pointer; }
-    
-    /* 🌟 優化的快捷日期 Grid */
-    .quick-date-grid-row1 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 8px; }
-    .quick-date-grid-row2 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 20px; }
-    
-    .quick-btn { padding: 10px 2px; background: #f8f9fa; border: 1px solid #eee; border-radius: 10px; font-size: 12px; color: #555; font-weight: bold; text-align: center; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-    .quick-btn:active { background: #e9ecef; color: #007bff; border-color: #b3d7ff; }
-
-    .date-range-inputs { display: flex; gap: 10px; align-items: center; margin-bottom: 20px; background: #f8f9fa; padding: 15px; border-radius: 12px; }
-    .date-input-group { flex: 1; display: flex; flex-direction: column; gap: 5px; }
-    .date-input-group label { font-size: 11px; color: #666; font-weight: bold; }
-    .date-native-input { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 8px; font-size: 15px; box-sizing: border-box; background: #fff; -webkit-appearance: none; }
-    .sheet-confirm-btn { width: 100%; padding: 14px; background: linear-gradient(135deg, #007bff, #0056b3); color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: bold; cursor: pointer; }
-
-    /* 圖表區 */
     .chart-wrapper { position: relative; height: 320px; width: 100%; display: none; margin-top: 10px; }
     .chart-wrapper.active { display: block; }
+    .chart-tabs { display: flex; gap: 8px; overflow-x: auto; margin-bottom: 10px; }
+    .chart-tab-btn { padding: 6px 14px; border-radius: 20px; background: #f1f3f5; color: #555; font-size: 12px; font-weight: bold; border: none; white-space: nowrap; cursor: pointer; }
+    .chart-tab-btn.active { background: #007bff; color: white; }
     .time-toggles-container { display: flex; justify-content: flex-end; padding-right: 10px; margin-bottom: 5px; }
     .time-toggles { display: flex; background: #e9ecef; border-radius: 20px; padding: 3px; }
     .time-btn { padding: 4px 12px; border: none; background: transparent; font-size: 11px; border-radius: 15px; cursor: pointer; color: #666; font-weight: bold; transition: 0.2s; }
     .time-btn.active { background: white; color: #007bff; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-    .chart-tabs { display: flex; gap: 8px; overflow-x: auto; margin-bottom: 10px; scrollbar-width: none; }
-    .chart-tab-btn { padding: 6px 14px; border-radius: 20px; background: #f1f3f5; color: #555; font-size: 12px; font-weight: bold; border: none; white-space: nowrap; cursor: pointer; }
-    .chart-tab-btn.active { background: #007bff; color: white; }
 
-    /* 列表區 */
+    /* List & Cards */
     .list-container { padding: 10px; }
+    .store-card { background: white; border-radius: 16px; padding: 16px; margin-bottom: 16px; border-top: 6px solid #ccc; position: relative; box-shadow: 0 4px 15px rgba(0,0,0,0.05); transition: border-color 0.3s; }
+    .store-card.idle-warning { border: 2px solid #ff4444; animation: redPulse 2s infinite; }
+    .idle-tag { position: absolute; top: -10px; right: 10px; background: #ff4444; color: #fff; font-size: 10px; font-weight: bold; padding: 2px 8px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); z-index: 5; }
+    @keyframes redPulse { 0% { box-shadow: 0 0 0 0 rgba(255, 68, 68, 0.4); } 70% { box-shadow: 0 0 0 6px rgba(255, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(255, 68, 68, 0); } }
 
-    /* 卡片設計 */
-    .store-card { background: white; border-radius: 16px; padding: 16px; margin-bottom: 16px; border-top: 6px solid #ccc; position: relative; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
     .card-new { border-top-color: #00C851; }
     .card-unread { border-top-color: #ffbb33; }
     .card-read { border-top-color: #ff4444; }
@@ -134,14 +132,31 @@
     .card-invalid { border-top-color: #6c757d; opacity: 0.7; }
     .card-dispatched { border-top-color: #9c27b0; } 
     .card-self { border-top-color: #00897b; } 
-
-    .top-right-badge { position: absolute; top: 12px; right: 12px; text-align: right; font-size: 11px; color: #888; line-height: 1.4; }
-    .badge-source { font-weight: bold; padding: 2px 6px; border-radius: 4px; margin-bottom: 3px; display: inline-block; color: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+    
+    .top-right-badge { 
+        position: absolute; top: 12px; right: 12px; text-align: right; font-size: 11px; color: #888; line-height: 1.4; 
+        max-width: 140px; overflow: hidden; /* 防止文字溢出 */
+    }
+    .badge-source { 
+        font-weight: bold; padding: 2px 6px; border-radius: 4px; margin-bottom: 3px; display: inline-block; color: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.2); 
+        max-width: 100%; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; vertical-align: bottom;
+    }
+    
     .action-alert { background: #fff5f5; border: 1px dashed #ff6b6b; color: #c0392b; padding: 8px 12px; border-radius: 8px; font-size: 14px; font-weight: bold; margin: 8px 0; display: flex; align-items: center; gap: 6px; }
     .action-alert i { font-style: normal; font-size: 16px; }
     .dup-alert { background: #ffebee; color: #c62828; border: 1px solid #ffcdd2; font-size: 11px; padding: 8px; border-radius: 8px; margin-bottom: 8px; }
-    .store-name { font-size: 18px; font-weight: bold; color: #333; margin-bottom: 4px; padding-right: 80px; line-height: 1.4; display: flex; align-items: center; }
-    .industry-text { font-size: 12px; background: #eee; color: #555; padding: 2px 6px; border-radius: 4px; margin-right: 5px; font-weight: normal; }
+    
+    /* 🌟 店名區塊 */
+    .store-name { font-size: 18px; font-weight: bold; color: #333; margin-bottom: 4px; padding-right: 80px; line-height: 1.4; display: flex; align-items: center; flex-wrap: wrap; }
+    .industry-text { font-size: 12px; background: #eee; color: #555; padding: 2px 6px; border-radius: 4px; margin-right: 5px; font-weight: normal; max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block; vertical-align: bottom; }
+    
+    /* 🌟 W欄狀態標籤 (現在顯示在店名旁) */
+    .w-status-badge { font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: bold; color: white; margin-left: 6px; display: inline-block; vertical-align: middle; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .w-red { background: #c0392b; }
+    .w-green { background: #27ae60; }
+    .w-orange { background: #e67e22; }
+    .w-gray { background: #7f8c8d; }
+
     .btn-copy-text { background: none; border: none; font-size: 14px; cursor: pointer; margin-left: 5px; opacity: 0.6; pointer-events: auto; }
     .key-badge { font-size: 11px; color: #666; background: #f0f0f0; padding: 2px 6px; border-radius: 4px; margin-left: 5px; vertical-align: middle; }
     .info-box { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: #555; background: #f8faff; padding: 10px; border-radius: 12px; border: 1px solid #eef2f7; margin-bottom: 8px; }
@@ -149,25 +164,90 @@
     .status-checks { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 5px; }
     .check-pill { font-size: 10px; padding: 2px 6px; border-radius: 10px; background: #f0f0f0; color: #aaa; border: 1px solid #ddd; }
     .check-pill.on { background: #e3f2fd; color: #1565c0; border-color: #90caf9; font-weight: bold; }
-    .action-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 10px; }
-    .btn-tool { display: flex; flex-direction: row; justify-content: center; align-items: center; padding: 8px 0; border-radius: 8px; border: 1px solid #ddd; font-size: 12px; font-weight: bold; text-decoration: none; color: #444; background: #fff; transition: 0.2s; gap: 4px; }
-    .btn-line { background: #ebf9f0; border-color: #06C755; color: #06C755; }
-    .btn-call { background: #e0f7fa; border-color: #00acc1; color: #00838f; }
-    .btn-map { background: #e8f0fe; border-color: #4285F4; color: #4285F4; }
-    .btn-dispatch { background: #f3e5f5; border-color: #ab47bc; color: #7b1fa2; }
-    .btn-tool i { font-size: 14px; font-style: normal; }
     .update-badge { background: #e74c3c; color: white; border-radius: 10px; padding: 0px 5px; font-size: 10px; margin-left: 2px; height: 16px; line-height: 16px; display: inline-block; vertical-align: text-top; }
+    
+    .record-section { margin-bottom: 8px; }
+    .record-label { font-size: 12px; font-weight: bold; color: #555; margin-bottom: 4px; display: flex; align-items: center; gap: 5px; }
+    .status-badge { font-size: 10px; padding: 2px 8px; border-radius: 10px; font-weight: bold; color: white; }
+    .status-badge.good { background: #007bff; }
+    .status-badge.bad { background: #dc3545; }
+    
+    .record-box { font-size: 11px; color: #666; background: #f8f9fa; padding: 8px 10px; border-radius: 8px; white-space: pre-wrap; line-height: 1.5; max-height: 4.5em; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; border-left: 3px solid #ddd; }
+
+    .action-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; }
+    .btn-ghost { display: flex; align-items: center; justify-content: center; padding: 8px 0; border-radius: 8px; border: 1px solid #e0e0e0; background: white; color: #666; font-size: 12px; font-weight: bold; text-decoration: none; transition: 0.2s; gap: 4px; }
+    .btn-ghost:active { background: #f5f5f5; }
+    .btn-orange { background: #ff9800; color: white; border: none; box-shadow: 0 2px 5px rgba(255, 152, 0, 0.3); }
+    .btn-purple { background: #9c27b0; color: white; border: none; box-shadow: 0 2px 5px rgba(156, 39, 176, 0.3); }
+    .btn-tool { display: flex; align-items: center; justify-content: center; padding: 8px 0; border-radius: 8px; font-size: 12px; font-weight: bold; cursor: pointer; text-decoration: none; gap: 4px; }
+
+    /* Modals */
+    .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 9998; display: none; opacity: 0; transition: opacity 0.3s; }
+    .bottom-sheet { position: fixed; bottom: 0; left: 0; right: 0; background: white; border-radius: 20px 20px 0 0; z-index: 10000; transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.2, 0.9, 0.3, 1); padding: 20px; padding-bottom: 40px; display: flex; flex-direction: column; max-height: 90vh; overflow-y: auto; }
+    .bottom-sheet.show { transform: translateY(0); }
+    .sheet-header { font-size: 18px; font-weight: bold; text-align: center; margin-bottom: 15px; position: relative; color: #333; }
+    .sheet-close { position: absolute; right: 0; top: -5px; background: none; border: none; font-size: 24px; color: #999; padding: 0 10px; cursor: pointer; }
+
+    /* Update Modal */
+    .update-chip-container { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 15px; }
+    .update-chip { padding: 6px 12px; background: #f1f3f5; border-radius: 15px; font-size: 12px; color: #555; border: 1px solid #ddd; cursor: pointer; display: flex; align-items: center; gap: 4px; }
+    .update-chip.call-chip { background: #e3f2fd; color: #0288d1; border-color: #b3e5fc; font-weight: bold; }
+    .update-chip.line-chip { background: #e8f5e9; color: #2e7d32; border-color: #c8e6c9; font-weight: bold; }
+    
+    .status-group-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+    .status-btn-big { padding: 12px; border-radius: 12px; border: 2px solid transparent; font-size: 14px; font-weight: bold; cursor: pointer; text-align: center; transition: 0.2s; }
+    .status-btn-big.contact { background: #e3f2fd; color: #007bff; border-color: #b3d7ff; }
+    .status-btn-big.contact.active { background: #007bff; color: white; border-color: #0056b3; box-shadow: 0 4px 10px rgba(0,123,255,0.3); }
+    .status-btn-big.reject { background: #ffebee; color: #c62828; border-color: #ffcdd2; }
+    .status-btn-big.reject.active { background: #c62828; color: white; border-color: #b71c1c; box-shadow: 0 4px 10px rgba(198,40,40,0.3); }
+
+    .update-textarea { width: 100%; height: 160px; border: 1px solid #ddd; border-radius: 12px; padding: 10px; font-size: 14px; resize: none; margin-bottom: 15px; background: #fafafa; font-family: monospace; line-height: 1.5; box-sizing: border-box; }
+    .toggle-row { display: flex; justify-content: space-between; margin-bottom: 10px; background: white; padding: 5px 0; border-radius: 12px; }
+    .toggle-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px; cursor: pointer; padding: 10px 5px; border-radius: 10px; transition: 0.2s; margin: 0 3px; background: #f0f0f0; color: #999; }
+    .toggle-icon { font-size: 20px; }
+    .toggle-label { font-size: 10px; font-weight: bold; }
+    .toggle-item.active.tog-L { background: #06C755; color: white; }
+    .toggle-item.active.tog-M { background: #333; color: white; }
+    .toggle-item.active.tog-N { background: #007bff; color: white; }
+    .toggle-item.active.tog-O { background: #ff9800; color: white; }
+    .toggle-item.active.tog-Q { background: #c0392b; color: white; }
+
+    /* Dispatch */
+    .dispatch-step { display: none; }
+    .dispatch-step.active { display: block; }
+    .store-name-large { font-size: 22px; font-weight: bold; color: #333; text-align: center; margin: 20px 0; }
+    .copy-btn-large { width: 100%; padding: 15px; background: #e3f2fd; color: #1565c0; border: 1px dashed #1565c0; border-radius: 12px; font-size: 16px; font-weight: bold; cursor: pointer; margin-bottom: 20px; display: flex; justify-content: center; align-items: center; gap: 8px; }
+    .sales-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
+    .sales-tile { aspect-ratio: 1.5; border-radius: 12px; background: white; border: 2px solid #eee; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 14px; font-weight: bold; color: #555; position: relative; transition: 0.2s; }
+    .sales-tile.selected { border-color: #9c27b0; background: #f3e5f5; color: #9c27b0; }
+    .sales-check { position: absolute; top: 5px; right: 5px; font-size: 12px; display: none; }
+    .sales-tile.selected .sales-check { display: block; }
+    .input-field { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 10px; margin-bottom: 15px; font-size: 14px; box-sizing: border-box; }
+    .sheet-confirm-btn { width: 100%; padding: 14px; background: linear-gradient(135deg, #007bff, #0056b3); color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: bold; cursor: pointer; }
+
+    /* Date Picker */
+    .quick-date-grid-row1 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 8px; }
+    .quick-date-grid-row2 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 20px; }
+    .quick-btn { padding: 10px 2px; background: #f8f9fa; border: 1px solid #eee; border-radius: 10px; font-size: 12px; color: #555; font-weight: bold; text-align: center; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .quick-btn:active { background: #e9ecef; color: #007bff; border-color: #b3d7ff; }
+    .date-range-inputs { display: flex; gap: 10px; align-items: center; margin-bottom: 20px; background: #f8f9fa; padding: 15px; border-radius: 12px; }
+    .date-input-group { flex: 1; display: flex; flex-direction: column; gap: 5px; }
+    .date-input-group label { font-size: 11px; color: #666; font-weight: bold; }
+    .date-native-input { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 8px; font-size: 15px; box-sizing: border-box; background: #fff; }
 
     .fab-switch { position: fixed; bottom: 25px; right: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px 24px; border-radius: 50px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); font-size: 14px; font-weight: bold; text-decoration: none; display: flex; align-items: center; gap: 8px; z-index: 1000; transition: transform 0.2s; }
     #toast { visibility: hidden; min-width: 200px; background-color: #333; color: #fff; text-align: center; border-radius: 20px; padding: 10px; position: fixed; z-index: 10001; left: 50%; bottom: 100px; transform: translateX(-50%); font-size: 13px; }
     #toast.show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 2.5s; }
-    
-    .skeleton-card { background: #fff; border-radius: 16px; padding: 16px; margin-bottom: 16px; border-top: 6px solid #e0e0e0; }
-    .skeleton-box { background: #f6f7f8; height: 20px; margin-bottom: 10px; border-radius: 4px; animation: pulse 1.5s infinite; }
-    @keyframes pulse { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
   </style>
 </head>
 <body>
+
+  <div id="loadingOverlay"><div class="spinner"></div><div class="loading-text">資料讀取中...</div></div>
+
+  <div id="hud">
+      <div class="hud-left"><span class="hud-icon">🚀</span><span>派單未完成：<span id="hudStoreName"></span></span></div>
+      <div><button class="hud-btn" onclick="continueDispatch()">繼續</button><span style="font-size:18px; cursor:pointer; color:rgba(255,255,255,0.7); margin-left:10px;" onclick="closeHUD()">✕</span></div>
+  </div>
 
   <div class="header-sticky">
     <div class="top-row-container">
@@ -178,9 +258,8 @@
             <div class="tool-btn-small" onclick="loadData()"><span>🔄</span></div>
         </div>
     </div>
-
     <div class="tabs-sticky-container">
-        <div class="status-tabs" id="statusTabs">
+        <div class="status-tabs no-scrollbar" id="statusTabs">
             <button class="tab-btn tab-all" onclick="setTab('all')"><span>📂</span>全部<div class="count" id="cnt-all">0</div></button>
             <button class="tab-btn tab-new active" onclick="setTab('new')"><span>🆕</span>新單<div class="count" id="cnt-new">0</div></button>
             <button class="tab-btn tab-unread" onclick="setTab('unread')"><span>📲</span>未讀<div class="count" id="cnt-unread">0</div></button>
@@ -190,38 +269,30 @@
             <button class="tab-btn tab-self" onclick="setTab('self')"><span>💪</span>自開件<div class="count" id="cnt-self">0</div></button>
             <button class="tab-btn tab-invalid" onclick="setTab('invalid')"><span>💀</span>無效<div class="count" id="cnt-invalid">0</div></button>
         </div>
-        
         <div class="filter-trigger-row">
-            <button class="filter-toggle-btn" id="filterToggleBtn" onclick="togglePanel('filterPanel')">🌪️ 篩選條件</button>
+            <button class="filter-toggle-btn" id="filterToggleBtn" onclick="togglePanel('filterPanel')"><span style="font-size:16px;">🌪️</span> 篩選條件</button>
         </div>
         <div class="filter-hint-row" id="filterHintRow"></div>
-        <div id="salesFilterBar"></div>
+        <div id="salesFilterBar" class="no-scrollbar"></div>
     </div>
   </div>
 
   <div class="expand-area">
       <div id="filterPanel" class="hidden-panel">
-          <div class="date-trigger-btn" onclick="openDateSheet()">
-              <div>📅 日期區間</div>
-              <span id="dateDisplay">全部日期</span>
-          </div>
-
-          <div class="filter-section-title">📢 來源 (可複選)</div>
-          <div class="chip-container" id="sourceChips"></div>
-
-          <div class="filter-section-title">🏙️ 地區 (可複選)</div>
-          <div class="chip-container" id="areaChips"></div>
-
-          <div class="filter-section-title">🏭 產業 (可複選)</div>
-          <div class="chip-container" id="industryChips"></div>
-
-          <div style="text-align:center; margin-top:15px;">
-              <button class="btn-reset-full" onclick="resetAllFilters()">🗑️ 清除所有條件</button>
-          </div>
+          <button class="date-trigger-btn" onclick="openDateSheet()"><div>📅 日期區間</div><span id="dateDisplay">全部日期</span></button>
+          <div class="filter-section-title">📢 來源 (可複選)</div><div class="chip-container no-scrollbar" id="sourceChips"></div>
+          <div class="filter-section-title">🏙️ 地區 (可複選)</div><div class="chip-container no-scrollbar" id="areaChips"></div>
+          <div class="filter-section-title">🏭 產業 (可複選)</div><div class="chip-container no-scrollbar" id="industryChips"></div>
+          <div style="text-align:center;"><button class="btn-reset-full" onclick="resetAllFilters()">🗑️ 清除所有條件</button></div>
       </div>
       
       <div id="chartPanel" class="hidden-panel">
-         <div class="chart-tabs">
+         <div class="chart-header-title">📈 營運數據報表</div>
+         <div class="insight-row">
+             <div class="insight-item"><div class="insight-val" id="val-conversion">0%</div><div class="insight-label">🚀 派單轉化率</div></div>
+             <div class="insight-item"><div class="insight-val" id="val-junk">0%</div><div class="insight-label">🗑️ 垃圾單率</div></div>
+         </div>
+         <div class="chart-tabs no-scrollbar">
            <button class="chart-tab-btn active" onclick="switchChart('status')">🏷️ 狀態</button>
            <button class="chart-tab-btn" onclick="switchChart('sales')">🏆 排行</button>
            <button class="chart-tab-btn" onclick="switchChart('date')">📅 走勢</button>
@@ -230,13 +301,7 @@
          <div class="chart-wrapper active" id="chart-status"><canvas id="canvas-status"></canvas></div>
          <div class="chart-wrapper" id="chart-sales"><canvas id="canvas-sales"></canvas></div>
          <div class="chart-wrapper" id="chart-date">
-             <div class="time-toggles-container">
-                 <div class="time-toggles">
-                     <button class="time-btn" onclick="setDateGrain('month', this)">月</button>
-                     <button class="time-btn" onclick="setDateGrain('week', this)">週</button>
-                     <button class="time-btn active" onclick="setDateGrain('day', this)">日</button>
-                 </div>
-             </div>
+             <div class="time-toggles-container"><div class="time-toggles"><button class="time-btn" onclick="setDateGrain('month', this)">月</button><button class="time-btn" onclick="setDateGrain('week', this)">週</button><button class="time-btn active" onclick="setDateGrain('day', this)">日</button></div></div>
              <canvas id="canvas-date"></canvas>
          </div>
          <div class="chart-wrapper" id="chart-source"><canvas id="canvas-source"></canvas></div>
@@ -244,17 +309,64 @@
       </div>
   </div>
 
-  <div class="list-container">
-      <div id="storeList"></div>
-  </div>
-
+  <div class="list-container"><div id="storeList"></div></div>
   <a href="https://liff.line.me/YOUR_BACKEND_LIFF_ID" class="fab-switch">🎯 前往後段 <i>→</i></a>
   <div id="toast">已複製店家資料！</div>
+
+  <div class="modal-overlay" id="updateModalOverlay" onclick="closeUpdateModal()"></div>
+  <div class="bottom-sheet" id="updateModal">
+      <div class="sheet-header"><span id="updateModalTitle">更新進度</span> <button class="sheet-close" onclick="closeUpdateModal()">✕</button></div>
+      
+      <div class="filter-section-title" style="font-size:14px; color:#333; margin-top:0;">📌 這張單還有救嗎？</div>
+      <div class="status-group-grid">
+          <div class="status-btn-big contact" onclick="selectStatus(this, '聯絡中')">📞 聯絡中</div>
+          <div class="status-btn-big reject" onclick="selectStatus(this, '拒絕')">🚫 拒絕 / 無效</div>
+      </div>
+
+      <div class="toggle-row">
+          <div class="toggle-item tog-L" id="tog-L" onclick="toggleStatus('L')"><div class="toggle-icon">💬</div><div class="toggle-label">加Line</div></div>
+          <div class="toggle-item tog-M" id="tog-M" onclick="toggleStatus('M')"><div class="toggle-icon">👀</div><div class="toggle-label">已讀</div></div>
+          <div class="toggle-item tog-N" id="tog-N" onclick="toggleStatus('N')"><div class="toggle-icon">📞</div><div class="toggle-label">撥電話</div></div>
+          <div class="toggle-item tog-O" id="tog-O" onclick="toggleStatus('O')"><div class="toggle-icon">🗣️</div><div class="toggle-label">撥通</div></div>
+          <div class="toggle-item tog-Q" id="tog-Q" onclick="toggleStatus('Q')"><div class="toggle-icon">✉️</div><div class="toggle-label">Email</div></div>
+      </div>
+
+      <div class="filter-section-title">快速紀錄 (記憶按鈕)</div>
+      <div class="update-chip-container">
+          <div class="update-chip line-chip" onclick="insertNote('line')">💬 傳Line時間 <span id="lbl-line-count">(0)</span></div>
+          <div class="update-chip call-chip" onclick="insertNote('call')">📞 撥打時間 <span id="lbl-call-count">(0)</span></div>
+          <div class="update-chip" onclick="insertNote('無人接聽')">無人接聽</div>
+          <div class="update-chip" onclick="insertNote('忙碌中')">忙碌中</div>
+          <div class="update-chip" onclick="insertNote('請寄資料')">請寄資料</div>
+          <div class="update-chip" onclick="insertNote('已約時間')">已約時間</div>
+      </div>
+
+      <textarea id="updateNote" class="update-textarea"></textarea>
+      <button class="sheet-confirm-btn" onclick="saveUpdate()">💾 儲存更新</button>
+  </div>
+
+  <div class="modal-overlay" id="dispatchModalOverlay"></div>
+  <div class="bottom-sheet" id="dispatchModal">
+      <div class="sheet-header">🚀 準備派單 <button class="sheet-close" onclick="closeDispatchModal()">✕</button></div>
+      <div id="dispatchStep1" class="dispatch-step active">
+          <div class="store-name-large" id="dispatchStoreName"></div>
+          <button class="copy-btn-large" onclick="copyStoreAndNext()">📋 複製店名 (去建群組)</button>
+          <p style="text-align:center; color:#666; font-size:12px;">請先到 LINE 建立群組，並貼上此店名。<br>完成後回來填寫資料。</p>
+      </div>
+      <div id="dispatchStep2" class="dispatch-step">
+          <div class="filter-section-title">Step 2: 回填資料</div>
+          <input type="text" id="dispatchLink" class="input-field" placeholder="🔗 貼上 LINE 群組連結 (必填)">
+          <div class="filter-section-title">選擇業務</div>
+          <div class="sales-grid" id="salesGrid"></div>
+          <input type="text" id="dispatchNote" class="input-field" placeholder="📝 給業務的備註 (選填)">
+          <button class="sheet-confirm-btn" style="background:#9c27b0" onclick="confirmDispatch()">✅ 確認派單</button>
+          <button style="width:100%; padding:10px; background:none; border:none; color:#999; margin-top:5px;" onclick="backToStep1()">⬅️ 上一步</button>
+      </div>
+  </div>
 
   <div class="bottom-sheet-overlay" id="dateSheetOverlay" onclick="closeDateSheet()"></div>
   <div class="bottom-sheet" id="dateSheet">
       <div class="sheet-header">📅 選擇日期區間 <button class="sheet-close" onclick="closeDateSheet()">✕</button></div>
-      
       <div class="filter-section-title" style="margin-bottom:8px;">⚡ 快速選擇</div>
       <div class="quick-date-grid-row1">
           <div class="quick-btn" onclick="setQuickDate('thisMonth')">本月</div>
@@ -262,19 +374,11 @@
           <div class="quick-btn" onclick="setQuickDate('thisWeek')">本週</div>
           <div class="quick-btn" onclick="setQuickDate('lastWeek')">上週</div>
       </div>
-      <div class="quick-date-grid-row2" id="recentMonthsContainer">
-          </div>
-
+      <div class="quick-date-grid-row2" id="recentMonthsContainer"></div>
       <div class="date-range-inputs">
-          <div class="date-input-group">
-              <label>開始日期</label>
-              <input type="date" id="dateStart" class="date-native-input" onchange="validateDateRange()">
-          </div>
+          <div class="date-input-group"><label>開始日期</label><input type="date" id="dateStart" class="date-native-input" onchange="validateDateRange()"></div>
           <div style="padding-top:20px; color:#aaa;">➝</div>
-          <div class="date-input-group">
-              <label>結束日期</label>
-              <input type="date" id="dateEnd" class="date-native-input" onchange="validateDateRange()">
-          </div>
+          <div class="date-input-group"><label>結束日期</label><input type="date" id="dateEnd" class="date-native-input" onchange="validateDateRange()"></div>
       </div>
       <button class="sheet-confirm-btn" onclick="applyDateFilter()">確認篩選</button>
       <button style="width:100%; padding:12px; background:none; border:none; color:#666; margin-top:5px;" onclick="clearDateFilter()">清除日期條件</button>
@@ -290,297 +394,182 @@
   let currentDateGrain = 'day'; 
   let sortDesc = true; 
   let clickCounts = JSON.parse(localStorage.getItem('ezPretty_ClickCounts')) || {};
+  let interactionCounts = JSON.parse(localStorage.getItem('ezPretty_InteractionCounts')) || {}; 
+  let tempInteractionCounts = {}; 
+
   const charts = { status: null, sales: null, date: null, source: null, area: null };
-
   let filterState = { dateStart: null, dateEnd: null, source: [], area: [], industry: [] };
-
-  function showSkeleton() {
-    document.getElementById('storeList').innerHTML = Array(3).fill(0).map(() => `<div class="skeleton-card"><div class="skeleton-box" style="width:60%"></div><div class="skeleton-box"></div></div>`).join('');
-  }
+  
+  // Modal State
+  let currentUpdateKey = null;
+  let currentChecks = { L:false, M:false, N:false, O:false, Q:false };
+  let currentProgress = "聯絡中"; 
+  
+  let currentDispatchKey = null;
+  let currentDispatchStore = "";
+  let selectedSales = null;
+  const SALES_LIST = ['WT', 'Kelvin', 'David']; 
 
   async function loadData() {
-    showSkeleton();
-    const fetchUrl = GAS_URL + "?action=getManagementList&t=" + new Date().getTime();
+    document.getElementById('loadingOverlay').style.opacity = '1';
+    document.getElementById('loadingOverlay').style.display = 'flex';
     try {
-      const response = await fetch(fetchUrl);
+      const response = await fetch(GAS_URL + "?action=getManagementList&t=" + new Date().getTime());
       const rawData = await response.json();
       allData = rawData.map(processItem); 
       checkDuplicates(allData); 
       initFilterOptions(); 
-      try { initAllCharts(); } catch(e) { console.error('Chart init error', e); }
+      try { initAllCharts(); } catch(e) {}
+      calculateInsights(allData);
       doSort(); 
       render(); 
-      playScrollHint();
-    } catch (e) { 
-      console.error(e);
-      document.getElementById('storeList').innerHTML = `<div style="text-align:center; padding:20px; color:red;">連線失敗<br><small>${e.message}</small></div>`; 
-    }
+    } catch (e) { console.error(e); }
+    setTimeout(() => {
+        document.getElementById('loadingOverlay').style.opacity = '0';
+        setTimeout(() => document.getElementById('loadingOverlay').style.display = 'none', 300);
+    }, 500);
+  }
+
+  // 🌟 [修正] 強力日期解析 (解決 NaN 問題)
+  function parseDate(dateStr) {
+      if(!dateStr) return null;
+      // 移除中文干擾 (例如 "2026/2/15 (日)" -> "2026/2/15")
+      let clean = dateStr.toString().split(" ")[0].replace(/[^\d\/\-\.]/g, ''); 
+      let d = new Date(clean);
+      if(isNaN(d.getTime())) return null;
+      return d;
   }
 
   function processItem(i) {
     const L = !!i.isL; const M = !!i.isM; const N = !!i.isN; const O = !!i.isO; const Q = !!i.isQ;
-    const detailLabel = String(i.detailLabel || "");
-    const status = String(i.status || "");
-    const isInvalid = detailLabel.includes('無效') || status === '無效單';
-    const sales = String(i.sales || "").trim();
-    const hasSales = sales !== "";
-    const source = String(i.source || "");
-    const isSelfSource = source === "業務自開件";
+    
+    // 1. 解析 R 欄
+    const rawR = String(i.progress || ""); 
+    const parts = rawR.split(/[|｜]/); 
+    const lastUpdateStr = parts[0] ? parts[0].trim() : "";
+    const statusStr = parts[1] ? parts[1].trim() : (parts[0] || ""); 
 
+    // 2. 垃圾判斷
+    const isReject = rawR.includes("拒絕");
+    const isInvalid = (String(i.detailLabel)||"").includes('無效') || i.status === '無效單' || isReject;
+    
+    // 3. 久未聯絡判斷
+    let isIdle = false;
+    if (lastUpdateStr && !isInvalid) {
+        const lastDate = parseDate(lastUpdateStr); // 使用強力解析
+        if (lastDate) {
+            const diffDays = (new Date() - lastDate) / (1000 * 60 * 60 * 24);
+            if (diffDays > 3) isIdle = true;
+        }
+    }
+    i.isIdle = isIdle;
+    i.progressStatus = statusStr;
+
+    const sales = String(i.sales||"").trim();
+    const hasSales = sales !== "";
+    const isSelf = i.source === "業務自開件";
+    
     let category = 'new';
     let actionText = '未定義';
-
-    if (hasSales) {
-        if (isSelfSource) {
-            category = 'self';
-            actionText = `💪 業務自開：${sales}`;
-        } else {
-            category = 'dispatched';
-            actionText = `🚀 已派單給：${sales}`;
-        }
-    } else if (isInvalid) {
-        category = 'invalid';
-        actionText = '💀 此單已標記無效';
-    } else if (!L && !M && !N && !O && !Q) {
-        category = 'new';
-        actionText = '🆕 新單請聯絡！';
-    } else if (L && !M) {
-        category = 'unread';
-        if (!N) actionText = '📞 請一定要打電話！(不要偷懶！)';
-        else if (N && !O) actionText = '🔄 未接！繼續打！繼續傳訊息！';
-        else if (N && O && !Q) actionText = '🚨 裝死不看！繼續打！繼續傳！';
-        else actionText = '📧 已寄信！繼續追殺！(直到已讀)';
-    } else if (L && M) {
-        category = 'read';
-        if (!N && !O) actionText = '📞 已讀沒回！請一定要打電話！';
-        else if (N && !O) actionText = '🔄 已讀未接！繼續打！繼續傳！';
-        else actionText = '🔥 已讀已通！繼續打！(該派單了別拖！)';
-    } else {
-        category = 'noline';
-        if (N && !O) actionText = '🔄 未通！繼續打！';
-        else if (N && O) actionText = '⚠️ 有通沒加Line！(確認忙碌或拒絕)';
-        else actionText = '❓ 狀態異常';
-    }
-    i.category = category;
-    i.actionText = actionText;
+    if (hasSales) { category = isSelf ? 'self' : 'dispatched'; actionText = isSelf ? `💪 業務自開：${sales}` : `🚀 已派單給：${sales}`; } 
+    else if (isInvalid) { category = 'invalid'; actionText = '💀 此單已標記無效'; } 
+    else if (!L && !M && !N && !O && !Q) { category = 'new'; actionText = '🆕 新單請聯絡！'; } 
+    else if (L && !M) { category = 'unread'; actionText = !N ? '📞 請一定要打電話！' : (N && !O ? '🔄 未接！繼續打！' : (N && O && !Q ? '🚨 裝死不看！' : '📧 已寄信！繼續追殺！')); } 
+    else if (L && M) { category = 'read'; actionText = !N && !O ? '📞 已讀沒回！請打電話！' : (N && !O ? '🔄 已讀未接！繼續打！' : '🔥 已讀已通！該派單了！'); } 
+    else { category = 'noline'; actionText = N && !O ? '🔄 未通！繼續打！' : (N && O ? '⚠️ 有通沒加Line！' : '❓ 狀態異常'); }
+    i.category = category; i.actionText = actionText;
     return i;
   }
 
-  function initFilterOptions() {
-      // 1. 生成最近3個月按鈕 (邏輯：從本月開始倒推)
-      const recentContainer = document.getElementById('recentMonthsContainer');
-      let html = '';
-      const today = new Date();
-      for(let i=0; i<3; i++) {
-          const d = new Date(today.getFullYear(), today.getMonth()-i, 1);
-          const y = d.getFullYear();
-          const m = d.getMonth() + 1;
-          html += `<div class="quick-btn" onclick="setQuickMonth('${y}', '${m}')">${y}年${m}月</div>`;
-      }
-      recentContainer.innerHTML = html;
+  function calculateInsights(data) {
+      const companyTotal = data.filter(i => i.source !== "業務自開件").length;
+      const companyDispatch = data.filter(i => i.category === 'dispatched' && i.source !== "業務自開件").length;
+      const companyJunk = data.filter(i => i.category === 'invalid' && i.source !== "業務自開件").length;
 
-      // 2. Chips
-      renderChips('sourceChips', 'source');
-      renderChips('areaChips', 'area');
-      renderChips('industryChips', 'industry');
+      const convRate = companyTotal > 0 ? Math.round((companyDispatch / companyTotal) * 100) : 0;
+      const junkRate = companyTotal > 0 ? Math.round((companyJunk / companyTotal) * 100) : 0;
+
+      document.getElementById('val-conversion').innerText = convRate + "%";
+      document.getElementById('val-junk').innerText = junkRate + "%";
+      document.getElementById('val-conversion').className = "insight-val " + (convRate >= 20 ? "good" : "");
+      document.getElementById('val-junk').className = "insight-val " + (junkRate > 50 ? "bad" : "");
   }
 
-  function renderChips(containerId, field) {
-      const container = document.getElementById(containerId);
-      const set = new Set();
-      allData.forEach(i => { if(i[field]) set.add(i[field]); });
-      const sorted = [...set].sort();
-      let html = '';
-      sorted.forEach(val => {
-          html += `<div class="chip" onclick="toggleChip('${field}', '${val}', this)">${val}</div>`;
-      });
-      container.innerHTML = html;
-  }
-
-  function toggleChip(field, value, el) {
-      const idx = filterState[field].indexOf(value);
-      if (idx > -1) {
-          filterState[field].splice(idx, 1);
-          el.classList.remove('active');
-      } else {
-          filterState[field].push(value);
-          el.classList.add('active');
-      }
-      render();
-  }
-
-  function openDateSheet() {
-      document.getElementById('dateSheetOverlay').style.display = 'block';
-      setTimeout(() => document.getElementById('dateSheetOverlay').style.opacity = '1', 10);
-      document.getElementById('dateSheet').classList.add('show');
-  }
-  function closeDateSheet() {
-      document.getElementById('dateSheet').classList.remove('show');
-      document.getElementById('dateSheetOverlay').style.opacity = '0';
-      setTimeout(() => document.getElementById('dateSheetOverlay').style.display = 'none', 300);
-  }
-  
-  function validateDateRange() {
-      const s = document.getElementById('dateStart');
-      const e = document.getElementById('dateEnd');
-      if (s.value && e.value && s.value > e.value) {
-          const temp = s.value;
-          s.value = e.value;
-          e.value = temp;
-      }
-  }
-
-  // 🌟 日期快捷邏輯 (嚴格修復)
-  function setQuickDate(type) {
-      const today = new Date();
-      // 將時間歸零，避免時區干擾
-      today.setHours(0,0,0,0);
-      
-      const fmt = d => {
-          const y = d.getFullYear();
-          const m = String(d.getMonth()+1).padStart(2,'0');
-          const day = String(d.getDate()).padStart(2,'0');
-          return `${y}-${m}-${day}`;
-      };
-
-      let start, end;
-
-      if(type === 'thisMonth') {
-          start = new Date(today.getFullYear(), today.getMonth(), 1);
-          end = new Date(today.getFullYear(), today.getMonth() + 1, 0); // 下個月第0天 = 本月最後一天
-      } else if(type === 'lastMonth') {
-          start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-          end = new Date(today.getFullYear(), today.getMonth(), 0);
-      } else if(type === 'thisWeek') {
-          // 本週 (週一 ~ 週日)
-          const day = today.getDay() || 7; // Sunday=0 -> 7
-          start = new Date(today);
-          start.setDate(today.getDate() - day + 1);
-          end = new Date(start);
-          end.setDate(start.getDate() + 6);
-      } else if(type === 'lastWeek') {
-          // 上週
-          const day = today.getDay() || 7;
-          const thisMon = new Date(today);
-          thisMon.setDate(today.getDate() - day + 1);
-          start = new Date(thisMon);
-          start.setDate(thisMon.getDate() - 7);
-          end = new Date(start);
-          end.setDate(start.getDate() + 6);
-      }
-
-      document.getElementById('dateStart').value = fmt(start);
-      document.getElementById('dateEnd').value = fmt(end);
-  }
-
-  function setQuickMonth(y, m) {
-      y = parseInt(y); m = parseInt(m);
-      const start = new Date(y, m-1, 1);
-      const end = new Date(y, m, 0);
-      const fmt = d => {
-          const yy = d.getFullYear();
-          const mm = String(d.getMonth()+1).padStart(2,'0');
-          const dd = String(d.getDate()).padStart(2,'0');
-          return `${yy}-${mm}-${dd}`;
-      };
-      document.getElementById('dateStart').value = fmt(start);
-      document.getElementById('dateEnd').value = fmt(end);
-  }
-
-  function applyDateFilter() {
-      const s = document.getElementById('dateStart').value;
-      const e = document.getElementById('dateEnd').value;
-      if (s) filterState.dateStart = new Date(s + 'T00:00:00');
-      if (e) filterState.dateEnd = new Date(e + 'T23:59:59'); 
-      
-      let label = '全部日期';
-      if (s && e) label = `${s} ~ ${e}`;
-      else if (s) label = `${s} 起`;
-      else if (e) label = `${e} 止`;
-      
-      document.getElementById('dateDisplay').innerText = label;
-      closeDateSheet();
-      render();
-  }
-  function clearDateFilter() {
-      document.getElementById('dateStart').value = '';
-      document.getElementById('dateEnd').value = '';
-      filterState.dateStart = null;
-      filterState.dateEnd = null;
-      document.getElementById('dateDisplay').innerText = '全部日期';
-      closeDateSheet();
-      render();
-  }
-
+  /* --- UI Render --- */
   function render() {
     updateFilterHint();
-    
     const salesBar = document.getElementById('salesFilterBar');
     if (currentTab === 'dispatched' || currentTab === 'self') {
         salesBar.style.display = 'block';
-        salesBar.className = currentTab === 'dispatched' ? 'sales-filter-dispatched' : 'sales-filter-self';
+        salesBar.className = 'sales-filter-dispatched no-scrollbar';
+        if(currentTab === 'self') salesBar.className = 'sales-filter-self no-scrollbar';
         updateSalesFilterUI(allData); 
     } else {
         salesBar.style.display = 'none';
         currentSalesFilter = 'all'; 
     }
-
     const list = document.getElementById('storeList');
     const search = document.getElementById('searchInput').value.trim().toLowerCase();
-
     const commonFiltered = allData.filter(i => {
       const content = ((i.source||"")+(i.industry||"")+(i.area||"")+(i.name||"")+(i.boss||"")+(i.lineId||"")+(i.phone||"")+(i.email||"")+(i.req||"")+(i.key||"")+(i.sales||"")).toLowerCase();
-      const matchSearch = (search === "") || content.includes(search);
-      
-      let matchDate = true;
-      if (i.date) {
-          const p = i.date.split(/[-/]/);
-          if(p.length >= 3) {
-              const itemDate = new Date(parseInt(p[0]), parseInt(p[1])-1, parseInt(p[2]));
-              if (filterState.dateStart && itemDate < filterState.dateStart) matchDate = false;
-              if (filterState.dateEnd && itemDate > filterState.dateEnd) matchDate = false;
-          }
-      } else if (filterState.dateStart || filterState.dateEnd) {
-          matchDate = false;
+      if(search !== "" && !content.includes(search)) return false;
+      if (filterState.dateStart || filterState.dateEnd) {
+          const d = parseDate(i.date); // 🌟 使用強力解析
+          if (!d) return false; 
+          if (filterState.dateStart && d < filterState.dateStart) return false;
+          if (filterState.dateEnd && d > filterState.dateEnd) return false;
       }
-
-      const matchSource = filterState.source.length === 0 || filterState.source.includes(i.source);
-      const matchArea = filterState.area.length === 0 || filterState.area.includes(i.area);
-      const matchIndustry = filterState.industry.length === 0 || filterState.industry.includes(i.industry);
-      
-      return matchSearch && matchDate && matchSource && matchArea && matchIndustry;
+      if (filterState.source.length > 0 && !filterState.source.includes(i.source)) return false;
+      if (filterState.area.length > 0 && !filterState.area.includes(i.area)) return false;
+      if (filterState.industry.length > 0 && !filterState.industry.includes(i.industry)) return false;
+      return true;
     });
-
     calculateCountsAndCharts(commonFiltered);
-
     const finalFiltered = commonFiltered.filter(i => {
         const matchTab = (currentTab === 'all') ? true : (i.category === currentTab);
         const matchSales = (currentSalesFilter === 'all') ? true : (i.sales === currentSalesFilter);
         return matchTab && matchSales;
     });
-
     if (finalFiltered.length === 0) { list.innerHTML = `<div style="text-align:center; padding:50px; color:#999;">此分類無符合名單</div>`; return; }
-
     list.innerHTML = finalFiltered.map(item => {
       const style = getSourceStyle(item.source);
       let dupAlert = '';
       if (item.isDup && item.dupInfo) {
-          const reasonsHtml = item.dupInfo.map(info => `<div style="margin-top:2px;">🚨 重複：${info.reason} <span style="font-weight:normal;color:#666;">(${info.targets.join(', ')})</span></div>`).join('');
-          dupAlert = `<div class="dup-alert">${reasonsHtml}</div>`;
+          const reasons = item.dupInfo.map(info => `<div>🚨 重複：${info.reason} (${info.targets.join(', ')})</div>`).join('');
+          dupAlert = `<div class="dup-alert">${reasons}</div>`;
       }
       const localCount = clickCounts[item.key] || 0;
       const badgeHtml = localCount > 0 ? `<span class="update-badge">${localCount}</span>` : '';
-      let lineUrl = "#"; if (item.lineId) lineUrl = `https://line.me/ti/p/~${item.lineId}`; else if (item.phone) lineUrl = `https://line.me/ti/p/~${item.phone}`;
+      let lineUrl = item.lineId ? `https://line.me/ti/p/~${item.lineId}` : (item.phone ? `https://line.me/ti/p/~${item.phone}` : "#");
       const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.area + item.name)}`;
+      
+      const cleanRawP = (item.rawP || "").replace(/'/g, "\\'").replace(/\n/g, "\\n");
+      const currentProgress = item.progressStatus || ""; 
+
+      const idleClass = item.isIdle ? "idle-warning" : "";
+      const idleTag = item.isIdle ? `<div class="idle-tag">⏳ 久未聯絡</div>` : "";
+      
+      let badgeClass = "good";
+      if(item.progress && item.progress.includes("拒絕")) badgeClass = "bad";
+
+      const wStatus = item.status || "";
+      let wBadgeClass = "w-gray";
+      if(wStatus.includes("已成交") || wStatus.includes("意願高")) wBadgeClass = "w-red";
+      else if(wStatus.includes("已約展") || wStatus.includes("已拉群")) wBadgeClass = "w-green";
+      else if(wStatus.includes("展示完")) wBadgeClass = "w-orange";
+      
+      // 🌟 [修正] W欄狀態 移到 店名區塊
+      const wBadgeHtml = wStatus ? `<span class="w-status-badge ${wBadgeClass}">${wStatus}</span>` : "";
 
       return `
-      <div class="store-card card-${item.category}">
-        <div class="top-right-badge"><span class="badge-source" style="background:${style.bg}">${style.label}</span><br>${item.date}</div>
+      <div class="store-card card-${item.category} ${idleClass}">
+        ${idleTag}
+        <div class="top-right-badge"><span class="badge-source" style="background:${style.bg}">${style.label}</span><br>${parseDate(item.date)?parseDate(item.date).toLocaleDateString():'無日期'}</div>
         <div class="store-name">
             <span class="key-badge">#${item.key || '無'}</span>
             <span class="industry-text" style="margin-left:5px;">🏭 ${item.industry || '一般'}</span>
             ${item.area}${item.name} 
-            <button class="btn-copy-text" onclick="copyContent('${item.area}${item.name}', '店名')">📄</button>
+            ${wBadgeHtml} <button class="btn-copy-text" onclick="copyContent('${item.area}${item.name}', '店名')">📄</button>
         </div>
         <div class="action-alert"><i>🔔</i> ${item.actionText}</div>
         ${dupAlert}
@@ -598,19 +587,265 @@
           <span class="check-pill ${item.isO?'on':''}">撥通</span>
           <span class="check-pill ${item.isQ?'on':''}">Email</span>
         </div>
-        <div style="font-size:11px;color:#888;margin-bottom:5px;">📝 紀錄: ${item.rawP || '無'}</div>
+        
+        <div class="record-section">
+            <span class="record-label">
+                📝 紀錄 
+                ${currentProgress ? `<span class="status-badge ${badgeClass}" style="margin-left:6px;">${currentProgress}</span>` : ''}
+            </span>
+            <div class="record-box">${item.rawP || '無'}</div>
+        </div>
+        
         <div class="action-grid">
-          <a href="${lineUrl}" class="btn-tool btn-line"><i>💬</i>加Line</a>
-          <a href="tel:${item.phone}" class="btn-tool btn-call"><i>📞</i>電話</a>
-          <a href="mailto:${item.email}" class="btn-tool" style="color:#c0392b;"><i>✉️</i>Email</a>
-          <a href="${mapUrl}" target="_blank" class="btn-tool btn-map"><i>🗺️</i>地圖</a>
-          <div class="btn-tool" style="color:#d35400;" onclick="openUpdate('${item.key}', '${item.name}')"><i>📝</i>更新${badgeHtml}</div>
-          <div class="btn-tool btn-dispatch" onclick="openDispatch('${item.key}')"><i>🚀</i>派單</div>
+          <a href="${lineUrl}" class="btn-tool btn-ghost"><i>💬</i>Line</a>
+          <a href="tel:${item.phone}" class="btn-tool btn-ghost"><i>📞</i>電話</a>
+          <a href="mailto:${item.email}" class="btn-tool btn-ghost"><i>✉️</i>Email</a>
+          <a href="${mapUrl}" target="_blank" class="btn-tool btn-ghost"><i>🗺️</i>地圖</a>
+          <div class="btn-tool btn-orange" onclick="openUpdateModal('${item.key}', '${item.name}', ${item.isL}, ${item.isM}, ${item.isN}, ${item.isO}, ${item.isQ}, '${cleanRawP}', '${currentProgress}')">
+            <i>📝</i>更新${badgeHtml}
+          </div>
+          <div class="btn-tool btn-purple" onclick="openDispatchModal('${item.key}', '${item.name}')">
+            <i>🚀</i>派單
+          </div>
         </div>
       </div>
     `}).join('');
   }
 
+  /* --- 🌟 智慧更新彈窗 --- */
+  function openUpdateModal(key, name, L, M, N, O, Q, rawP, progress) {
+      currentUpdateKey = key;
+      currentChecks = { L, M, N, O, Q };
+      currentProgress = progress || "聯絡中"; 
+
+      if(!interactionCounts[key]) interactionCounts[key] = { call:0, line:0 };
+      tempInteractionCounts = { ...interactionCounts[key] }; 
+      document.getElementById('updateModalTitle').innerText = name;
+      document.getElementById('lbl-call-count').innerText = `(${tempInteractionCounts.call})`;
+      document.getElementById('lbl-line-count').innerText = `(${tempInteractionCounts.line})`;
+      ['L','M','N','O','Q'].forEach(k => {
+          const el = document.getElementById('tog-'+k);
+          if(currentChecks[k]) el.classList.add('active');
+          else el.classList.remove('active');
+      });
+      
+      document.querySelectorAll('.status-btn-big').forEach(btn => {
+          btn.classList.remove('active');
+          if(btn.innerText.includes(currentProgress)) btn.classList.add('active');
+      });
+
+      const noteField = document.getElementById('updateNote');
+      if (rawP && rawP !== "null" && rawP !== "undefined" && rawP.trim() !== "") {
+          let content = rawP;
+          if(!content.includes("傳line紀錄")) content = "傳line紀錄（共0次）：\n" + content;
+          if(!content.includes("撥打紀錄")) content = content.replace("傳line紀錄", "撥打紀錄（共0次）：\n傳line紀錄");
+          noteField.value = rawP; 
+      } else {
+          noteField.value = "傳line紀錄（共0次）：\n撥打紀錄（共0次）：\n其他資訊：\n手動紀錄：";
+      }
+      document.getElementById('updateModalOverlay').style.display = 'block';
+      setTimeout(() => document.getElementById('updateModalOverlay').style.opacity = '1', 10);
+      document.getElementById('updateModal').classList.add('show');
+  }
+  
+  function selectStatus(el, status) {
+      document.querySelectorAll('.status-btn-big').forEach(c => c.classList.remove('active'));
+      el.classList.add('active');
+      currentProgress = status; 
+  }
+
+  function closeUpdateModal() {
+      document.getElementById('updateModal').classList.remove('show');
+      document.getElementById('updateModalOverlay').style.opacity = '0';
+      setTimeout(() => document.getElementById('updateModalOverlay').style.display = 'none', 300);
+  }
+  function toggleStatus(type) {
+      currentChecks[type] = !currentChecks[type];
+      const el = document.getElementById('tog-'+type);
+      el.classList.toggle('active');
+  }
+  function insertNote(text) {
+      const field = document.getElementById('updateNote');
+      let val = field.value;
+      const now = new Date();
+      const timeStr = `[ ${now.getMonth()+1}/${now.getDate()} ｜ ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')} ]`;
+
+      if(text === 'call') {
+          tempInteractionCounts.call++;
+          document.getElementById('lbl-call-count').innerText = `(${tempInteractionCounts.call})`;
+          if (/撥打紀錄（共\d+次）：/.test(val)) {
+              val = val.replace(/撥打紀錄（共\d+次）：/, `撥打紀錄（共${tempInteractionCounts.call}次）：`);
+          } else if (/撥打紀錄：/.test(val)) {
+              val = val.replace(/撥打紀錄：/, `撥打紀錄（共${tempInteractionCounts.call}次）：`);
+          }
+          const lines = val.split('\n');
+          const newLines = lines.map(line => {
+              if(line.startsWith("撥打紀錄")) return line + " " + timeStr + " 已撥打";
+              return line;
+          });
+          val = newLines.join('\n');
+      } else if(text === 'line') {
+          tempInteractionCounts.line++;
+          document.getElementById('lbl-line-count').innerText = `(${tempInteractionCounts.line})`;
+          if (/傳line紀錄（共\d+次）：/.test(val)) {
+              val = val.replace(/傳line紀錄（共\d+次）：/, `傳line紀錄（共${tempInteractionCounts.line}次）：`);
+          } else if (/傳line紀錄：/.test(val)) {
+              val = val.replace(/傳line紀錄：/, `傳line紀錄（共${tempInteractionCounts.line}次）：`);
+          }
+          const lines = val.split('\n');
+          const newLines = lines.map(line => {
+              if(line.startsWith("傳line紀錄")) return line + " " + timeStr + " 已傳訊";
+              return line;
+          });
+          val = newLines.join('\n');
+      } else {
+          const lines = val.split('\n');
+          const newLines = lines.map(line => {
+              if(line.startsWith("其他資訊")) return line + " [" + text + "]";
+              return line;
+          });
+          val = newLines.join('\n');
+      }
+      field.value = val;
+  }
+  function saveUpdate() {
+      clickCounts[currentUpdateKey] = (clickCounts[currentUpdateKey] || 0) + 1;
+      localStorage.setItem('ezPretty_ClickCounts', JSON.stringify(clickCounts));
+      interactionCounts[currentUpdateKey] = tempInteractionCounts;
+      localStorage.setItem('ezPretty_InteractionCounts', JSON.stringify(interactionCounts));
+      
+      const now = new Date();
+      const timeStamp = `${now.getFullYear()}/${now.getMonth()+1}/${now.getDate()} ${now.getHours()}:${now.getMinutes()}`;
+      const compositeR = `${timeStamp} ｜ ${currentProgress}`; 
+
+      alert(`已更新：${currentUpdateKey}\n狀態(R)：${currentProgress}\n(模擬送出成功)`);
+      
+      const item = allData.find(i => i.key === currentUpdateKey);
+      if(item) {
+          item.progressStatus = currentProgress;
+          item.progress = compositeR; 
+          item.isIdle = false; 
+          
+          if (currentProgress === '拒絕') {
+              item.category = 'invalid';
+              item.actionText = '💀 此單已標記無效';
+          }
+      }
+
+      closeUpdateModal();
+      render(); 
+  }
+
+  function openDispatchModal(key, name) {
+      currentDispatchKey = key;
+      currentDispatchStore = name;
+      const grid = document.getElementById('salesGrid');
+      grid.innerHTML = SALES_LIST.map(s => `<div class="sales-tile" onclick="selectSales(this, '${s}')">${s} <div class="sales-check">✅</div></div>`).join('');
+      selectedSales = null;
+      document.getElementById('dispatchStoreName').innerText = name;
+      document.getElementById('dispatchLink').value = '';
+      document.getElementById('dispatchNote').value = '';
+      document.getElementById('dispatchStep1').classList.add('active');
+      document.getElementById('dispatchStep2').classList.remove('active');
+      document.getElementById('dispatchModalOverlay').style.display = 'block';
+      setTimeout(() => document.getElementById('dispatchModalOverlay').style.opacity = '1', 10);
+      document.getElementById('dispatchModal').classList.add('show');
+  }
+  function closeDispatchModal() {
+      document.getElementById('dispatchModal').classList.remove('show');
+      document.getElementById('dispatchModalOverlay').style.opacity = '0';
+      setTimeout(() => document.getElementById('dispatchModalOverlay').style.display = 'none', 300);
+  }
+  function copyStoreAndNext() {
+      navigator.clipboard.writeText(currentDispatchStore).then(() => {
+          document.getElementById('dispatchStep1').classList.remove('active');
+          document.getElementById('dispatchStep2').classList.add('active');
+          showHUD(currentDispatchStore);
+      });
+  }
+  function backToStep1() {
+      document.getElementById('dispatchStep2').classList.remove('active');
+      document.getElementById('dispatchStep1').classList.add('active');
+  }
+  function selectSales(el, name) {
+      document.querySelectorAll('.sales-tile').forEach(d => d.classList.remove('selected'));
+      el.classList.add('selected');
+      selectedSales = name;
+  }
+  
+  function confirmDispatch() {
+      const link = document.getElementById('dispatchLink').value;
+      const note = document.getElementById('dispatchNote').value;
+      if(!link) { alert("請貼上群組連結！"); return; }
+      if(!selectedSales) { alert("請選擇業務！"); return; }
+      
+      const btn = document.querySelector('#dispatchStep2 .sheet-confirm-btn');
+      const originalText = btn.innerText;
+      btn.innerText = "⏳ 處理中...";
+      btn.disabled = true;
+
+      const params = new URLSearchParams({
+          action: 'dispatch',
+          key: currentDispatchKey,
+          staff: selectedSales,
+          storeName: currentDispatchStore,
+          link: link,
+          req: note
+      });
+
+      fetch(GAS_URL + "?" + params.toString(), { method: "POST" })
+      .then(res => res.text())
+      .then(result => {
+          alert(`✅ 派單成功！\n業務：${selectedSales}`);
+          closeDispatchModal();
+          closeHUD();
+          const item = allData.find(i => i.key === currentDispatchKey);
+          if(item) { item.sales = selectedSales; item.category = 'dispatched'; }
+          render();
+      })
+      .catch(err => {
+          alert("❌ 連線失敗，請檢查網路或後端");
+          console.error(err);
+      })
+      .finally(() => {
+          btn.innerText = originalText;
+          btn.disabled = false;
+      });
+  }
+  
+  function showHUD(name) {
+      document.getElementById('hudStoreName').innerText = name;
+      document.getElementById('hud').classList.add('show');
+  }
+  function closeHUD() {
+      document.getElementById('hud').classList.remove('show');
+  }
+  function continueDispatch() {
+      openDispatchModal(currentDispatchKey, currentDispatchStore);
+      document.getElementById('dispatchStep1').classList.remove('active');
+      document.getElementById('dispatchStep2').classList.add('active');
+  }
+
+  function copyContent(text, label) { if (!text) return; navigator.clipboard.writeText(text).then(() => { const t = document.getElementById("toast"); t.innerText = `已複製 ${label}！`; t.className = "show"; setTimeout(() => t.className = "", 3000); }); }
+  function togglePanel(id) { 
+      const p = document.getElementById(id); const otherId = id==='filterPanel'?'chartPanel':'filterPanel'; 
+      document.getElementById(otherId).style.display='none'; 
+      const btnId = id==='filterPanel'?'filterToggleBtn':'chartToggleBtn'; 
+      const otherBtnId = id==='filterPanel'?'chartToggleBtn':'filterToggleBtn'; 
+      const chartBtn = document.getElementById('chartToggleBtn');
+      const filterBtn = document.getElementById('filterToggleBtn');
+      document.getElementById(otherBtnId).classList.remove('active');
+      chartBtn.classList.remove('active-chart'); 
+      filterBtn.classList.remove('active'); 
+      if(p.style.display==='block') { 
+          p.style.display='none'; 
+      } else { 
+          p.style.display='block'; 
+          if(id === 'chartPanel') { chartBtn.classList.add('active-chart'); } 
+          else { filterBtn.classList.add('active'); }
+      } 
+  }
+  function setTab(t) { currentTab=t; document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active')); document.querySelector(`.tab-${t}`).classList.add('active'); render(); }
   function updateSalesFilterUI(sourceData) {
     const targetItems = sourceData.filter(i => i.category === currentTab);
     const counts = {};
@@ -618,196 +853,162 @@
     const salesNames = Object.keys(counts).sort((a,b) => counts[b] - counts[a]);
     const container = document.getElementById('salesFilterBar');
     let html = `<span class="sales-pill ${currentSalesFilter==='all'?'active':''}" onclick="filterBySales('all')">全部 <span class="sales-count">${targetItems.length}</span></span>`;
-    salesNames.forEach(name => {
-        html += `<span class="sales-pill ${currentSalesFilter===name?'active':''}" onclick="filterBySales('${name}')">${name} <span class="sales-count">${counts[name]}</span></span>`;
-    });
+    salesNames.forEach(name => { html += `<span class="sales-pill ${currentSalesFilter===name?'active':''}" onclick="filterBySales('${name}')">${name} <span class="sales-count">${counts[name]}</span></span>`; });
     container.innerHTML = html;
   }
-
-  // 🌟 優化提示文字 (Smart Summary)
-  function updateFilterHint() {
-      const container = document.getElementById('filterHintRow');
-      let html = '';
-      
-      // 日期
-      if(filterState.dateStart || filterState.dateEnd) {
-          html += `<span class="filter-tag">📅 日期篩選</span>`;
-      }
-      
-      // 通用生成
-      const makeTag = (label, arr) => {
-          if (arr.length === 0) return '';
-          let text = arr.join(', ');
-          if (arr.length > 2) text = `${arr[0]}, ${arr[1]} (+${arr.length-2})`;
-          return `<span class="filter-tag">${label}: ${text}</span>`;
-      };
-
-      html += makeTag('📢', filterState.source);
-      html += makeTag('🏙️', filterState.area);
-      html += makeTag('🏭', filterState.industry);
-      
-      container.innerHTML = html;
-      
-      const btn = document.getElementById('filterToggleBtn');
-      if (html !== '') {
-          btn.style.color = '#007bff';
-      } else {
-          btn.style.color = '#555';
-      }
-  }
-
-  function setDateGrain(grain, btn) {
-      currentDateGrain = grain;
-      document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      render(); 
-  }
-
-  function updateDateChart(data) {
-    if (!charts.date) return;
-    const dateMapCompany = {};
-    const dateMapSelf = {};
-    
-    data.forEach(i => { 
-        if (!i.date) return;
-        const sep = i.date.includes('/') ? '/' : '-';
-        const parts = i.date.split(sep);
-        if(parts.length < 3) return;
-        const y = parseInt(parts[0]);
-        const m = parseInt(parts[1]);
-        const d = parseInt(parts[2]);
-        let key = '';
-
-        if (currentDateGrain === 'month') {
-            key = `${y}/${m.toString().padStart(2,'0')}`;
-        } else if (currentDateGrain === 'week') {
-            const dateObj = new Date(y, m-1, d);
-            const day = dateObj.getDay(); 
-            const diff = dateObj.getDate() - day + (day === 0 ? -6 : 1);
-            const monday = new Date(new Date(y, m-1, d).setDate(diff)); 
-            key = `${monday.getMonth()+1}/${monday.getDate()}週`;
-        } else {
-            key = `${m.toString().padStart(2,'0')}/${d.toString().padStart(2,'0')}`;
-        }
-        
-        if (i.source === "業務自開件") {
-            dateMapSelf[key] = (dateMapSelf[key] || 0) + 1;
-        } else {
-            dateMapCompany[key] = (dateMapCompany[key] || 0) + 1;
-        }
-    });
-
-    const allKeys = [...new Set([...Object.keys(dateMapCompany), ...Object.keys(dateMapSelf)])].sort((a,b) => {
-        const pa = a.match(/\d+/g); const pb = b.match(/\d+/g);
-        if(!pa || !pb) return 0;
-        if(parseInt(pa[0]) !== parseInt(pb[0])) return parseInt(pa[0]) - parseInt(pb[0]);
-        return parseInt(pa[1]||0) - parseInt(pb[1]||0);
-    });
-
-    charts.date.data.labels = allKeys;
-    charts.date.data.datasets[0].data = allKeys.map(k => dateMapCompany[k] || 0);
-    charts.date.data.datasets[1].data = allKeys.map(k => dateMapSelf[k] || 0);
-    charts.date.update();
-  }
-
-  function playScrollHint() {
-    const tabs = document.getElementById('statusTabs');
-    setTimeout(() => { tabs.scrollTo({ left: 30, behavior: 'smooth' }); setTimeout(() => { tabs.scrollTo({ left: 0, behavior: 'smooth' }); }, 300); }, 800);
-  }
-
   function filterBySales(name) { currentSalesFilter = name; render(); }
-  function setTab(t) { currentTab=t; document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active')); document.querySelector(`.tab-${t}`).classList.add('active'); render(); }
-  
-  function calculateCountsAndCharts(data) {
-    const cnt = { new:0, unread:0, read:0, noline:0, dispatched:0, self:0, invalid:0 };
-    data.forEach(i => { if(cnt[i.category] !== undefined) cnt[i.category]++; });
-    const total = data.length;
-
-    document.getElementById('cnt-all').innerText = total;
-    document.getElementById('cnt-new').innerText = cnt.new;
-    document.getElementById('cnt-unread').innerText = cnt.unread;
-    document.getElementById('cnt-read').innerText = cnt.read;
-    document.getElementById('cnt-noline').innerText = cnt.noline;
-    document.getElementById('cnt-dispatched').innerText = cnt.dispatched;
-    document.getElementById('cnt-self').innerText = cnt.self; 
-    document.getElementById('cnt-invalid').innerText = cnt.invalid;
-    
-    if (charts.status) {
-        charts.status.data.datasets[0].data = [cnt.new, cnt.unread, cnt.read, cnt.noline, cnt.dispatched, cnt.self, cnt.invalid];
-        charts.status.update();
-        updateSalesChart(data);
-        updateDateChart(data); 
-        updateChartCount(charts.source, data, 'source');
-        updateChartCount(charts.area, data, 'area', 10);
-    }
+  function updateFilterHint() {
+      const activeFilters = [];
+      if(filterState.dateStart || filterState.dateEnd) activeFilters.push('日期');
+      if(filterState.source.length > 0) activeFilters.push(`來源(${filterState.source.length})`);
+      if(filterState.area.length > 0) activeFilters.push(`地區(${filterState.area.length})`);
+      if(filterState.industry.length > 0) activeFilters.push(`產業(${filterState.industry.length})`);
+      const btn = document.getElementById('filterToggleBtn');
+      const hint = document.getElementById('filterHintRow'); 
+      if (activeFilters.length > 0) {
+          const makeTag = (label, arr) => {
+              if (arr.length === 0) return '';
+              let text = arr.join(', ');
+              if (arr.length > 2) text = `${arr[0]}, ${arr[1]} (+${arr.length-2})`;
+              return `<span class="filter-tag">${label}: ${text}</span>`;
+          };
+          let html = '';
+          if(filterState.dateStart || filterState.dateEnd) html += `<span class="filter-tag">📅 日期篩選</span>`;
+          html += makeTag('📢', filterState.source);
+          html += makeTag('🏙️', filterState.area);
+          html += makeTag('🏭', filterState.industry);
+          hint.innerHTML = html;
+          btn.classList.add('active'); 
+      } else {
+          hint.innerHTML = '';
+      }
   }
-
-  function updateSalesChart(data) {
-    if (!charts.sales) return;
-    const validItems = data.filter(i => i.category === 'dispatched' || i.category === 'self');
-    const salesMap = {};
-    validItems.forEach(i => {
-        const name = i.sales || '未知';
-        if (!salesMap[name]) salesMap[name] = { dispatched: 0, self: 0 };
-        if (i.category === 'dispatched') salesMap[name].dispatched++;
-        else if (i.category === 'self') salesMap[name].self++;
-    });
-    const sortedNames = Object.keys(salesMap).sort((a,b) => (salesMap[b].dispatched + salesMap[b].self) - (salesMap[a].dispatched + salesMap[a].self));
-    charts.sales.data.labels = sortedNames;
-    charts.sales.data.datasets[0].data = sortedNames.map(n => salesMap[n].dispatched); 
-    charts.sales.data.datasets[1].data = sortedNames.map(n => salesMap[n].self);       
-    charts.sales.update();
+  function initFilterOptions() {
+      const monthSet = new Set();
+      allData.forEach(d => { if(!d.date) return; const p = d.date.split(/[-/]/); if(p.length >= 2) monthSet.add(`${p[0]}/${p[1].padStart(2,'0')}`); });
+      const sortedMonths = [...monthSet].sort((a,b) => b.localeCompare(a)); 
+      const recentContainer = document.getElementById('recentMonthsContainer');
+      let html = '';
+      const today = new Date();
+      for(let i=0; i<3; i++) {
+          const d = new Date(today.getFullYear(), today.getMonth()-i, 1);
+          const y = d.getFullYear(); const m = d.getMonth() + 1;
+          html += `<div class="quick-btn" onclick="setQuickMonth('${y}', '${m}')">${y}年${m}月</div>`;
+      }
+      recentContainer.innerHTML = html;
+      renderChips('sourceChips', 'source'); renderChips('areaChips', 'area'); renderChips('industryChips', 'industry');
   }
-
-  function toggleSort() { sortDesc = !sortDesc; const btn = document.getElementById('sortToggleBtn'); btn.classList.toggle('active', !sortDesc); doSort(); render(); }
-  function doSort() { 
-    allData.sort((a, b) => { 
-        const valA = parseInt(a.key) || 0;
-        const valB = parseInt(b.key) || 0;
-        return sortDesc ? (valB - valA) : (valA - valB); 
-    }); 
+  function renderChips(containerId, field) {
+      const container = document.getElementById(containerId);
+      const set = new Set();
+      allData.forEach(i => { if(i[field]) set.add(i[field]); });
+      const sorted = [...set].sort();
+      let html = '';
+      sorted.forEach(val => { html += `<div class="chip" onclick="toggleChip('${field}', '${val}', this)">${val}</div>`; });
+      container.innerHTML = html;
   }
-
-  function openUpdate(key, name) { clickCounts[key] = (clickCounts[key] || 0) + 1; localStorage.setItem('ezPretty_ClickCounts', JSON.stringify(clickCounts)); const targetUrl = `https://liff.line.me/${FORM_LIFF_ID}?key=${encodeURIComponent(key)}&store=${encodeURIComponent(name)}`; liff.openWindow({ url: targetUrl, external: false }); setTimeout(render, 500); }
-  function openDispatch(key) { alert("🚀 派單功能開發中... (單號: " + key + ")"); }
-  function copyContent(text, label) { if (!text) return; navigator.clipboard.writeText(text).then(() => { const t = document.getElementById("toast"); t.innerText = `已複製 ${label}！`; t.className = "show"; setTimeout(() => t.className = "", 3000); }); }
-  function resetAllFilters() { 
-      filterState = { dateStart: null, dateEnd: null, source: [], area: [], industry: [] };
-      document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
-      document.getElementById('dateStart').value = '';
-      document.getElementById('dateEnd').value = '';
-      document.getElementById('dateDisplay').innerText = '全部日期';
-      render(); 
+  function toggleChip(field, value, el) {
+      const idx = filterState[field].indexOf(value);
+      if (idx > -1) { filterState[field].splice(idx, 1); el.classList.remove('active'); } else { filterState[field].push(value); el.classList.add('active'); }
+      render();
   }
-  function togglePanel(id) { 
-      const p = document.getElementById(id); 
-      const otherId = id==='filterPanel'?'chartPanel':'filterPanel'; 
-      document.getElementById(otherId).style.display='none'; 
-      const btnId = id==='filterPanel'?'filterToggleBtn':'chartToggleBtn'; 
-      const otherBtnId = id==='filterPanel'?'chartToggleBtn':'filterToggleBtn'; 
-      document.getElementById(otherBtnId).classList.remove('active');
-      
-      if(p.style.display==='block') { 
-          p.style.display='none'; 
-      } else { 
-          p.style.display='block'; 
-          document.getElementById(btnId).classList.add('active'); 
-          if(id==='filterPanel') { document.getElementById(btnId).style.background=''; document.getElementById(btnId).style.color=''; } 
-      } 
+  function openDateSheet() { document.getElementById('dateSheetOverlay').style.display = 'block'; setTimeout(() => document.getElementById('dateSheetOverlay').style.opacity = '1', 10); document.getElementById('dateSheet').classList.add('show'); }
+  function closeDateSheet() { document.getElementById('dateSheet').classList.remove('show'); document.getElementById('dateSheetOverlay').style.opacity = '0'; setTimeout(() => document.getElementById('dateSheetOverlay').style.display = 'none', 300); }
+  function setQuickDate(type) {
+      const today = new Date(); today.setHours(0,0,0,0);
+      const fmt = d => { const y = d.getFullYear(); const m = String(d.getMonth()+1).padStart(2,'0'); const day = String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${day}`; };
+      let start, end;
+      if(type === 'thisMonth') { start = new Date(today.getFullYear(), today.getMonth(), 1); end = new Date(today.getFullYear(), today.getMonth() + 1, 0); }
+      else if(type === 'lastMonth') { start = new Date(today.getFullYear(), today.getMonth() - 1, 1); end = new Date(today.getFullYear(), today.getMonth(), 0); }
+      else if(type === 'thisWeek') { const day = today.getDay() || 7; start = new Date(today); start.setDate(today.getDate() - day + 1); end = new Date(start); end.setDate(start.getDate() + 6); }
+      else if(type === 'lastWeek') { const day = today.getDay() || 7; const thisMon = new Date(today); thisMon.setDate(today.getDate() - day + 1); start = new Date(thisMon); start.setDate(thisMon.getDate() - 7); end = new Date(start); end.setDate(start.getDate() + 6); }
+      document.getElementById('dateStart').value = fmt(start); document.getElementById('dateEnd').value = fmt(end);
   }
-  function switchChart(type) { document.querySelectorAll('.chart-tab-btn').forEach(b => b.classList.remove('active')); document.querySelector(`.chart-tab-btn[onclick*="${type}"]`).classList.add('active'); document.querySelectorAll('.chart-wrapper').forEach(w => w.classList.remove('active')); document.getElementById('chart-' + type).classList.add('active'); }
-  
-  function initAllCharts() { 
-      charts.status = new Chart(document.getElementById('canvas-status'), { type: 'doughnut', data: { labels: ['🆕 新單', '📲 未讀', '👀 已讀', '📵 沒Line', '🚀 已派單', '💪 自開', '💀 無效'], datasets: [{ data: [], backgroundColor: ['#00C851', '#ffbb33', '#ff4444', '#33b5e5', '#9c27b0', '#00897b', '#6c757d'] }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' } } } }); 
-      charts.sales = new Chart(document.getElementById('canvas-sales'), { type: 'bar', data: { labels: [], datasets: [{ label: '🚀 已派單', data: [], backgroundColor: '#9c27b0' }, { label: '💪 自開件', data: [], backgroundColor: '#00897b' }] }, options: { responsive: true, maintainAspectRatio: false, scales: { x: { stacked: true }, y: { stacked: true } } } });
-      charts.date = new Chart(document.getElementById('canvas-date'), { type: 'line', data: { labels: [], datasets: [{ label: '🏢 公司廣告', data: [], borderColor: '#36A2EB', backgroundColor: '#36A2EB', tension: 0.3 }, { label: '💪 業務自開', data: [], borderColor: '#00C851', backgroundColor: '#00C851', tension: 0.3 }] }, options: { responsive: true, maintainAspectRatio: false } }); 
-      charts.source = new Chart(document.getElementById('canvas-source'), { type: 'pie', data: { labels: [], datasets: [{ data: [], backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'] }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' } } } }); 
-      charts.area = new Chart(document.getElementById('canvas-area'), { type: 'bar', data: { labels: [], datasets: [{ label: '地區分佈', data: [], backgroundColor: '#FF9F40' }] }, options: { responsive: true, maintainAspectRatio: false } }); 
-  }
-  
-  function updateChartCount(chart, data, field, limit = 0) { const map = {}; data.forEach(i => { const key = i[field] || '未知'; map[key] = (map[key] || 0) + 1; }); let keys = Object.keys(map).sort((a,b) => map[b] - map[a]); if (limit > 0 && keys.length > limit) keys = keys.slice(0, limit); chart.data.labels = keys; chart.data.datasets[0].data = keys.map(k => map[k]); chart.update(); }
+  function setQuickMonth(y, m) { y = parseInt(y); m = parseInt(m); const start = new Date(y, m-1, 1); const end = new Date(y, m, 0); const fmt = d => { const yy = d.getFullYear(); const mm = String(d.getMonth()+1).padStart(2,'0'); const dd = String(d.getDate()).padStart(2,'0'); return `${yy}-${mm}-${dd}`; }; document.getElementById('dateStart').value = fmt(start); document.getElementById('dateEnd').value = fmt(end); }
+  function applyDateFilter() { const s = document.getElementById('dateStart').value; const e = document.getElementById('dateEnd').value; if (s) filterState.dateStart = new Date(s + 'T00:00:00'); if (e) filterState.dateEnd = new Date(e + 'T23:59:59'); let label = '全部日期'; if (s && e) label = `${s} ~ ${e}`; else if (s) label = `${s} 起`; else if (e) label = `${e} 止`; document.getElementById('dateDisplay').innerText = label; closeDateSheet(); render(); }
+  function clearDateFilter() { document.getElementById('dateStart').value = ''; document.getElementById('dateEnd').value = ''; filterState.dateStart = null; filterState.dateEnd = null; document.getElementById('dateDisplay').innerText = '全部日期'; closeDateSheet(); render(); }
+  function validateDateRange() { const s = document.getElementById('dateStart'); const e = document.getElementById('dateEnd'); if (s.value && e.value && s.value > e.value) { const temp = s.value; s.value = e.value; e.value = temp; } }
   function checkDuplicates(data) { const lookup = { name: {}, phone: {} }; data.forEach(item => { const add = (f, v) => { if (!v) return; const k = String(v).trim(); if (!lookup[f][k]) lookup[f][k] = []; lookup[f][k].push(item); }; add('name', item.name); add('phone', item.phone); }); ['name','phone'].forEach(f => { Object.values(lookup[f]).forEach(list => { if (list.length > 1) { list.forEach(i => { i.isDup = true; if (!i.dupInfo) i.dupInfo = []; const others = list.filter(o => o.key !== i.key).map(o => `[${o.industry||'未分'}] ${o.name} (#${o.key})`); const unique = [...new Set(others)]; if(unique.length>0) i.dupInfo.push({ reason: f==='name'?'店名':'電話', targets: unique }); }); } }); }); }
   function getSourceStyle(s) { s=String(s||""); if(s.includes("講座")) return {bg:"#8e44ad",label:"🔥 "+s}; if(s.includes("LINE")||s.includes("公司")) return {bg:"#27ae60",label:"🍀 "+s}; if(s.includes("Google")) return {bg:"#c0392b",label:"🔴 "+s}; return {bg:"#7f8c8d",label:"🔔 "+s}; }
+  function resetAllFilters() { filterState = { dateStart: null, dateEnd: null, source: [], area: [], industry: [] }; document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active')); document.getElementById('dateStart').value = ''; document.getElementById('dateEnd').value = ''; document.getElementById('dateDisplay').innerText = '全部日期'; render(); }
+  
+  function calculateCountsAndCharts(data) { 
+      const cnt = { new:0, unread:0, read:0, noline:0, dispatched:0, self:0, invalid:0 }; 
+      data.forEach(i => { if(cnt[i.category] !== undefined) cnt[i.category]++; }); 
+      const total = data.length; 
+      document.getElementById('cnt-all').innerText = total; document.getElementById('cnt-new').innerText = cnt.new; document.getElementById('cnt-unread').innerText = cnt.unread; document.getElementById('cnt-read').innerText = cnt.read; document.getElementById('cnt-noline').innerText = cnt.noline; document.getElementById('cnt-dispatched').innerText = cnt.dispatched; document.getElementById('cnt-self').innerText = cnt.self; document.getElementById('cnt-invalid').innerText = cnt.invalid; 
+      if (charts.status) { 
+          const commonOptions = { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: { size: 11 } } } } };
+          charts.status.data.labels = [`🆕 新單 (${cnt.new})`, `📲 未讀 (${cnt.unread})`, `👀 已讀 (${cnt.read})`, `📵 沒Line (${cnt.noline})`, `🚀 已派單 (${cnt.dispatched})`, `💪 自開 (${cnt.self})`, `💀 無效 (${cnt.invalid})`];
+          charts.status.data.datasets[0].data = [cnt.new, cnt.unread, cnt.read, cnt.noline, cnt.dispatched, cnt.self, cnt.invalid]; 
+          charts.status.update(); 
+          updateSalesChart(data); updateDateChart(data); updateChartCount(charts.source, data, 'source'); updateChartCount(charts.area, data, 'area', 10); 
+      } 
+  }
+  
+  function updateSalesChart(data) { 
+      if (!charts.sales) return; 
+      const validItems = data.filter(i => i.category === 'dispatched' || i.category === 'self'); 
+      const salesMap = {}; 
+      validItems.forEach(i => { 
+          const name = i.sales || '未知'; 
+          if (!salesMap[name]) salesMap[name] = { dispatched: 0, self: 0 }; 
+          if (i.category === 'dispatched') salesMap[name].dispatched++; 
+          else if (i.category === 'self') salesMap[name].self++; 
+      }); 
+      
+      const sortedNames = Object.keys(salesMap).sort((a,b) => (salesMap[b].dispatched + salesMap[b].self) - (salesMap[a].dispatched + salesMap[a].self)); 
+      
+      charts.sales.data.labels = sortedNames.map(n => [
+          `${n} (共${salesMap[n].dispatched + salesMap[n].self})`, 
+          `派:${salesMap[n].dispatched} / 自:${salesMap[n].self}`
+      ]);
+      charts.sales.data.datasets[0].data = sortedNames.map(n => salesMap[n].dispatched); 
+      charts.sales.data.datasets[1].data = sortedNames.map(n => salesMap[n].self); 
+      charts.sales.update(); 
+  }
+
+  function switchChart(type) { document.querySelectorAll('.chart-tab-btn').forEach(b => b.classList.remove('active')); document.querySelector(`.chart-tab-btn[onclick*="${type}"]`).classList.add('active'); document.querySelectorAll('.chart-wrapper').forEach(w => w.classList.remove('active')); document.getElementById('chart-' + type).classList.add('active'); }
+  function toggleSort() { sortDesc = !sortDesc; const btn = document.getElementById('sortToggleBtn'); btn.classList.toggle('active', !sortDesc); doSort(); render(); }
+  function doSort() { allData.sort((a, b) => { const valA = parseInt(a.key) || 0; const valB = parseInt(b.key) || 0; return sortDesc ? (valB - valA) : (valA - valB); }); }
+  function setDateGrain(grain, btn) { currentDateGrain = grain; document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); render(); }
+  
+  // 🌟 [修正] 強力日期圖表 (防NaN)
+  function updateDateChart(data) { 
+      if (!charts.date) return; 
+      const dateMapCompany = {}; const dateMapSelf = {}; const keySortValue = {}; 
+      data.forEach(i => { 
+          const d = parseDate(i.date);
+          if (!d) return; 
+          const y = d.getFullYear(); const m = d.getMonth()+1; const day = d.getDate();
+          
+          let key = ''; let sortVal = 0; 
+          if (currentDateGrain === 'month') { key = `${y}/${m.toString().padStart(2,'0')}`; sortVal = new Date(y, m-1, 1).getTime(); } 
+          else if (currentDateGrain === 'week') { const dayNum = d.getDay(); const diff = d.getDate() - dayNum + (dayNum === 0 ? -6 : 1); const monday = new Date(new Date(y, m-1, day).setDate(diff)); key = `${monday.getMonth()+1}/${monday.getDate()}週`; sortVal = monday.getTime(); } 
+          else { key = `${m.toString().padStart(2,'0')}/${day.toString().padStart(2,'0')}`; sortVal = new Date(y, m-1, day).getTime(); } 
+          
+          if (!keySortValue[key]) keySortValue[key] = sortVal; 
+          if (i.source === "業務自開件") { dateMapSelf[key] = (dateMapSelf[key] || 0) + 1; } else { dateMapCompany[key] = (dateMapCompany[key] || 0) + 1; } 
+      }); 
+      const allKeys = [...new Set([...Object.keys(dateMapCompany), ...Object.keys(dateMapSelf)])].sort((a,b) => keySortValue[a] - keySortValue[b]); 
+      
+      charts.date.options.layout = { padding: { bottom: 20 } }; 
+      charts.date.options.scales = {
+          x: { ticks: { autoSkip: true, maxTicksLimit: 8, maxRotation: 45, minRotation: 45 } }
+      };
+      
+      charts.date.data.labels = allKeys; charts.date.data.datasets[0].data = allKeys.map(k => dateMapCompany[k] || 0); charts.date.data.datasets[1].data = allKeys.map(k => dateMapSelf[k] || 0); charts.date.update(); 
+  }
+  function updateChartCount(chart, data, field, limit = 0) { const map = {}; data.forEach(i => { const key = i[field] || '未知'; map[key] = (map[key] || 0) + 1; }); let keys = Object.keys(map).sort((a,b) => map[b] - map[a]); if (limit > 0 && keys.length > limit) keys = keys.slice(0, limit); chart.data.labels = keys.map(k => `${k} (${map[k]})`); chart.data.datasets[0].data = keys.map(k => map[k]); chart.update(); }
+  
+  function initAllCharts() { 
+      const commonOptions = { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: { size: 11 } } } } };
+      charts.status = new Chart(document.getElementById('canvas-status'), { type: 'doughnut', data: { labels: [], datasets: [{ data: [], backgroundColor: ['#00C851', '#ffbb33', '#ff4444', '#33b5e5', '#9c27b0', '#00897b', '#6c757d'] }] }, options: commonOptions }); 
+      charts.sales = new Chart(document.getElementById('canvas-sales'), { type: 'bar', data: { labels: [], datasets: [{ label: '🚀 已派單', data: [], backgroundColor: '#9c27b0' }, { label: '💪 自開件', data: [], backgroundColor: '#00897b' }] }, options: { responsive: true, maintainAspectRatio: false, scales: { x: { stacked: true }, y: { stacked: true } } } }); 
+      charts.date = new Chart(document.getElementById('canvas-date'), { type: 'line', data: { labels: [], datasets: [{ label: '🏢 公司廣告', data: [], borderColor: '#36A2EB', backgroundColor: '#36A2EB', tension: 0.3 }, { label: '💪 業務自開', data: [], borderColor: '#00C851', backgroundColor: '#00C851', tension: 0.3 }] }, options: { responsive: true, maintainAspectRatio: false } }); 
+      charts.source = new Chart(document.getElementById('canvas-source'), { type: 'pie', data: { labels: [], datasets: [{ data: [], backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'] }] }, options: commonOptions }); 
+      charts.area = new Chart(document.getElementById('canvas-area'), { type: 'bar', data: { labels: [], datasets: [{ label: '地區分佈', data: [], backgroundColor: '#FF9F40' }] }, options: { responsive: true, maintainAspectRatio: false } }); 
+  }
 
   window.onload = loadData;
 </script>
