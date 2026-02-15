@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>ezPretty 戰情室 (終極修復版)</title>
+  <title>ezPretty 戰情室 (終極修復版1)</title>
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   
@@ -975,6 +975,9 @@
           document.getElementById('dispatchStep1').classList.remove('active');
           document.getElementById('dispatchStep2').classList.add('active');
           showHUD(currentDispatchStore);
+          
+          // 🌟 新增這一行：切換到填寫頁面時，立刻去抓最新 ID
+          getLatestGroupIdFromGas(); 
       });
   }
   function backToStep1() {
@@ -1355,38 +1358,41 @@
       closeHUD();
   }
 
-  // 🌟 新增：LIFF 初始化與自動抓取 Group ID
-  async function initLiffAndGetContext() {
-      try {
-          await liff.init({ liffId: FORM_LIFF_ID });
-          if (liff.isLoggedIn()) {
-              const context = liff.getContext();
-              const idField = document.getElementById('dispatchGroupId');
-              const statusLabel = document.getElementById('groupIdStatus');
-              
-              if (context && context.groupId) {
-                  // 成功抓到 ID
-                  idField.value = context.groupId;
-                  statusLabel.innerText = "✅ 已自動抓取";
-              } else {
-                  // 不在群組內 (例如在外部瀏覽器或一對一聊天)
-                  idField.value = ""; 
-                  idField.placeholder = "無法自動抓取 (請在群組內開啟)";
-                  statusLabel.innerText = "⚠️ 未偵測到";
-              }
+  // 🌟 修改版：去問後端 GAS 最新進群的 ID (仿照您的 working code)
+  function getLatestGroupIdFromGas() {
+      const idField = document.getElementById('dispatchGroupId');
+      const statusLabel = document.getElementById('groupIdStatus');
+
+      // 1. 設定讀取中狀態
+      idField.placeholder = "正在連線後端讀取...";
+      statusLabel.innerText = "⏳ 讀取中";
+
+      // 2. 呼叫 GAS (記得 action=getLatestGroupId 要對應您的後端)
+      fetch(GAS_URL + "?action=getLatestGroupId")
+      .then(res => res.json())
+      .then(res => {
+          if (res.groupId) {
+              // 成功抓到！
+              idField.value = res.groupId;
+              statusLabel.innerText = "✅ 成功抓取";
+              statusLabel.style.color = "#00C851"; // 綠色
+          } else {
+              // 後端回傳沒有 (可能機器人還沒進群)
+              idField.value = "";
+              idField.placeholder = "後端無紀錄 (請確認機器人已進群)";
+              statusLabel.innerText = "⚠️ 無紀錄";
+              statusLabel.style.color = "#ff4444"; // 紅色
           }
-      } catch (err) {
-          console.error('LIFF Init Error:', err);
-      }
+      })
+      .catch(e => {
+          console.error("抓取 ID 失敗:", e);
+          idField.placeholder = "連線失敗，請手動輸入";
+          statusLabel.innerText = "❌ 失敗";
+      });
   }
 
-  // 記得把 loadData 改成也會呼叫 initLiffAndGetContext
-  const originalOnLoad = window.onload;
-  window.onload = function() {
-      if(originalOnLoad) originalOnLoad();
-      loadData();             // 1. 載入列表資料
-      initLiffAndGetContext(); // 2. 啟動 LIFF 偵測群組 ID
-  };
+  // 讓網頁載入時單純做資料讀取就好
+  window.onload = loadData;
 
 </script>
 </body>
