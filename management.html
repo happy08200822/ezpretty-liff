@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>ezPretty 戰情室 (終極定案版)</title>
+  <title>ezPretty 戰情室 (終極修復版)</title>
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   
   <style>
     /* --- 0. 基礎設定 --- */
-    body { font-family: -apple-system, "Noto Sans TC", sans-serif; background: #f4f6f9; padding: 0; margin: 0; padding-bottom: 100px; -webkit-tap-highlight-color: transparent; }
+    body { font-family: -apple-system, "Noto Sans TC", sans-serif; background: #f4f6f9; padding: 0; margin: 0; padding-bottom: 100px; -webkit-tap-highlight-color: transparent; width: 100%; overflow-x: hidden; }
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
@@ -25,7 +25,7 @@
         position: fixed; top: 15px; left: 50%; transform: translateX(-50%) translateY(-150%);
         width: 90%; max-width: 400px;
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white; border-radius: 50px; padding: 10px 20px;
+        color: white; border-radius: 50px; padding: 8px 15px 8px 20px;
         display: flex; align-items: center; justify-content: space-between;
         z-index: 11000; box-shadow: 0 8px 20px rgba(118, 75, 162, 0.4);
         font-size: 13px; font-weight: bold;
@@ -46,19 +46,15 @@
     .tool-btn-small:active { transform: scale(0.95); }
     .tool-btn-small.active-chart { background: #e3f2fd; color: #007bff; border-color: #007bff; }
     
-    /* 🌟 [修正] Tabs 真．自適應 */
+    /* Tabs */
     .tabs-sticky-container { background: #f4f6f9; padding-bottom: 5px; border-bottom: 1px solid rgba(0,0,0,0.05); }
     .status-tabs { display: flex; overflow-x: auto; gap: 8px; padding: 0 10px; align-items: center; }
     .tab-btn { 
-        flex: 0 0 auto; /* 讓內容決定寬度，不強迫拉伸 */
-        min-width: 68px; /* 最小寬度保障 */
-        padding: 8px 12px; /* 增加左右 padding 讓它看起來像膠囊 */
-        border-radius: 12px; 
+        flex: 0 0 auto; min-width: 68px; padding: 8px 12px; border-radius: 12px; 
         font-size: 11px; font-weight: bold; border: none; cursor: pointer; 
         background: #fff; color: #666; transition: 0.2s; 
         display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; 
-        box-shadow: 0 2px 5px rgba(0,0,0,0.05); 
-        white-space: nowrap; /* 禁止文字換行 */
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05); white-space: nowrap; 
     }
     .tab-btn span { font-size: 16px; line-height: 1; }
     .tab-btn .count { background: #f0f0f0; padding: 2px 8px; border-radius: 10px; font-size: 10px; color: #888; }
@@ -135,7 +131,7 @@
     
     .top-right-badge { 
         position: absolute; top: 12px; right: 12px; text-align: right; font-size: 11px; color: #888; line-height: 1.4; 
-        max-width: 140px; overflow: hidden; /* 防止文字溢出 */
+        max-width: 140px; overflow: hidden; 
     }
     .badge-source { 
         font-weight: bold; padding: 2px 6px; border-radius: 4px; margin-bottom: 3px; display: inline-block; color: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.2); 
@@ -146,11 +142,9 @@
     .action-alert i { font-style: normal; font-size: 16px; }
     .dup-alert { background: #ffebee; color: #c62828; border: 1px solid #ffcdd2; font-size: 11px; padding: 8px; border-radius: 8px; margin-bottom: 8px; }
     
-    /* 🌟 店名區塊 */
     .store-name { font-size: 18px; font-weight: bold; color: #333; margin-bottom: 4px; padding-right: 80px; line-height: 1.4; display: flex; align-items: center; flex-wrap: wrap; }
     .industry-text { font-size: 12px; background: #eee; color: #555; padding: 2px 6px; border-radius: 4px; margin-right: 5px; font-weight: normal; max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block; vertical-align: bottom; }
     
-    /* 🌟 W欄狀態標籤 (現在顯示在店名旁) */
     .w-status-badge { font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: bold; color: white; margin-left: 6px; display: inline-block; vertical-align: middle; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
     .w-red { background: #c0392b; }
     .w-green { background: #27ae60; }
@@ -239,7 +233,7 @@
     #toast { visibility: hidden; min-width: 200px; background-color: #333; color: #fff; text-align: center; border-radius: 20px; padding: 10px; position: fixed; z-index: 10001; left: 50%; bottom: 100px; transform: translateX(-50%); font-size: 13px; }
     #toast.show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 2.5s; }
 
-/* --- 🌟 新增：開發導引台專用樣式 --- */
+    /* --- 🌟 新增：開發導引台專用樣式 --- */
     .sheet-header-box { padding: 15px 20px; border-bottom: 1px solid #eee; text-align: center; position: relative; width: 100%; box-sizing: border-box; }
     .current-store-title { font-size: 20px; font-weight: 900; color: #2c3e50; margin: 0; }
     .sheet-close-btn { position: absolute; right: 15px; top: 15px; font-size: 24px; color: #ccc; cursor: pointer; border: none; background: none; }
@@ -272,6 +266,66 @@
     .line-textarea { width: 100%; height: 130px; border: 1.5px solid #eee; border-radius: 15px; padding: 15px; font-size: 15px; margin-bottom: 15px; box-sizing: border-box; background: #fafafa; resize: none; }
     .btn-final-copy { width: 100%; padding: 18px; border-radius: 15px; border: none; background: #00b894; color: white; font-size: 17px; font-weight: bold; cursor: pointer; box-sizing: border-box; }
     .btn-final-copy.copied { background: #2f3640; }
+//* --- 🌟 最終版：按鈕選中時，變成對應顏色 + 同色系發光 --- */
+
+    /* 1. 基礎動效 (放大、上浮、白框) */
+    .tab-btn.active {
+        transform: scale(1.1) translateY(-2px) !important; /* 放大上浮 */
+        border: 2px solid #fff !important; /* 加白框讓顏色更跳 */
+        z-index: 10;
+        color: white !important; /* 文字變白 */
+    }
+
+    /* 2. 個別指定顏色與發光陰影 (Glow Effect) */
+    
+    /* 📂 全部 (深灰) */
+    .tab-all.active { 
+        background: #555 !important; 
+        box-shadow: 0 4px 15px rgba(85, 85, 85, 0.5) !important; 
+    }
+
+    /* 🆕 新單 (綠色) */
+    .tab-new.active { 
+        background: #00C851 !important; 
+        box-shadow: 0 4px 15px rgba(0, 200, 81, 0.5) !important; 
+    }
+
+    /* 📲 未讀 (黃色 - 字維持深色才看得到) */
+    .tab-unread.active { 
+        background: #ffbb33 !important; 
+        color: #5c3a00 !important; /* 特例：黃底配深咖啡字 */
+        box-shadow: 0 4px 15px rgba(255, 187, 51, 0.6) !important; 
+    }
+
+    /* 👀 已讀 (紅色) */
+    .tab-read.active { 
+        background: #ff4444 !important; 
+        box-shadow: 0 4px 15px rgba(255, 68, 68, 0.5) !important; 
+    }
+
+    /* 📵 沒Line (藍色) */
+    .tab-noline.active { 
+        background: #33b5e5 !important; 
+        box-shadow: 0 4px 15px rgba(51, 181, 229, 0.5) !important; 
+    }
+
+    /* 🚀 已派單 (紫色) */
+    .tab-dispatched.active { 
+        background: #9c27b0 !important; 
+        box-shadow: 0 4px 15px rgba(156, 39, 176, 0.5) !important; 
+    }
+
+    /* 💪 自開件 (湖水綠) */
+    .tab-self.active { 
+        background: #00897b !important; 
+        box-shadow: 0 4px 15px rgba(0, 137, 123, 0.5) !important; 
+    }
+
+    /* 💀 無效 (灰色) */
+    .tab-invalid.active { 
+        background: #6c757d !important; 
+        box-shadow: 0 4px 15px rgba(108, 117, 125, 0.5) !important; 
+    }
 
   </style>
 </head>
@@ -280,8 +334,14 @@
   <div id="loadingOverlay"><div class="spinner"></div><div class="loading-text">資料讀取中...</div></div>
 
   <div id="hud">
-      <div class="hud-left"><span class="hud-icon">🚀</span><span>派單未完成：<span id="hudStoreName"></span></span></div>
-      <div><button class="hud-btn" onclick="continueDispatch()">繼續</button><span style="font-size:18px; cursor:pointer; color:rgba(255,255,255,0.7); margin-left:10px;" onclick="closeHUD()">✕</span></div>
+      <div class="hud-left">
+          <span class="hud-icon">💡</span>
+          <span id="hudText">聊完記得回來更新進度！</span>
+      </div>
+      <div>
+          <button class="hud-btn" id="hudActionBtn" onclick="handleHudClick()">立刻更新</button>
+          <span style="font-size:18px; cursor:pointer; color:rgba(255,255,255,0.7); margin-left:10px;" onclick="closeHUD()">✕</span>
+      </div>
   </div>
 
   <div class="header-sticky">
@@ -419,7 +479,7 @@
       <button style="width:100%; padding:12px; background:none; border:none; color:#666; margin-top:5px;" onclick="clearDateFilter()">清除日期條件</button>
   </div>
 
-<div class="bottom-sheet" id="lineModal" style="padding:0; overflow:hidden;">
+  <div class="bottom-sheet" id="lineModal" style="padding:0; overflow:hidden;">
       <div class="sheet-header-box">
           <button class="sheet-close-btn" onclick="closeLineModal()">✕</button>
           <p class="current-store-title">🏠 <span id="displayStoreName">--</span></p>
@@ -476,7 +536,6 @@
       </div>
   </div>
 
-
 <script>
   const FORM_LIFF_ID = "2009117067-6y3yHx9o"; 
   const GAS_URL = "https://script.google.com/macros/s/AKfycbzIKHpWcWj0bOhaQsx-OynY5FVVorMJvTNON5PBOywj1q-Nd5EylLCSl-zTlFW9Rb5U/exec";
@@ -501,32 +560,45 @@
   let currentDispatchKey = null;
   let currentDispatchStore = "";
   let selectedSales = null;
+  
+  // 🌟 新增 HUD 模式狀態
+  let currentHudMode = 'update';
+
   const SALES_LIST = ['WT', 'Kelvin', 'David']; 
 
+  // 🌟 修復與加速：Load Data 改寫
   async function loadData() {
     document.getElementById('loadingOverlay').style.opacity = '1';
     document.getElementById('loadingOverlay').style.display = 'flex';
     try {
+      // 加上時間戳防止快取
       const response = await fetch(GAS_URL + "?action=getManagementList&t=" + new Date().getTime());
       const rawData = await response.json();
       allData = rawData.map(processItem); 
       checkDuplicates(allData); 
       initFilterOptions(); 
-      try { initAllCharts(); } catch(e) {}
+      
+      // 注意：initAllCharts 移除了，不在這裡畫
+      
       calculateInsights(allData);
       doSort(); 
       render(); 
     } catch (e) { console.error(e); }
+    
+    // 🚀 關鍵優化：先關閉 Loading，再畫圖表
     setTimeout(() => {
         document.getElementById('loadingOverlay').style.opacity = '0';
-        setTimeout(() => document.getElementById('loadingOverlay').style.display = 'none', 300);
-    }, 500);
+        setTimeout(() => {
+            document.getElementById('loadingOverlay').style.display = 'none';
+            // 延遲繪製圖表，避免卡住畫面
+            try { initAllCharts(); } catch(e) { console.log('Chart load deferred'); }
+        }, 300);
+    }, 100);
   }
 
-  // 🌟 [修正] 強力日期解析 (解決 NaN 問題)
+  // 🌟 修復日期解析 (防止 NaN)
   function parseDate(dateStr) {
       if(!dateStr) return null;
-      // 移除中文干擾 (例如 "2026/2/15 (日)" -> "2026/2/15")
       let clean = dateStr.toString().split(" ")[0].replace(/[^\d\/\-\.]/g, ''); 
       let d = new Date(clean);
       if(isNaN(d.getTime())) return null;
@@ -549,7 +621,7 @@
     // 3. 久未聯絡判斷
     let isIdle = false;
     if (lastUpdateStr && !isInvalid) {
-        const lastDate = parseDate(lastUpdateStr); // 使用強力解析
+        const lastDate = parseDate(lastUpdateStr);
         if (lastDate) {
             const diffDays = (new Date() - lastDate) / (1000 * 60 * 60 * 24);
             if (diffDays > 3) isIdle = true;
@@ -588,7 +660,6 @@
       document.getElementById('val-junk').className = "insight-val " + (junkRate > 50 ? "bad" : "");
   }
 
-  /* --- UI Render --- */
   function render() {
     updateFilterHint();
     const salesBar = document.getElementById('salesFilterBar');
@@ -607,7 +678,7 @@
       const content = ((i.source||"")+(i.industry||"")+(i.area||"")+(i.name||"")+(i.boss||"")+(i.lineId||"")+(i.phone||"")+(i.email||"")+(i.req||"")+(i.key||"")+(i.sales||"")).toLowerCase();
       if(search !== "" && !content.includes(search)) return false;
       if (filterState.dateStart || filterState.dateEnd) {
-          const d = parseDate(i.date); // 🌟 使用強力解析
+          const d = parseDate(i.date);
           if (!d) return false; 
           if (filterState.dateStart && d < filterState.dateStart) return false;
           if (filterState.dateEnd && d > filterState.dateEnd) return false;
@@ -624,6 +695,7 @@
         return matchTab && matchSales;
     });
     if (finalFiltered.length === 0) { list.innerHTML = `<div style="text-align:center; padding:50px; color:#999;">此分類無符合名單</div>`; return; }
+    
     list.innerHTML = finalFiltered.map(item => {
       const style = getSourceStyle(item.source);
       let dupAlert = '';
@@ -633,7 +705,9 @@
       }
       const localCount = clickCounts[item.key] || 0;
       const badgeHtml = localCount > 0 ? `<span class="update-badge">${localCount}</span>` : '';
+      
       let lineUrl = item.lineId ? `https://line.me/ti/p/~${item.lineId}` : (item.phone ? `https://line.me/ti/p/~${item.phone}` : "#");
+      // 🌟 修復地圖連結錯誤
       const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.area + item.name)}`;
       
       const cleanRawP = (item.rawP || "").replace(/'/g, "\\'").replace(/\n/g, "\\n");
@@ -651,8 +725,10 @@
       else if(wStatus.includes("已約展") || wStatus.includes("已拉群")) wBadgeClass = "w-green";
       else if(wStatus.includes("展示完")) wBadgeClass = "w-orange";
       
-      // 🌟 [修正] W欄狀態 移到 店名區塊
       const wBadgeHtml = wStatus ? `<span class="w-status-badge ${wBadgeClass}">${wStatus}</span>` : "";
+      
+      // 處理 safeReq 避免 onclick 報錯
+      const safeReq = (item.req || "").replace(/'/g, "\\'").replace(/"/g, '&quot;').replace(/\n/g, ' ');
 
       return `
       <div class="store-card card-${item.category} ${idleClass}">
@@ -690,9 +766,9 @@
         </div>
         
         <div class="action-grid">
-<div class="btn-tool btn-ghost" onclick="openLineModal('${item.key}', '${item.name}', '${item.lineId||'--'}', '${item.phone}', '${(item.req||'').replace(/'/g, "\\'").replace(/\n/g, "")}', '${item.area}')">
-    <i>💬</i>Line
-</div>
+          <div class="btn-tool btn-ghost" onclick="openLineModal('${item.key}', '${item.name}', '${item.lineId||'--'}', '${item.phone}', '${safeReq}', '${item.area}')">
+            <i>💬</i>Line
+          </div>
           <a href="tel:${item.phone}" class="btn-tool btn-ghost"><i>📞</i>電話</a>
           <a href="mailto:${item.email}" class="btn-tool btn-ghost"><i>✉️</i>Email</a>
           <a href="${mapUrl}" target="_blank" class="btn-tool btn-ghost"><i>🗺️</i>地圖</a>
@@ -707,7 +783,6 @@
     `}).join('');
   }
 
-  /* --- 🌟 智慧更新彈窗 --- */
   function openUpdateModal(key, name, L, M, N, O, Q, rawP, progress) {
       currentUpdateKey = key;
       currentChecks = { L, M, N, O, Q };
@@ -803,26 +878,21 @@
       }
       field.value = val;
   }
-  // 🌟 [修正] 真實連線版：儲存更新
   function saveUpdate() {
-      // 1. 鎖定按鈕避免重複點擊
       const btn = document.querySelector('#updateModal .sheet-confirm-btn');
       const originalText = btn.innerText;
       btn.innerText = "⏳ 儲存中...";
       btn.disabled = true;
 
-      // 2. 準備資料
       const now = new Date();
       const timeStamp = `${now.getFullYear()}/${now.getMonth()+1}/${now.getDate()} ${now.getHours()}:${now.getMinutes()}`;
-      // 組合 R 欄：時間 ｜ 狀態 (注意是用全形 ｜)
       const compositeR = `${timeStamp} ｜ ${currentProgress}`; 
 
-      // 3. 打包參數 (對應 Main.gs 的 handleUpdateProgress)
       const params = new URLSearchParams({
-          action: 'updateProgress', // 呼叫後端新寫的入口
+          action: 'updateProgress',
           key: currentUpdateKey,
-          progress: compositeR,     // R 欄
-          note: document.getElementById('updateNote').value, // P 欄
+          progress: compositeR, 
+          note: document.getElementById('updateNote').value,
           isL: currentChecks.L,
           isM: currentChecks.M,
           isN: currentChecks.N,
@@ -830,27 +900,24 @@
           isQ: currentChecks.Q
       });
 
-      // 4. 發送請求
       fetch(GAS_URL + "?" + params.toString(), { method: "POST" })
       .then(res => res.text())
       .then(result => {
           if(result.includes("Success")) {
               alert(`✅ 更新成功！\n狀態：${currentProgress}`);
               
-              // 本地即時更新顯示 (讓體驗更順暢)
               const item = allData.find(i => i.key === currentUpdateKey);
               if(item) {
                   item.progressStatus = currentProgress;
                   item.progress = compositeR; 
-                  item.isIdle = false; // 更新後就不算久未聯絡
-                  // 垃圾單立即過濾
+                  item.isIdle = false;
                   if (currentProgress === '拒絕') {
                       item.category = 'invalid';
                       item.actionText = '💀 此單已標記無效';
                   }
               }
               closeUpdateModal();
-              render(); // 重新渲染畫面
+              render(); 
           } else {
               alert("❌ 儲存失敗，後端回傳錯誤：" + result);
           }
@@ -860,7 +927,6 @@
           console.error(err);
       })
       .finally(() => {
-          // 解鎖按鈕
           btn.innerText = originalText;
           btn.disabled = false;
       });
@@ -903,24 +969,20 @@
       selectedSales = name;
   }
   
-  // 🌟 [修正] 真實連線版：確認派單
   function confirmDispatch() {
       const link = document.getElementById('dispatchLink').value;
       const note = document.getElementById('dispatchNote').value;
       
-      // 驗證必填
       if(!link) { alert("請貼上群組連結！"); return; }
       if(!selectedSales) { alert("請選擇業務！"); return; }
       
-      // 1. 鎖定按鈕
       const btn = document.querySelector('#dispatchStep2 .sheet-confirm-btn');
       const originalText = btn.innerText;
       btn.innerText = "⏳ 派單處理中...";
       btn.disabled = true;
 
-      // 2. 打包參數 (對應 Feature_Dispatch.receiveLiffData)
       const params = new URLSearchParams({
-          action: 'dispatch', // 呼叫後端派單入口
+          action: 'dispatch', 
           key: currentDispatchKey,
           staff: selectedSales,
           storeName: currentDispatchStore,
@@ -928,7 +990,6 @@
           req: note
       });
 
-      // 3. 發送請求
       fetch(GAS_URL + "?" + params.toString(), { method: "POST" })
       .then(res => res.text())
       .then(result => {
@@ -937,7 +998,6 @@
               closeDispatchModal();
               closeHUD();
               
-              // 本地即時更新
               const item = allData.find(i => i.key === currentDispatchKey);
               if(item) { 
                   item.sales = selectedSales; 
@@ -967,9 +1027,8 @@
   }
   function continueDispatch() {
       openDispatchModal(currentDispatchKey, currentDispatchStore);
-     // 🌟 關鍵修改：強制顯示 Step 1 (複製店名)，隱藏 Step 2
-    document.getElementById('dispatchStep1').classList.add('active');
-    document.getElementById('dispatchStep2').classList.remove('active');
+      document.getElementById('dispatchStep1').classList.add('active');
+      document.getElementById('dispatchStep2').classList.remove('active');
   }
 
   function copyContent(text, label) { if (!text) return; navigator.clipboard.writeText(text).then(() => { const t = document.getElementById("toast"); t.innerText = `已複製 ${label}！`; t.className = "show"; setTimeout(() => t.className = "", 3000); }); }
@@ -1119,7 +1178,6 @@
   function doSort() { allData.sort((a, b) => { const valA = parseInt(a.key) || 0; const valB = parseInt(b.key) || 0; return sortDesc ? (valB - valA) : (valA - valB); }); }
   function setDateGrain(grain, btn) { currentDateGrain = grain; document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); render(); }
   
-  // 🌟 [修正] 強力日期圖表 (防NaN)
   function updateDateChart(data) { 
       if (!charts.date) return; 
       const dateMapCompany = {}; const dateMapSelf = {}; const keySortValue = {}; 
@@ -1156,14 +1214,13 @@
       charts.area = new Chart(document.getElementById('canvas-area'), { type: 'bar', data: { labels: [], datasets: [{ label: '地區分佈', data: [], backgroundColor: '#FF9F40' }] }, options: { responsive: true, maintainAspectRatio: false } }); 
   }
 
-// 🌟 新增：LINE 導引台邏輯
+  // 🌟 LINE 導引台邏輯 (含修復)
   let cur = { name: "", req: "", area: "", staff: "Kelvin", tab: "first" };
 
-  function openLineModal(key,name, lid, ph, req, area) {
-      // 1. 儲存全域變數 (給 HUD 用)
-    currentDispatchKey = key;
-    currentDispatchStore = name;
-      // 重置步驟燈號
+  function openLineModal(key, name, lid, ph, req, area) {
+      currentDispatchKey = key;
+      currentDispatchStore = name;
+      
       for(let i=1; i<=4; i++) { document.getElementById(`step${i}`).classList.remove('done'); }
       document.getElementById('displayStoreName').innerText = name;
       
@@ -1176,7 +1233,7 @@
       document.getElementById('tagUser').innerText = `👤 ${name}-`;
       document.getElementById('tagTeacher').innerText = `🧑‍🏫 ${name}-`;
       
-      setS('first'); // 預設話術
+      setS('first'); 
       document.getElementById('lineModal').classList.add('show');
   }
 
@@ -1212,7 +1269,7 @@
       const a = area || "";
       const textarea = document.getElementById('lineScriptArea');
       
-      if (tab === 'first') textarea.value = `哈囉 老闆 您好！您這邊是 ${name} 店家嗎～\n我是 ezPretty 預約科技的業務經理 暐庭 😊\n剛才有收到您的諮詢，您想了解我們預約pos系統的【${r}】的功能嗎？\n\n您看到訊息後，方便跟您通話1分鐘嗎？\n先簡單跟您了解一下需求，後續我再安排業務跟您介紹系統，約線上會議 或是 線下見面都可以唷！`;
+      if (tab === 'first') textarea.value = `哈囉 老闆 您好！您這邊是 ${name} 店家嗎～\n我是 ezPretty 預約科技的業務經理 暐庭 😊\n剛才有收到您的諮詢，您想了解我們預約pos系統的【${r}】的功能嗎？\n\n您看到訊息後，方便跟您通話1分鐘嗎？`;
       else if (tab === 'follow') textarea.value = `哈囉老闆，擔心您近日忙碌漏掉訊息，所以再跟您打個招呼 😊\n\n近期有收到您的諮詢，您想了解我們預約pos系統的【${r}】的功能嗎？`;
       else if (tab === 'success') textarea.value = `好的，我待會拉個群組，我請我的組員 ${staff} 和您約時間介紹系統唷！\n群組名稱是 『${a}${name} + ezPretty討論』\n\n您再留意一下群組的訊息唷～`;
   }
@@ -1220,17 +1277,52 @@
   function pureCopy() {
       navigator.clipboard.writeText(document.getElementById('lineScriptArea').value).then(() => {
           markDone(4);
+          
+          const hudText = document.getElementById('hudText');
+          const hudBtn = document.getElementById('hudActionBtn');
+          
+          if (cur.tab === 'success') {
+              currentHudMode = 'dispatch';
+              hudText.innerText = "恭喜邀約成功！記得去派單！";
+              hudBtn.innerText = "🚀 去派單";
+              hudBtn.style.color = "#9c27b0"; 
+          } else {
+              currentHudMode = 'update';
+              hudText.innerText = "聊完記得回來更新進度！";
+              hudBtn.innerText = "📝 立刻更新";
+              hudBtn.style.color = "#667eea"; 
+          }
+
           document.getElementById('hud').classList.add('show');
-          // 2. 🌟 關鍵修改：直接關閉導引頁面，讓您看得到 LINE
-        closeLineModal();
-          const btn = document.getElementById('copyBtn');
-          btn.innerText = "✅ 話術已複製";
-          btn.classList.add('copied');
-          setTimeout(() => { btn.innerText = "📋 僅複製話術"; btn.classList.remove('copied'); }, 2500);
+          closeLineModal(); 
       });
   }
 
   function closeLineModal() { document.getElementById('lineModal').classList.remove('show'); }
+
+  // 🌟 HUD 按鈕中控台
+  function handleHudClick() {
+      if (currentHudMode === 'dispatch') {
+          openDispatchModal(currentDispatchKey, currentDispatchStore);
+          // 強制重置為 Step 1
+          document.getElementById('dispatchStep1').classList.add('active');
+          document.getElementById('dispatchStep2').classList.remove('active');
+      } else {
+          const item = allData.find(i => i.key === currentDispatchKey);
+          if (item) {
+              openUpdateModal(
+                  item.key, 
+                  item.name, 
+                  item.isL, item.isM, item.isN, item.isO, item.isQ, 
+                  (item.rawP || "").toString(), 
+                  item.progressStatus
+              );
+          } else {
+              alert("找不到該筆資料，請嘗試重新整理頁面！");
+          }
+      }
+      closeHUD();
+  }
 
   window.onload = loadData;
 </script>
