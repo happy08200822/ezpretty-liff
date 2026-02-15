@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Line 話術快手 (尊爵優化版)</title>
+  <title>Line 話術快手 (點擊即跳轉版)</title>
   <style>
     /* --- 基礎背景 --- */
     body { font-family: -apple-system, "Noto Sans TC", sans-serif; background: #f0f2f5; padding: 20px; margin: 0; -webkit-tap-highlight-color: transparent; }
     
-    /* 1. HUD 提醒 (橘色漸層) */
+    /* HUD 提醒 (橘色漸層) */
     #hud { 
         position: fixed; top: 15px; left: 50%; transform: translateX(-50%) translateY(-150%);
         width: 90%; max-width: 400px;
@@ -27,12 +27,12 @@
     .store-name { font-size: 19px; font-weight: bold; color: #1a1a1a; margin-bottom: 10px; }
     .btn-tool { display: flex; align-items: center; justify-content: center; padding: 10px 0; border-radius: 12px; font-size: 13px; font-weight: bold; cursor: pointer; text-decoration: none; border: 1px solid #eef0f2; background: #fff; color: #555; }
 
-    /* --- 🌟 尊爵版 Bottom Sheet --- */
+    /* Bottom Sheet 質感 */
     .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); z-index: 9998; display: none; opacity: 0; transition: opacity 0.3s; }
     
     .bottom-sheet { 
         position: fixed; bottom: 0; left: 0; right: 0; 
-        background: rgba(255, 255, 255, 0.95); /* 玻璃擬態 */
+        background: rgba(255, 255, 255, 0.95);
         backdrop-filter: blur(20px); 
         border-radius: 30px 30px 0 0; 
         z-index: 10000; 
@@ -46,7 +46,6 @@
     }
     .bottom-sheet.show { transform: translateY(0); }
     
-    /* 頂部拉桿 */
     .bottom-sheet::before {
         content: ''; width: 45px; height: 5px; background: #dcdde1; border-radius: 10px;
         position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
@@ -54,31 +53,27 @@
 
     .sheet-header { font-size: 20px; font-weight: 800; text-align: center; margin-bottom: 20px; color: #2f3640; }
 
-    /* 🌟 聯繫資訊卡 (整合 ID + 名片) */
+    /* 聯繫資訊卡 */
     .contact-info-card {
-        background: #ffffff;
-        border-radius: 20px;
-        padding: 20px;
-        margin-bottom: 20px;
-        box-shadow: 0 8px 25px rgba(0,0,0,0.04);
-        border: 1px solid #f1f2f6;
-        text-align: center;
+        background: #ffffff; border-radius: 20px; padding: 20px; margin-bottom: 20px;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.04); border: 1px solid #f1f2f6; text-align: center;
     }
 
-    .line-info-row { 
+    /* 🌟 改良版 ID/電話 點擊鈕 */
+    .line-jump-btn { 
         display: inline-flex; align-items: center; justify-content: center; gap: 8px; 
-        margin-bottom: 18px; font-size: 20px; font-weight: 700; color: #007bff; 
-        background: #f0f7ff; padding: 10px 20px; border-radius: 15px; cursor: pointer;
+        margin-bottom: 18px; font-size: 20px; font-weight: 700; color: #fff; 
+        background: linear-gradient(135deg, #007bff 0%, #0056b3 100%); 
+        padding: 12px 25px; border-radius: 15px; cursor: pointer; text-decoration: none;
+        box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3); transition: 0.2s;
     }
-    
-    /* 名片圖片 (Fold 7 專屬大圖) */
+    .line-jump-btn:active { transform: scale(0.95); opacity: 0.9; }
+
+    /* 名片圖片 */
     .card-preview-img {
-        width: 100%; max-width: 320px; height: auto;
-        border-radius: 12px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-        margin: 0 auto; display: block;
-        cursor: grab; border: 3px solid #fff;
-        transition: transform 0.2s;
+        width: 100%; max-width: 320px; height: auto; border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin: 0 auto; display: block;
+        cursor: grab; border: 3px solid #fff; transition: transform 0.2s;
     }
     .card-preview-img:active { cursor: grabbing; transform: scale(0.96); }
 
@@ -91,14 +86,12 @@
         margin-bottom: 20px; box-sizing: border-box; background: #fafafa;
         color: #333; outline: none; transition: 0.3s;
     }
-    .line-textarea:focus { border-color: #007bff; background: #fff; box-shadow: 0 0 0 4px rgba(0,123,255,0.1); }
 
-    /* 按鈕設計 */
+    /* 下方按鈕 */
     .line-btn-grid { display: grid; grid-template-columns: 1fr 1.6fr; gap: 12px; }
     .sheet-btn { padding: 16px; border-radius: 16px; font-size: 16px; font-weight: bold; cursor: pointer; border: none; transition: 0.2s; }
     .btn-copy-only { background: #f1f2f6; color: #7f8c8d; }
     .btn-copy-go { background: linear-gradient(135deg, #00b894 0%, #009432 100%); color: white; box-shadow: 0 8px 20px rgba(0, 184, 148, 0.3); }
-    .sheet-btn:active { transform: scale(0.97); }
 
   </style>
 </head>
@@ -125,10 +118,10 @@
       <div class="sheet-header">聯繫名單</div>
       
       <div class="contact-info-card">
-          <span class="section-label">LINE ID / PHONE</span>
-          <div class="line-info-row" onclick="copyLineId()">
+          <span class="section-label">👇 點擊直接跳轉 LINE 加好友</span>
+          <a id="lineJumpBtn" href="#" class="line-jump-btn" target="_blank" onclick="triggerHudFromId()">
               <span id="lineInfoIcon">🆔</span> <span id="lineInfoText">--</span>
-          </div>
+          </a>
 
           <span class="section-label" style="margin-top:10px;">長按名片可拖曳至 LINE</span>
           <img src="https://happy08200822.github.io/ezpretty-liff/card.jpg" class="card-preview-img" draggable="true">
@@ -138,8 +131,8 @@
       <textarea id="lineScriptArea" class="line-textarea"></textarea>
       
       <div class="line-btn-grid">
-          <button class="sheet-btn btn-copy-only" onclick="copyScriptOnly()">📋 僅複製</button>
-          <button class="sheet-btn btn-copy-go" onclick="copyAndGoLine()">🚀 複製並前往 LINE</button>
+          <button class="sheet-btn btn-copy-only" onclick="copyScriptOnly()">📋 僅複製話術</button>
+          <button class="sheet-btn btn-copy-go" onclick="copyAndGoLine()">🚀 複製並前往</button>
       </div>
   </div>
 
@@ -148,16 +141,23 @@
 
     function openLineModal(name, lineId, phone, req) {
         const infoText = document.getElementById('lineInfoText');
+        const jumpBtn = document.getElementById('lineJumpBtn');
+        const infoIcon = document.getElementById('lineInfoIcon');
         
         if (lineId && lineId !== "--") {
             infoText.innerText = lineId;
+            infoIcon.innerText = "🆔";
             currentLineData.id = lineId;
             currentLineData.url = `https://line.me/ti/p/~${lineId}`;
         } else {
             infoText.innerText = phone;
+            infoIcon.innerText = "📞";
             currentLineData.id = phone;
             currentLineData.url = `https://line.me/ti/p/~${phone}`;
         }
+
+        // 設定跳轉連結
+        jumpBtn.href = currentLineData.url;
 
         const reqText = (req && req.trim() !== "") ? req : "相關";
         const script = `哈囉 老闆 您好！您這邊是 ${name} 店家嗎～\n我是 ezPretty 預約科技的業務經理 暐庭 😊\n剛才有收到您的諮詢，您想了解我們預約pos系統的【${reqText}】的功能嗎？\n\n您看到訊息後，方便跟您通話1分鐘嗎？\n先簡單跟您了解一下需求，後續我再安排業務跟您介紹系統，約線上會議 或是 線下見面都可以唷！`;
@@ -171,15 +171,18 @@
         }, 10);
     }
 
+    // 🌟 如果直接點 ID 跳轉，也要啟動 HUD 提醒
+    function triggerHudFromId() {
+        setTimeout(() => {
+            closeLineModal();
+            document.getElementById('hud').classList.add('show');
+        }, 500);
+    }
+
     function closeLineModal() {
         document.getElementById('lineModal').classList.remove('show');
         document.getElementById('lineModalOverlay').style.opacity = '0';
         setTimeout(() => document.getElementById('lineModalOverlay').style.display = 'none', 300);
-    }
-
-    function copyLineId() {
-        navigator.clipboard.writeText(currentLineData.id);
-        alert("✅ 已複製 ID/電話");
     }
 
     function copyScriptOnly() {
@@ -192,16 +195,13 @@
         const text = document.getElementById('lineScriptArea').value;
         navigator.clipboard.writeText(text).then(() => {
             closeLineModal();
-            // 🌟 顯示 HUD
             document.getElementById('hud').classList.add('show');
-            // 模擬開啟 LINE
-            console.log("跳轉連結: " + currentLineData.url);
-            alert("話術已複製！請在 LINE 貼上。\n聯絡完畢請點擊上方橘色 HUD 更新進度！");
+            window.open(currentLineData.url, '_blank');
         });
     }
 
     function openFakeUpdate() {
-        alert("已開啟更新視窗！(模擬中)");
+        alert("已開啟更新視窗！");
         closeHUD();
     }
 
