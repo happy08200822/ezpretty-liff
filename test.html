@@ -1,34 +1,244 @@
+
 <!DOCTYPE html>
 <html>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>ezPretty 開發導引台 (滿寬修正版)</title>
+  <title>ezPretty 戰情室 (終極修復版3)</title>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
   <style>
-    /* --- 1. 基礎佈局 --- */
-    body { font-family: -apple-system, "Noto Sans TC", sans-serif; background: #f0f2f5; padding: 0; margin: 0; width: 100%; overflow-x: hidden; }
-    
+    /* --- 0. 基礎設定 --- */
+    body { font-family: -apple-system, "Noto Sans TC", sans-serif; background: #f4f6f9; padding: 0; margin: 0; padding-bottom: 100px; -webkit-tap-highlight-color: transparent; width: 100%; overflow-x: hidden; }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+    /* --- 1. Loading --- */
+    #loadingOverlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255,255,255,0.7); backdrop-filter: blur(5px); z-index: 20000; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.3s; }
+    .spinner { width: 40px; height: 40px; border: 4px solid #e0e0e0; border-top: 4px solid #007bff; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 10px; }
+    .loading-text { font-size: 14px; color: #555; font-weight: bold; letter-spacing: 1px; animation: pulse 1.5s infinite; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    @keyframes pulse { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
+
+    /* --- 2. HUD --- */
     #hud { 
         position: fixed; top: 15px; left: 50%; transform: translateX(-50%) translateY(-150%);
-        width: 90%; max-width: 400px; background: linear-gradient(135deg, #FF8008 0%, #FFC837 100%);
-        color: white; border-radius: 50px; padding: 8px 15px; display: flex; align-items: center; justify-content: space-between;
-        z-index: 11000; box-shadow: 0 10px 25px rgba(255, 128, 8, 0.3); transition: transform 0.5s;
+        width: 90%; max-width: 400px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white; border-radius: 50px; padding: 8px 15px 8px 20px;
+        display: flex; align-items: center; justify-content: space-between;
+        z-index: 11000; box-shadow: 0 8px 20px rgba(118, 75, 162, 0.4);
+        font-size: 13px; font-weight: bold;
+        transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
     #hud.show { transform: translateX(-50%) translateY(0); }
-
-    /* --- 2. 彈窗強制滿寬 --- */
-    .bottom-sheet { 
-        position: fixed; bottom: 0; left: 0; right: 0; background: #fff; 
-        border-radius: 30px 30px 0 0; z-index: 10000; transform: translateY(100%); transition: transform 0.4s; 
-        padding-bottom: 40px; width: 100%; /* 強制滿寬 */
+    .hud-left { display: flex; align-items: center; gap: 8px; }
+    .hud-icon { background: rgba(255,255,255,0.2); border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+    .hud-btn { background: white; color: #764ba2; border: none; padding: 6px 14px; border-radius: 20px; font-size: 12px; cursor: pointer; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    
+    /* --- 3. Header --- */
+    .header-sticky { position: sticky; top: 0; background: #f4f6f9; z-index: 100; box-shadow: 0 4px 6px -6px rgba(0,0,0,0.1); }
+    .top-row-container { display: flex; align-items: center; gap: 8px; padding: 10px 10px 5px 10px; }
+    .main-search-input { flex: 1; padding: 10px 12px; border-radius: 10px; border: 2px solid #e0e0e0; background: #fff; font-size: 14px; outline: none; transition: 0.3s; height: 42px; box-sizing: border-box; }
+    .main-search-input:focus { border-color: #007bff; }
+    .tool-group { display: flex; gap: 5px; }
+    .tool-btn-small { width: 42px; height: 42px; border-radius: 10px; background: white; border: 1px solid #ddd; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 16px; color: #555; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.05); transition: 0.2s; }
+    .tool-btn-small:active { transform: scale(0.95); }
+    .tool-btn-small.active-chart { background: #e3f2fd; color: #007bff; border-color: #007bff; }
+    
+    /* Tabs */
+    .tabs-sticky-container { background: #f4f6f9; padding-bottom: 5px; border-bottom: 1px solid rgba(0,0,0,0.05); }
+    .status-tabs { display: flex; overflow-x: auto; gap: 8px; padding: 0 10px; align-items: center; }
+    .tab-btn { 
+        flex: 0 0 auto; min-width: 68px; padding: 8px 12px; border-radius: 12px; 
+        font-size: 11px; font-weight: bold; border: none; cursor: pointer; 
+        background: #fff; color: #666; transition: 0.2s; 
+        display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; 
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05); white-space: nowrap; 
     }
-    .bottom-sheet.show { transform: translateY(0); }
+    .tab-btn span { font-size: 16px; line-height: 1; }
+    .tab-btn .count { background: #f0f0f0; padding: 2px 8px; border-radius: 10px; font-size: 10px; color: #888; }
+    .tab-btn.active { transform: translateY(-1px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); color: white; }
+    
+    /* Tabs Colors */
+    .tab-all.active { background: #555; } .tab-all.active .count { background: rgba(255,255,255,0.3); color: white; }
+    .tab-new.active { background: #00C851; } .tab-new.active .count { background: rgba(255,255,255,0.3); color: white; }
+    .tab-unread.active { background: #ffbb33; color:#5c3a00; } .tab-unread.active .count { background: rgba(0,0,0,0.1); color: #5c3a00; }
+    .tab-read.active { background: #ff4444; } .tab-read.active .count { background: rgba(255,255,255,0.3); color: white; }
+    .tab-noline.active { background: #33b5e5; } .tab-noline.active .count { background: rgba(255,255,255,0.3); color: white; }
+    .tab-dispatched.active { background: #9c27b0; } .tab-dispatched.active .count { background: rgba(255,255,255,0.3); color: white; }
+    .tab-self.active { background: #00897b; } .tab-self.active .count { background: rgba(255,255,255,0.3); color: white; }
+    .tab-invalid.active { background: #6c757d; } .tab-invalid.active .count { background: rgba(255,255,255,0.3); color: white; }
 
+    .filter-trigger-row { padding: 5px 10px; display: flex; flex-direction: column; align-items: flex-start; gap: 5px; }
+    .filter-toggle-btn { background: white; border: 1px solid #ddd; border-radius: 20px; color: #555; font-size: 12px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 6px; padding: 6px 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); transition: 0.2s; }
+    .filter-toggle-btn.active { background: #e3f2fd; color: #007bff; border-color: #007bff; }
+    .filter-hint-row { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 5px; padding: 0 10px; }
+    .filter-tag { font-size: 10px; background: #e7f5ff; color: #007bff; padding: 2px 8px; border-radius: 10px; border: 1px solid #b3d7ff; white-space: nowrap; }
+    #salesFilterBar { display: none; white-space: nowrap; overflow-x: auto; padding: 0 10px 8px 10px; }
+    .sales-pill { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; margin-right: 5px; border-radius: 15px; font-size: 11px; color: #555; background: #e0e0e0; border: 1px solid #ccc; cursor: pointer; transition: 0.2s; }
+    .sales-pill.active { background: #333; color: white; border-color: #000; }
+    .sales-filter-dispatched .sales-pill.active { background: #9c27b0; border-color: #7b1fa2; }
+    .sales-filter-self .sales-pill.active { background: #00897b; border-color: #00695c; }
+
+    /* Expand Area */
+    .expand-area { padding: 0 10px; }
+    .hidden-panel { display: none; background: linear-gradient(180deg, #f0f7ff 0%, #ffffff 100%); border-radius: 0 0 16px 16px; padding: 20px 15px; margin-bottom: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.08); animation: slideDown 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); position: relative; overflow: hidden; }
+    .hidden-panel::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: linear-gradient(90deg, #667eea, #764ba2); }
+    @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
+    .date-trigger-btn { width: 100%; padding: 12px 15px; background: #e3f2fd; border: none; border-radius: 12px; text-align: left; font-size: 14px; font-weight: bold; color: #1565c0; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; cursor: pointer; box-sizing: border-box; box-shadow: 0 4px 10px rgba(33, 150, 243, 0.15); transition: transform 0.1s; }
+    .date-trigger-btn:active { transform: scale(0.98); }
+    .filter-section-title { font-size: 12px; color: #666; font-weight: bold; margin-bottom: 8px; margin-top: 10px; display: flex; align-items: center; gap: 5px; }
+    .chip-container { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 5px; margin-bottom: 5px; }
+    .chip { flex: 0 0 auto; padding: 8px 16px; border-radius: 20px; font-size: 12px; font-weight: bold; color: #555; background: #fff; border: 1px solid #dee2e6; cursor: pointer; transition: 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    .chip.active { background: #e7f5ff; color: #007bff; border-color: #007bff; box-shadow: 0 2px 6px rgba(0,123,255,0.25); }
+    .btn-reset-full { width: 100%; padding: 12px; background: #fff5f5; color: #c0392b; border: 1px solid #ffcdd2; border-radius: 12px; font-size: 13px; font-weight: bold; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 5px; transition: 0.2s; margin-top: 15px; }
+    
+    #chartPanel { background: linear-gradient(180deg, #ffffff 0%, #f8faff 100%); border-top: none; }
+    .chart-header-title { text-align: center; font-size: 16px; font-weight: bold; color: #333; margin-bottom: 5px; padding-top: 5px; }
+    .insight-row { display: flex; justify-content: space-around; margin-bottom: 10px; background: white; padding: 8px 5px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); align-items: center; }
+    .insight-item { text-align: center; }
+    .insight-val { font-size: 15px; font-weight: bold; color: #333; line-height: 1.2; }
+    .insight-label { font-size: 10px; color: #888; }
+    .insight-val.good { color: #00C851; }
+    .insight-val.bad { color: #ff4444; }
+
+    .chart-wrapper { position: relative; height: 320px; width: 100%; display: none; margin-top: 10px; }
+    .chart-wrapper.active { display: block; }
+    .chart-tabs { display: flex; gap: 8px; overflow-x: auto; margin-bottom: 10px; }
+    .chart-tab-btn { padding: 6px 14px; border-radius: 20px; background: #f1f3f5; color: #555; font-size: 12px; font-weight: bold; border: none; white-space: nowrap; cursor: pointer; }
+    .chart-tab-btn.active { background: #007bff; color: white; }
+    .time-toggles-container { display: flex; justify-content: flex-end; padding-right: 10px; margin-bottom: 5px; }
+    .time-toggles { display: flex; background: #e9ecef; border-radius: 20px; padding: 3px; }
+    .time-btn { padding: 4px 12px; border: none; background: transparent; font-size: 11px; border-radius: 15px; cursor: pointer; color: #666; font-weight: bold; transition: 0.2s; }
+    .time-btn.active { background: white; color: #007bff; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+
+    /* List & Cards */
+    .list-container { padding: 10px; }
+    .store-card { background: white; border-radius: 16px; padding: 16px; margin-bottom: 16px; border-top: 6px solid #ccc; position: relative; box-shadow: 0 4px 15px rgba(0,0,0,0.05); transition: border-color 0.3s; }
+    .store-card.idle-warning { border: 2px solid #ff4444; animation: redPulse 2s infinite; }
+    .idle-tag { position: absolute; top: -10px; right: 10px; background: #ff4444; color: #fff; font-size: 10px; font-weight: bold; padding: 2px 8px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); z-index: 5; }
+    @keyframes redPulse { 0% { box-shadow: 0 0 0 0 rgba(255, 68, 68, 0.4); } 70% { box-shadow: 0 0 0 6px rgba(255, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(255, 68, 68, 0); } }
+
+    .card-new { border-top-color: #00C851; }
+    .card-unread { border-top-color: #ffbb33; }
+    .card-read { border-top-color: #ff4444; }
+    .card-noline { border-top-color: #33b5e5; }
+    .card-invalid { border-top-color: #6c757d; opacity: 0.7; }
+    .card-dispatched { border-top-color: #9c27b0; } 
+    .card-self { border-top-color: #00897b; } 
+    
+    .top-right-badge { 
+        position: absolute; top: 12px; right: 12px; text-align: right; font-size: 11px; color: #888; line-height: 1.4; 
+        max-width: 140px; overflow: hidden; 
+    }
+    .badge-source { 
+        font-weight: bold; padding: 2px 6px; border-radius: 4px; margin-bottom: 3px; display: inline-block; color: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.2); 
+        max-width: 100%; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; vertical-align: bottom;
+    }
+    
+    .action-alert { background: #fff5f5; border: 1px dashed #ff6b6b; color: #c0392b; padding: 8px 12px; border-radius: 8px; font-size: 14px; font-weight: bold; margin: 8px 0; display: flex; align-items: center; gap: 6px; }
+    .action-alert i { font-style: normal; font-size: 16px; }
+    .dup-alert { background: #ffebee; color: #c62828; border: 1px solid #ffcdd2; font-size: 11px; padding: 8px; border-radius: 8px; margin-bottom: 8px; }
+    
+    .store-name { font-size: 18px; font-weight: bold; color: #333; margin-bottom: 4px; padding-right: 80px; line-height: 1.4; display: flex; align-items: center; flex-wrap: wrap; }
+    .industry-text { font-size: 12px; background: #eee; color: #555; padding: 2px 6px; border-radius: 4px; margin-right: 5px; font-weight: normal; max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block; vertical-align: bottom; }
+    
+    .w-status-badge { font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: bold; color: white; margin-left: 6px; display: inline-block; vertical-align: middle; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .w-red { background: #c0392b; }
+    .w-green { background: #27ae60; }
+    .w-orange { background: #e67e22; }
+    .w-gray { background: #7f8c8d; }
+
+    .btn-copy-text { background: none; border: none; font-size: 14px; cursor: pointer; margin-left: 5px; opacity: 0.6; pointer-events: auto; }
+    .key-badge { font-size: 11px; color: #666; background: #f0f0f0; padding: 2px 6px; border-radius: 4px; margin-left: 5px; vertical-align: middle; }
+    .info-box { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: #555; background: #f8faff; padding: 10px; border-radius: 12px; border: 1px solid #eef2f7; margin-bottom: 8px; }
+    .req-text { color: #d35400; font-weight: bold; border-top: 1px dashed #ddd; padding-top: 6px; margin-top: 4px; line-height: 1.4; }
+    .status-checks { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 5px; }
+    .check-pill { font-size: 10px; padding: 2px 6px; border-radius: 10px; background: #f0f0f0; color: #aaa; border: 1px solid #ddd; }
+    .check-pill.on { background: #e3f2fd; color: #1565c0; border-color: #90caf9; font-weight: bold; }
+    .update-badge { background: #e74c3c; color: white; border-radius: 10px; padding: 0px 5px; font-size: 10px; margin-left: 2px; height: 16px; line-height: 16px; display: inline-block; vertical-align: text-top; }
+    
+    .record-section { margin-bottom: 8px; }
+    .record-label { font-size: 12px; font-weight: bold; color: #555; margin-bottom: 4px; display: flex; align-items: center; gap: 5px; }
+    .status-badge { font-size: 10px; padding: 2px 8px; border-radius: 10px; font-weight: bold; color: white; }
+    .status-badge.good { background: #007bff; }
+    .status-badge.bad { background: #dc3545; }
+    
+    .record-box { font-size: 11px; color: #666; background: #f8f9fa; padding: 8px 10px; border-radius: 8px; white-space: pre-wrap; line-height: 1.5; max-height: 4.5em; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; border-left: 3px solid #ddd; }
+
+    .action-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; }
+    .btn-ghost { display: flex; align-items: center; justify-content: center; padding: 8px 0; border-radius: 8px; border: 1px solid #e0e0e0; background: white; color: #666; font-size: 12px; font-weight: bold; text-decoration: none; transition: 0.2s; gap: 4px; }
+    .btn-ghost:active { background: #f5f5f5; }
+    .btn-orange { background: #ff9800; color: white; border: none; box-shadow: 0 2px 5px rgba(255, 152, 0, 0.3); }
+    .btn-purple { background: #9c27b0; color: white; border: none; box-shadow: 0 2px 5px rgba(156, 39, 176, 0.3); }
+    .btn-tool { display: flex; align-items: center; justify-content: center; padding: 8px 0; border-radius: 8px; font-size: 12px; font-weight: bold; cursor: pointer; text-decoration: none; gap: 4px; }
+
+    /* Modals */
+    .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 9998; display: none; opacity: 0; transition: opacity 0.3s; }
+    .bottom-sheet { position: fixed; bottom: 0; left: 0; right: 0; background: white; border-radius: 20px 20px 0 0; z-index: 10000; transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.2, 0.9, 0.3, 1); padding: 20px; padding-bottom: 40px; display: flex; flex-direction: column; max-height: 90vh; overflow-y: auto; }
+    .bottom-sheet.show { transform: translateY(0); }
+    .sheet-header { font-size: 18px; font-weight: bold; text-align: center; margin-bottom: 15px; position: relative; color: #333; }
+    .sheet-close { position: absolute; right: 0; top: -5px; background: none; border: none; font-size: 24px; color: #999; padding: 0 10px; cursor: pointer; }
+
+    /* Update Modal */
+    .update-chip-container { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 15px; }
+    .update-chip { padding: 6px 12px; background: #f1f3f5; border-radius: 15px; font-size: 12px; color: #555; border: 1px solid #ddd; cursor: pointer; display: flex; align-items: center; gap: 4px; }
+    .update-chip.call-chip { background: #e3f2fd; color: #0288d1; border-color: #b3e5fc; font-weight: bold; }
+    .update-chip.line-chip { background: #e8f5e9; color: #2e7d32; border-color: #c8e6c9; font-weight: bold; }
+    
+    .status-group-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+    .status-btn-big { padding: 12px; border-radius: 12px; border: 2px solid transparent; font-size: 14px; font-weight: bold; cursor: pointer; text-align: center; transition: 0.2s; }
+    .status-btn-big.contact { background: #e3f2fd; color: #007bff; border-color: #b3d7ff; }
+    .status-btn-big.contact.active { background: #007bff; color: white; border-color: #0056b3; box-shadow: 0 4px 10px rgba(0,123,255,0.3); }
+    .status-btn-big.reject { background: #ffebee; color: #c62828; border-color: #ffcdd2; }
+    .status-btn-big.reject.active { background: #c62828; color: white; border-color: #b71c1c; box-shadow: 0 4px 10px rgba(198,40,40,0.3); }
+
+    .update-textarea { width: 100%; height: 160px; border: 1px solid #ddd; border-radius: 12px; padding: 10px; font-size: 14px; resize: none; margin-bottom: 15px; background: #fafafa; font-family: monospace; line-height: 1.5; box-sizing: border-box; }
+    .toggle-row { display: flex; justify-content: space-between; margin-bottom: 10px; background: white; padding: 5px 0; border-radius: 12px; }
+    .toggle-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px; cursor: pointer; padding: 10px 5px; border-radius: 10px; transition: 0.2s; margin: 0 3px; background: #f0f0f0; color: #999; }
+    .toggle-icon { font-size: 20px; }
+    .toggle-label { font-size: 10px; font-weight: bold; }
+    .toggle-item.active.tog-L { background: #06C755; color: white; }
+    .toggle-item.active.tog-M { background: #333; color: white; }
+    .toggle-item.active.tog-N { background: #007bff; color: white; }
+    .toggle-item.active.tog-O { background: #ff9800; color: white; }
+    .toggle-item.active.tog-Q { background: #c0392b; color: white; }
+
+    /* Dispatch */
+    .dispatch-step { display: none; }
+    .dispatch-step.active { display: block; }
+    .store-name-large { font-size: 22px; font-weight: bold; color: #333; text-align: center; margin: 20px 0; }
+    .copy-btn-large { width: 100%; padding: 15px; background: #e3f2fd; color: #1565c0; border: 1px dashed #1565c0; border-radius: 12px; font-size: 16px; font-weight: bold; cursor: pointer; margin-bottom: 20px; display: flex; justify-content: center; align-items: center; gap: 8px; }
+    .sales-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
+    .sales-tile { aspect-ratio: 1.5; border-radius: 12px; background: white; border: 2px solid #eee; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 14px; font-weight: bold; color: #555; position: relative; transition: 0.2s; }
+    .sales-tile.selected { border-color: #9c27b0; background: #f3e5f5; color: #9c27b0; }
+    .sales-check { position: absolute; top: 5px; right: 5px; font-size: 12px; display: none; }
+    .sales-tile.selected .sales-check { display: block; }
+    .input-field { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 10px; margin-bottom: 15px; font-size: 14px; box-sizing: border-box; }
+    .sheet-confirm-btn { width: 100%; padding: 14px; background: linear-gradient(135deg, #007bff, #0056b3); color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: bold; cursor: pointer; }
+
+    /* Date Picker */
+    .quick-date-grid-row1 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 8px; }
+    .quick-date-grid-row2 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 20px; }
+    .quick-btn { padding: 10px 2px; background: #f8f9fa; border: 1px solid #eee; border-radius: 10px; font-size: 12px; color: #555; font-weight: bold; text-align: center; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .quick-btn:active { background: #e9ecef; color: #007bff; border-color: #b3d7ff; }
+    .date-range-inputs { display: flex; gap: 10px; align-items: center; margin-bottom: 20px; background: #f8f9fa; padding: 15px; border-radius: 12px; }
+    .date-input-group { flex: 1; display: flex; flex-direction: column; gap: 5px; }
+    .date-input-group label { font-size: 11px; color: #666; font-weight: bold; }
+    .date-native-input { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 8px; font-size: 15px; box-sizing: border-box; background: #fff; }
+
+    .fab-switch { position: fixed; bottom: 25px; right: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px 24px; border-radius: 50px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); font-size: 14px; font-weight: bold; text-decoration: none; display: flex; align-items: center; gap: 8px; z-index: 1000; transition: transform 0.2s; }
+    #toast { visibility: hidden; min-width: 200px; background-color: #333; color: #fff; text-align: center; border-radius: 20px; padding: 10px; position: fixed; z-index: 10001; left: 50%; bottom: 100px; transform: translateX(-50%); font-size: 13px; }
+    #toast.show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 2.5s; }
+
+    /* --- 🌟 新增：開發導引台專用樣式 --- */
     .sheet-header-box { padding: 15px 20px; border-bottom: 1px solid #eee; text-align: center; position: relative; width: 100%; box-sizing: border-box; }
     .current-store-title { font-size: 20px; font-weight: 900; color: #2c3e50; margin: 0; }
     .sheet-close-btn { position: absolute; right: 15px; top: 15px; font-size: 24px; color: #ccc; cursor: pointer; border: none; background: none; }
 
-    /* --- 3. 導引步驟區域 --- */
     .guide-scroll-area { padding: 20px; max-height: 80vh; overflow-y: auto; box-sizing: border-box; width: 100%; }
     .guide-container { display: flex; flex-direction: column; gap: 20px; width: 100%; }
     
@@ -38,46 +248,257 @@
 
     .step-num { min-width: 30px; height: 30px; border-radius: 50%; background: #007bff; color: white; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold; z-index: 2; }
     .step-box.done .step-num { background: #dcdde1; color: #7f8c8d; }
-
     .step-content { flex: 1; min-width: 0; width: 100%; }
     .step-title { font-size: 15px; font-weight: bold; color: #555; margin-bottom: 10px; display: block; }
 
     .btn-main { display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: bold; color: #fff; background: #007bff; padding: 14px; border-radius: 12px; cursor: pointer; text-decoration: none; width: 100%; border: none; box-sizing: border-box; }
-    
     .tag-btn-group { display: flex; gap: 10px; width: 100%; }
     .tag-btn { flex: 1; padding: 12px; background: #fff; border: 1.5px solid #dee2e6; border-radius: 10px; font-weight: bold; cursor: pointer; text-align: center; }
-    
     .card-img-box { width: 100%; display: block; }
     .card-img { width: 100%; max-width: 350px; height: auto; border-radius: 10px; border: 1px solid #ddd; cursor: grab; }
 
     .script-tabs { display: flex; background: #eee; border-radius: 10px; padding: 4px; margin-bottom: 12px; gap: 4px; width: 100%; }
     .tab-btn { flex: 1; padding: 10px; border: none; border-radius: 8px; font-size: 13px; font-weight: bold; cursor: pointer; color: #777; }
     .tab-btn.active { background: #fff; color: #007bff; }
-    
     .staff-row { display: none; gap: 8px; margin-bottom: 10px; justify-content: flex-end; }
     .staff-chip { padding: 5px 15px; border-radius: 20px; font-size: 12px; border: 1px solid #007bff; color: #007bff; cursor: pointer; }
     .staff-chip.active { background: #007bff; color: white; }
 
     .line-textarea { width: 100%; height: 130px; border: 1.5px solid #eee; border-radius: 15px; padding: 15px; font-size: 15px; margin-bottom: 15px; box-sizing: border-box; background: #fafafa; resize: none; }
-    
     .btn-final-copy { width: 100%; padding: 18px; border-radius: 15px; border: none; background: #00b894; color: white; font-size: 17px; font-weight: bold; cursor: pointer; box-sizing: border-box; }
     .btn-final-copy.copied { background: #2f3640; }
+
+    /* --- 🌟 最終版：按鈕選中時，變成對應顏色 + 同色系發光 --- */
+
+    /* 1. 基礎動效 (放大、上浮、白框) */
+    .tab-btn.active {
+        transform: scale(1.1) translateY(-2px) !important; /* 放大上浮 */
+        border: 2px solid #fff !important; /* 加白框讓顏色更跳 */
+        z-index: 10;
+        color: white !important; /* 文字變白 */
+    }
+
+    /* 2. 個別指定顏色與發光陰影 (Glow Effect) */
+    
+    /* 📂 全部 (深灰) */
+    .tab-all.active { 
+        background: #555 !important; 
+        box-shadow: 0 4px 15px rgba(85, 85, 85, 0.5) !important; 
+    }
+
+    /* 🆕 新單 (綠色) */
+    .tab-new.active { 
+        background: #00C851 !important; 
+        box-shadow: 0 4px 15px rgba(0, 200, 81, 0.5) !important; 
+    }
+
+    /* 📲 未讀 (黃色 - 字維持深色才看得到) */
+    .tab-unread.active { 
+        background: #ffbb33 !important; 
+        color: #5c3a00 !important; /* 特例：黃底配深咖啡字 */
+        box-shadow: 0 4px 15px rgba(255, 187, 51, 0.6) !important; 
+    }
+
+    /* 👀 已讀 (紅色) */
+    .tab-read.active { 
+        background: #ff4444 !important; 
+        box-shadow: 0 4px 15px rgba(255, 68, 68, 0.5) !important; 
+    }
+
+    /* 📵 沒Line (藍色) */
+    .tab-noline.active { 
+        background: #33b5e5 !important; 
+        box-shadow: 0 4px 15px rgba(51, 181, 229, 0.5) !important; 
+    }
+
+    /* 🚀 已派單 (紫色) */
+    .tab-dispatched.active { 
+        background: #9c27b0 !important; 
+        box-shadow: 0 4px 15px rgba(156, 39, 176, 0.5) !important; 
+    }
+
+    /* 💪 自開件 (湖水綠) */
+    .tab-self.active { 
+        background: #00897b !important; 
+        box-shadow: 0 4px 15px rgba(0, 137, 123, 0.5) !important; 
+    }
+
+    /* 💀 無效 (灰色) */
+    .tab-invalid.active { 
+        background: #6c757d !important; 
+        box-shadow: 0 4px 15px rgba(108, 117, 125, 0.5) !important; 
+    }
+    
+    /* --- 🌟 修正：按鈕被點擊後，數字消失的問題 --- */
+    /* 強制所有「被選中 (active)」的按鈕，數字一律變為「白底黑字」 */
+    .tab-btn.active .count {
+        background-color: #ffffff !important;  /* 數字背景改純白 */
+        color: #000000 !important;             /* 數字文字改純黑 */
+        opacity: 1 !important;                 /* 不透明 */
+        display: inline-block !important;      /* 確保顯示 */
+        box-shadow: 0 1px 3px rgba(0,0,0,0.3) !important; /* 加點陰影更清楚 */
+    }
+
   </style>
 </head>
 <body>
 
+  <div id="loadingOverlay"><div class="spinner"></div><div class="loading-text">資料讀取中...</div></div>
+
   <div id="hud">
-      <span>⏳ 聊完記得回來更新進度！</span>
-      <button style="background:none; color:white; border:1px solid white; padding:4px 10px; border-radius:10px;" onclick="closeHUD()">關閉</button>
+      <div class="hud-left">
+          <span class="hud-icon">💡</span>
+          <span id="hudText">聊完記得回來更新進度！</span>
+      </div>
+      <div>
+          <button class="hud-btn" id="hudActionBtn" onclick="handleHudClick()">立刻更新</button>
+          <span style="font-size:18px; cursor:pointer; color:rgba(255,255,255,0.7); margin-left:10px;" onclick="closeHUD()">✕</span>
+      </div>
   </div>
 
-  <div style="text-align:center; padding-top:100px;">
-    <button onclick="openLineModal('愛洛雅時尚美學', 'love_aloya', '0912345678', '預約系統與薪資計算', '台中')" style="padding:15px 30px; border-radius:12px; background:#00C851; color:white; border:none; font-weight:bold; cursor:pointer;">
-        🚀 啟動導引介面
-    </button>
+  <div class="header-sticky">
+    <div class="top-row-container">
+        <input type="text" class="main-search-input" id="searchInput" placeholder="🔍 搜尋..." oninput="render()">
+        <div class="tool-group">
+            <div class="tool-btn-small" id="chartToggleBtn" onclick="togglePanel('chartPanel')"><span>📊</span></div>
+            <div class="tool-btn-small" id="sortToggleBtn" onclick="toggleSort()"><span>⇅</span></div>
+            <div class="tool-btn-small" onclick="loadData()"><span>🔄</span></div>
+        </div>
+    </div>
+    <div class="tabs-sticky-container">
+        <div class="status-tabs no-scrollbar" id="statusTabs">
+            <button class="tab-btn tab-all" onclick="setTab('all')"><span>📂</span>全部<div class="count" id="cnt-all">0</div></button>
+            <button class="tab-btn tab-new active" onclick="setTab('new')"><span>🆕</span>新單<div class="count" id="cnt-new">0</div></button>
+            <button class="tab-btn tab-unread" onclick="setTab('unread')"><span>📲</span>未讀<div class="count" id="cnt-unread">0</div></button>
+            <button class="tab-btn tab-read" onclick="setTab('read')"><span>👀</span>已讀<div class="count" id="cnt-read">0</div></button>
+            <button class="tab-btn tab-noline" onclick="setTab('noline')"><span>📵</span>沒Line<div class="count" id="cnt-noline">0</div></button>
+            <button class="tab-btn tab-dispatched" onclick="setTab('dispatched')"><span>🚀</span>已派單<div class="count" id="cnt-dispatched">0</div></button>
+            <button class="tab-btn tab-self" onclick="setTab('self')"><span>💪</span>自開件<div class="count" id="cnt-self">0</div></button>
+            <button class="tab-btn tab-invalid" onclick="setTab('invalid')"><span>💀</span>無效<div class="count" id="cnt-invalid">0</div></button>
+        </div>
+        <div class="filter-trigger-row">
+            <button class="filter-toggle-btn" id="filterToggleBtn" onclick="togglePanel('filterPanel')"><span style="font-size:16px;">🌪️</span> 篩選條件</button>
+        </div>
+        <div class="filter-hint-row" id="filterHintRow"></div>
+        <div id="salesFilterBar" class="no-scrollbar"></div>
+    </div>
   </div>
 
-  <div class="bottom-sheet" id="lineModal">
+  <div class="expand-area">
+      <div id="filterPanel" class="hidden-panel">
+          <button class="date-trigger-btn" onclick="openDateSheet()"><div>📅 日期區間</div><span id="dateDisplay">全部日期</span></button>
+          <div class="filter-section-title">📢 來源 (可複選)</div><div class="chip-container no-scrollbar" id="sourceChips"></div>
+          <div class="filter-section-title">🏙️ 地區 (可複選)</div><div class="chip-container no-scrollbar" id="areaChips"></div>
+          <div class="filter-section-title">🏭 產業 (可複選)</div><div class="chip-container no-scrollbar" id="industryChips"></div>
+          <div style="text-align:center;"><button class="btn-reset-full" onclick="resetAllFilters()">🗑️ 清除所有條件</button></div>
+      </div>
+      
+      <div id="chartPanel" class="hidden-panel">
+         <div class="chart-header-title">📈 營運數據報表</div>
+         <div class="insight-row">
+             <div class="insight-item"><div class="insight-val" id="val-conversion">0%</div><div class="insight-label">🚀 派單轉化率</div></div>
+             <div class="insight-item"><div class="insight-val" id="val-junk">0%</div><div class="insight-label">🗑️ 垃圾單率</div></div>
+         </div>
+         <div class="chart-tabs no-scrollbar">
+           <button class="chart-tab-btn active" onclick="switchChart('status')">🏷️ 狀態</button>
+           <button class="chart-tab-btn" onclick="switchChart('sales')">🏆 排行</button>
+           <button class="chart-tab-btn" onclick="switchChart('date')">📅 走勢</button>
+           <button class="chart-tab-btn" onclick="switchChart('source')">📢 來源</button>
+         </div>
+         <div class="chart-wrapper active" id="chart-status"><canvas id="canvas-status"></canvas></div>
+         <div class="chart-wrapper" id="chart-sales"><canvas id="canvas-sales"></canvas></div>
+         <div class="chart-wrapper" id="chart-date">
+             <div class="time-toggles-container"><div class="time-toggles"><button class="time-btn" onclick="setDateGrain('month', this)">月</button><button class="time-btn" onclick="setDateGrain('week', this)">週</button><button class="time-btn active" onclick="setDateGrain('day', this)">日</button></div></div>
+             <canvas id="canvas-date"></canvas>
+         </div>
+         <div class="chart-wrapper" id="chart-source"><canvas id="canvas-source"></canvas></div>
+         <div class="chart-wrapper" id="chart-area"><canvas id="canvas-area"></canvas></div>
+      </div>
+  </div>
+
+  <div class="list-container"><div id="storeList"></div></div>
+  <a href="https://liff.line.me/YOUR_BACKEND_LIFF_ID" class="fab-switch">🎯 前往後段 <i>→</i></a>
+  <div id="toast">已複製店家資料！</div>
+
+  <div class="modal-overlay" id="updateModalOverlay" onclick="closeUpdateModal()"></div>
+  <div class="bottom-sheet" id="updateModal">
+      <div class="sheet-header"><span id="updateModalTitle">更新進度</span> <button class="sheet-close" onclick="closeUpdateModal()">✕</button></div>
+      
+      <div class="filter-section-title" style="font-size:14px; color:#333; margin-top:0;">📌 這張單還有救嗎？</div>
+      <div class="status-group-grid">
+          <div class="status-btn-big contact" onclick="selectStatus(this, '聯絡中')">📞 聯絡中</div>
+          <div class="status-btn-big reject" onclick="selectStatus(this, '拒絕')">🚫 拒絕 / 無效</div>
+      </div>
+
+      <div class="toggle-row">
+          <div class="toggle-item tog-L" id="tog-L" onclick="toggleStatus('L')"><div class="toggle-icon">💬</div><div class="toggle-label">加Line</div></div>
+          <div class="toggle-item tog-M" id="tog-M" onclick="toggleStatus('M')"><div class="toggle-icon">👀</div><div class="toggle-label">已讀</div></div>
+          <div class="toggle-item tog-N" id="tog-N" onclick="toggleStatus('N')"><div class="toggle-icon">📞</div><div class="toggle-label">撥電話</div></div>
+          <div class="toggle-item tog-O" id="tog-O" onclick="toggleStatus('O')"><div class="toggle-icon">🗣️</div><div class="toggle-label">撥通</div></div>
+          <div class="toggle-item tog-Q" id="tog-Q" onclick="toggleStatus('Q')"><div class="toggle-icon">✉️</div><div class="toggle-label">Email</div></div>
+      </div>
+
+      <div class="filter-section-title">快速紀錄 (記憶按鈕)</div>
+      <div class="update-chip-container">
+          <div class="update-chip line-chip" onclick="insertNote('line')">💬 傳Line時間 <span id="lbl-line-count">(0)</span></div>
+          <div class="update-chip call-chip" onclick="insertNote('call')">📞 撥打時間 <span id="lbl-call-count">(0)</span></div>
+          <div class="update-chip" onclick="insertNote('無人接聽')">無人接聽</div>
+          <div class="update-chip" onclick="insertNote('忙碌中')">忙碌中</div>
+          <div class="update-chip" onclick="insertNote('請寄資料')">請寄資料</div>
+          <div class="update-chip" onclick="insertNote('已約時間')">已約時間</div>
+      </div>
+
+      <textarea id="updateNote" class="update-textarea"></textarea>
+      <button class="sheet-confirm-btn" onclick="saveUpdate()">💾 儲存更新</button>
+  </div>
+
+  <div class="modal-overlay" id="dispatchModalOverlay"></div>
+  <div class="bottom-sheet" id="dispatchModal">
+      <div class="sheet-header">🚀 準備派單 <button class="sheet-close" onclick="closeDispatchModal()">✕</button></div>
+      <div id="dispatchStep1" class="dispatch-step active">
+          <div class="store-name-large" id="dispatchStoreName"></div>
+          <button class="copy-btn-large" onclick="copyStoreAndNext()">📋 複製店名 (去建群組)</button>
+          <p style="text-align:center; color:#666; font-size:12px;">請先到 LINE 建立群組，並貼上此店名。<br>完成後回來填寫資料。</p>
+      </div>
+      <div id="dispatchStep2" class="dispatch-step">
+          <div class="filter-section-title">Step 2: 回填資料</div>
+          
+          <div style="position:relative; margin-bottom:10px;">
+              <input type="text" id="dispatchGroupId" class="input-field" placeholder="正在抓取群組 ID..." readonly style="background:#e9ecef; color:#555; font-weight:bold;">
+              <span style="position:absolute; right:12px; top:12px; font-size:12px; color:#00C851; font-weight:bold;" id="groupIdStatus">⏳ 偵測中</span>
+          </div>
+
+          <input type="text" id="dispatchLink" class="input-field" placeholder="🔗 貼上 LINE 群組連結 (選填)">
+          
+          <div class="filter-section-title">選擇業務</div>
+          <div class="sales-grid" id="salesGrid"></div>
+          <input type="text" id="dispatchNote" class="input-field" placeholder="📝 給業務的備註 (選填)">
+          <button class="sheet-confirm-btn" style="background:#9c27b0" onclick="confirmDispatch()">✅ 確認派單</button>
+          <button style="width:100%; padding:10px; background:none; border:none; color:#999; margin-top:5px;" onclick="backToStep1()">⬅️ 上一步</button>
+      </div>
+  </div>
+
+  <div class="bottom-sheet-overlay" id="dateSheetOverlay" onclick="closeDateSheet()"></div>
+  <div class="bottom-sheet" id="dateSheet">
+      <div class="sheet-header">📅 選擇日期區間 <button class="sheet-close" onclick="closeDateSheet()">✕</button></div>
+      <div class="filter-section-title" style="margin-bottom:8px;">⚡ 快速選擇</div>
+      <div class="quick-date-grid-row1">
+          <div class="quick-btn" onclick="setQuickDate('thisMonth')">本月</div>
+          <div class="quick-btn" onclick="setQuickDate('lastMonth')">上個月</div>
+          <div class="quick-btn" onclick="setQuickDate('thisWeek')">本週</div>
+          <div class="quick-btn" onclick="setQuickDate('lastWeek')">上週</div>
+      </div>
+      <div class="quick-date-grid-row2" id="recentMonthsContainer"></div>
+      <div class="date-range-inputs">
+          <div class="date-input-group"><label>開始日期</label><input type="date" id="dateStart" class="date-native-input" onchange="validateDateRange()"></div>
+          <div style="padding-top:20px; color:#aaa;">➝</div>
+          <div class="date-input-group"><label>結束日期</label><input type="date" id="dateEnd" class="date-native-input" onchange="validateDateRange()"></div>
+      </div>
+      <button class="sheet-confirm-btn" onclick="applyDateFilter()">確認篩選</button>
+      <button style="width:100%; padding:12px; background:none; border:none; color:#666; margin-top:5px;" onclick="clearDateFilter()">清除日期條件</button>
+  </div>
+
+  <div class="bottom-sheet" id="lineModal" style="padding:0; overflow:hidden;">
       <div class="sheet-header-box">
           <button class="sheet-close-btn" onclick="closeLineModal()">✕</button>
           <p class="current-store-title">🏠 <span id="displayStoreName">--</span></p>
@@ -134,71 +555,542 @@
       </div>
   </div>
 
+
 <script>
-    let cur = { name: "", req: "", area: "", staff: "Kelvin", tab: "first" };
+  const FORM_LIFF_ID = "2009117067-6y3yHx9o"; 
+  const GAS_URL = "https://script.google.com/macros/s/AKfycbzIKHpWcWj0bOhaQsx-OynY5FVVorMJvTNON5PBOywj1q-Nd5EylLCSl-zTlFW9Rb5U/exec";
 
-    function openLineModal(name, lid, ph, req, area) {
-        for(let i=1; i<=4; i++) { document.getElementById(`step${i}`).classList.remove('done'); }
-        document.getElementById('displayStoreName').innerText = name;
-        cur = { name, req, area, staff: "Kelvin", tab: "first" };
-        const idVal = lid !== "--" ? lid : ph;
-        document.getElementById('lineInfoText').innerText = idVal;
-        document.getElementById('lineJumpBtn').href = `https://line.me/ti/p/~${idVal}`;
-        document.getElementById('tagUser').innerText = `👤 ${name}-`;
-        document.getElementById('tagTeacher').innerText = `🧑‍🏫 ${name}-`;
-        setS('first');
-        document.getElementById('lineModal').classList.add('show');
+// 🌟 1. 新增計時器變數 (給自動偵測用)
+  let pollingTimer = null; 
+
+  // 🌟 2. 新增安全函式 (防止店名有單引號導致畫面空白崩潰)
+  function safe(str) {
+      return (str || "").replace(/'/g, "\\'").replace(/"/g, '&quot;');
+  }
+
+  let allData = [];
+  let currentTab = 'new';
+  let currentSalesFilter = 'all'; 
+  let currentDateGrain = 'day'; 
+  let sortDesc = true; 
+  let clickCounts = JSON.parse(localStorage.getItem('ezPretty_ClickCounts')) || {};
+  let interactionCounts = JSON.parse(localStorage.getItem('ezPretty_InteractionCounts')) || {}; 
+  let tempInteractionCounts = {}; 
+
+  const charts = { status: null, sales: null, date: null, source: null, area: null };
+  let filterState = { dateStart: null, dateEnd: null, source: [], area: [], industry: [] };
+  
+  let currentUpdateKey = null;
+  let currentChecks = { L:false, M:false, N:false, O:false, Q:false };
+  let currentProgress = "聯絡中"; 
+  
+  let currentDispatchKey = null;
+  let currentDispatchStore = "";
+  let selectedSales = null;
+  let currentHudMode = 'update';
+
+  const SALES_LIST = ['WT', 'Kelvin', 'David']; 
+
+  // 1. 讀取資料 (修復 Loading 卡住問題)
+  async function loadData() {
+    document.getElementById('loadingOverlay').style.opacity = '1';
+    document.getElementById('loadingOverlay').style.display = 'flex';
+    try {
+      const response = await fetch(GAS_URL + "?action=getManagementList&t=" + new Date().getTime());
+      const rawData = await response.json();
+      allData = rawData.map(processItem); 
+      checkDuplicates(allData); 
+      initFilterOptions(); 
+      calculateInsights(allData);
+      doSort(); 
+      render(); 
+    } catch (e) { console.error(e); }
+    
+    // 延遲關閉 Loading 並繪製圖表
+    setTimeout(() => {
+        document.getElementById('loadingOverlay').style.opacity = '0';
+        setTimeout(() => {
+            document.getElementById('loadingOverlay').style.display = 'none';
+            try { initAllCharts(); } catch(e) { console.log('Chart load deferred'); }
+        }, 300);
+    }, 100);
+  }
+
+  function parseDate(dateStr) {
+      if(!dateStr) return null;
+      let clean = dateStr.toString().split(" ")[0].replace(/[^\d\/\-\.]/g, ''); 
+      let d = new Date(clean);
+      if(isNaN(d.getTime())) return null;
+      return d;
+  }
+
+  function processItem(i) {
+    const L = !!i.isL; const M = !!i.isM; const N = !!i.isN; const O = !!i.isO; const Q = !!i.isQ;
+    const rawR = String(i.progress || ""); 
+    const parts = rawR.split(/[|｜]/); 
+    const lastUpdateStr = parts[0] ? parts[0].trim() : "";
+    const statusStr = parts[1] ? parts[1].trim() : (parts[0] || ""); 
+
+    const isReject = rawR.includes("拒絕");
+    const isInvalid = (String(i.detailLabel)||"").includes('無效') || i.status === '無效單' || isReject;
+    
+    let isIdle = false;
+    if (lastUpdateStr && !isInvalid) {
+        const lastDate = parseDate(lastUpdateStr);
+        if (lastDate) {
+            const diffDays = (new Date() - lastDate) / (1000 * 60 * 60 * 24);
+            if (diffDays > 3) isIdle = true;
+        }
     }
+    i.isIdle = isIdle;
+    i.progressStatus = statusStr;
 
-    function markDone(step) { document.getElementById(`step${step}`).classList.add('done'); }
+    const sales = String(i.sales||"").trim();
+    const hasSales = sales !== "";
+    const isSelf = i.source === "業務自開件";
+    
+    let category = 'new';
+    let actionText = '未定義';
+    if (hasSales) { category = isSelf ? 'self' : 'dispatched'; actionText = isSelf ? `💪 業務自開：${sales}` : `🚀 已派單給：${sales}`; } 
+    else if (isInvalid) { category = 'invalid'; actionText = '💀 此單已標記無效'; } 
+    else if (!L && !M && !N && !O && !Q) { category = 'new'; actionText = '🆕 新單請聯絡！'; } 
+    else if (L && !M) { category = 'unread'; actionText = !N ? '📞 請一定要打電話！' : (N && !O ? '🔄 未接！繼續打！' : (N && O && !Q ? '🚨 裝死不看！' : '📧 已寄信！繼續追殺！')); } 
+    else if (L && M) { category = 'read'; actionText = !N && !O ? '📞 已讀沒回！請打電話！' : (N && !O ? '🔄 已讀未接！繼續打！' : '🔥 已讀已通！該派單了！'); } 
+    else { category = 'noline'; actionText = N && !O ? '🔄 未通！繼續打！' : (N && O ? '⚠️ 有通沒加Line！' : '❓ 狀態異常'); }
+    i.category = category; i.actionText = actionText;
+    return i;
+  }
 
-    function copyNick(type) {
-        const prefix = type === 'user' ? '👤' : '🧑‍🏫';
-        navigator.clipboard.writeText(`${prefix}${cur.name}-`);
-        const id = type === 'user' ? 'tagUser' : 'tagTeacher';
-        const old = document.getElementById(id).innerText;
-        document.getElementById(id).innerText = "✅ 已複製";
-        setTimeout(() => { document.getElementById(id).innerText = old; }, 1200);
+  function calculateInsights(data) {
+      const companyTotal = data.filter(i => i.source !== "業務自開件").length;
+      const companyDispatch = data.filter(i => i.category === 'dispatched' && i.source !== "業務自開件").length;
+      const companyJunk = data.filter(i => i.category === 'invalid' && i.source !== "業務自開件").length;
+
+      const convRate = companyTotal > 0 ? Math.round((companyDispatch / companyTotal) * 100) : 0;
+      const junkRate = companyTotal > 0 ? Math.round((companyJunk / companyTotal) * 100) : 0;
+
+      document.getElementById('val-conversion').innerText = convRate + "%";
+      document.getElementById('val-junk').innerText = junkRate + "%";
+      document.getElementById('val-conversion').className = "insight-val " + (convRate >= 20 ? "good" : "");
+      document.getElementById('val-junk').className = "insight-val " + (junkRate > 50 ? "bad" : "");
+  }
+
+  function render() {
+    updateFilterHint();
+    const salesBar = document.getElementById('salesFilterBar');
+    if (currentTab === 'dispatched' || currentTab === 'self') {
+        salesBar.style.display = 'block';
+        salesBar.className = 'sales-filter-dispatched no-scrollbar';
+        if(currentTab === 'self') salesBar.className = 'sales-filter-self no-scrollbar';
+        updateSalesFilterUI(allData); 
+    } else {
+        salesBar.style.display = 'none';
+        currentSalesFilter = 'all'; 
     }
+    const list = document.getElementById('storeList');
+    const search = document.getElementById('searchInput').value.trim().toLowerCase();
+    const commonFiltered = allData.filter(i => {
+      const content = ((i.source||"")+(i.industry||"")+(i.area||"")+(i.name||"")+(i.boss||"")+(i.lineId||"")+(i.phone||"")+(i.email||"")+(i.req||"")+(i.key||"")+(i.sales||"")).toLowerCase();
+      if(search !== "" && !content.includes(search)) return false;
+      if (filterState.dateStart || filterState.dateEnd) {
+          const d = parseDate(i.date);
+          if (!d) return false; 
+          if (filterState.dateStart && d < filterState.dateStart) return false;
+          if (filterState.dateEnd && d > filterState.dateEnd) return false;
+      }
+      if (filterState.source.length > 0 && !filterState.source.includes(i.source)) return false;
+      if (filterState.area.length > 0 && !filterState.area.includes(i.area)) return false;
+      if (filterState.industry.length > 0 && !filterState.industry.includes(i.industry)) return false;
+      return true;
+    });
+    calculateCountsAndCharts(commonFiltered);
+    const finalFiltered = commonFiltered.filter(i => {
+        const matchTab = (currentTab === 'all') ? true : (i.category === currentTab);
+        const matchSales = (currentSalesFilter === 'all') ? true : (i.sales === currentSalesFilter);
+        return matchTab && matchSales;
+    });
+    if (finalFiltered.length === 0) { list.innerHTML = `<div style="text-align:center; padding:50px; color:#999;">此分類無符合名單</div>`; return; }
+    
+    list.innerHTML = finalFiltered.map(item => {
+      const style = getSourceStyle(item.source);
+      let dupAlert = '';
+      if (item.isDup && item.dupInfo) {
+          const reasons = item.dupInfo.map(info => `<div>🚨 重複：${info.reason} (${info.targets.join(', ')})</div>`).join('');
+          dupAlert = `<div class="dup-alert">${reasons}</div>`;
+      }
+      const localCount = clickCounts[item.key] || 0;
+      const badgeHtml = localCount > 0 ? `<span class="update-badge">${localCount}</span>` : '';
+      
+      let lineUrl = item.lineId ? `https://line.me/ti/p/~${item.lineId}` : (item.phone ? `https://line.me/ti/p/~${item.phone}` : "#");
+      // 🌟 這裡順便修復了你的地圖連結 (補回 $)
+      const mapUrl = `http://googleusercontent.com/maps.google.com/maps?q=${encodeURIComponent(item.area + item.name)}`;
+      
+      const cleanRawP = (item.rawP || "").replace(/'/g, "\\'").replace(/\n/g, "\\n");
+      const currentProgress = item.progressStatus || ""; 
 
-    function setS(type) {
-        cur.tab = type;
-        document.getElementById('staffSelector').style.display = (type === 'success') ? 'flex' : 'none';
-        const btns = document.querySelectorAll('.tab-btn');
-        btns.forEach((b, i) => b.classList.toggle('active', (i===0 && type==='first') || (i===1 && type==='follow') || (i===2 && type==='success')));
-        gen();
-    }
+      const idleClass = item.isIdle ? "idle-warning" : "";
+      const idleTag = item.isIdle ? `<div class="idle-tag">⏳ 久未聯絡</div>` : "";
+      
+      let badgeClass = "good";
+      if(item.progress && item.progress.includes("拒絕")) badgeClass = "bad";
 
-    function selectS(s) {
-        cur.staff = s;
-        document.getElementById('chipK').classList.toggle('active', s === 'Kelvin');
-        document.getElementById('chipD').classList.toggle('active', s === 'David');
-        gen();
-    }
+      const wStatus = item.status || "";
+      let wBadgeClass = "w-gray";
+      if(wStatus.includes("已成交") || wStatus.includes("意願高")) wBadgeClass = "w-red";
+      else if(wStatus.includes("已約展") || wStatus.includes("已拉群")) wBadgeClass = "w-green";
+      else if(wStatus.includes("展示完")) wBadgeClass = "w-orange";
+      
+      const wBadgeHtml = wStatus ? `<span class="w-status-badge ${wBadgeClass}">${wStatus}</span>` : "";
+      
+      const safeReq = (item.req || "").replace(/'/g, "\\'").replace(/"/g, '"').replace(/\n/g, ' ');
 
-    function gen() {
-        const { name, req, area, staff, tab } = cur;
-        const r = req || "相關";
-        const a = area || "";
-        const textarea = document.getElementById('lineScriptArea');
-        if (tab === 'first') textarea.value = `哈囉 老闆 您好！您這邊是 ${name} 店家嗎～\n我是 ezPretty 預約科技的業務經理 暐庭 😊\n剛才有收到您的諮詢，您想了解我們預約pos系統的【${r}】的功能嗎？\n\n您看到訊息後，方便跟您通話1分鐘嗎？`;
-        else if (tab === 'follow') textarea.value = `哈囉老闆，擔心您近日忙碌漏掉訊息，所以再跟您打個招呼 😊\n\n近期有收到您的諮詢，您想了解我們預約pos系統的【${r}】的功能嗎？`;
-        else if (tab === 'success') textarea.value = `好的，我待會拉個群組，我請我的組員 ${staff} 和您約時間介紹系統唷！\n群組名稱是 『${a}${name} + ezPretty討論』\n\n您再留意一下群組的訊息唷～`;
-    }
+      return `
+      <div class="store-card card-${item.category} ${idleClass}">
+        ${idleTag}
+        <div class="top-right-badge"><span class="badge-source" style="background:${style.bg}">${style.label}</span><br>${parseDate(item.date)?parseDate(item.date).toLocaleDateString():'無日期'}</div>
+        <div class="store-name">
+            <span class="key-badge">#${item.key || '無'}</span>
+            <span class="industry-text" style="margin-left:5px;">🏭 ${item.industry || '一般'}</span>
+            ${item.area}${item.name} 
+            ${wBadgeHtml} <button class="btn-copy-text" onclick="copyContent('${safe(item.area + item.name)}', '店名')">📄</button>
+        </div>
+        <div class="action-alert"><i>🔔</i> ${item.actionText}</div>
+        ${dupAlert}
+        <div class="info-box">
+          <div><b>👤 負責人:</b> ${item.boss || '未填'}</div>
+          <div><b>📞 電話:</b> ${item.phone} <button class="btn-copy-text" onclick="copyContent('${safe(item.phone)}','電話')">📄</button></div>
+          <div><b>🆔 Line:</b> ${item.lineId || '--'}</div>
+          ${item.req ? `<div class="req-text">📝 需求: ${item.req}</div>` : ''}
+          ${item.sales ? `<div class="req-text" style="color:${item.category==='self'?'#00897b':'#9c27b0'};">🚀 業務: ${item.sales}</div>` : ''}
+        </div>
+        <div class="status-checks">
+          <span class="check-pill ${item.isL?'on':''}">加Line</span>
+          <span class="check-pill ${item.isM?'on':''}">已讀</span>
+          <span class="check-pill ${item.isN?'on':''}">撥電話</span>
+          <span class="check-pill ${item.isO?'on':''}">撥通</span>
+          <span class="check-pill ${item.isQ?'on':''}">Email</span>
+        </div>
+        
+        <div class="record-section">
+            <span class="record-label">
+                📝 紀錄 
+                ${currentProgress ? `<span class="status-badge ${badgeClass}" style="margin-left:6px;">${currentProgress}</span>` : ''}
+            </span>
+            <div class="record-box">${item.rawP || '無'}</div>
+        </div>
+        
+        <div class="action-grid">
+          <div class="btn-tool btn-ghost" onclick="openLineModal('${item.key}', '${safe(item.name)}', '${item.lineId||'--'}', '${safe(item.phone)}', '${safeReq}', '${safe(item.area)}')">
+            <i>💬</i>Line
+          </div>
+          <a href="tel:${item.phone}" class="btn-tool btn-ghost"><i>📞</i>電話</a>
+          <a href="mailto:${item.email}" class="btn-tool btn-ghost"><i>✉️</i>Email</a>
+          <a href="${mapUrl}" target="_blank" class="btn-tool btn-ghost"><i>🗺️</i>地圖</a>
+          <div class="btn-tool btn-orange" onclick="openUpdateModal('${item.key}', '${safe(item.name)}', ${item.isL}, ${item.isM}, ${item.isN}, ${item.isO}, ${item.isQ}, '${cleanRawP}', '${currentProgress}')">
+            <i>📝</i>更新${badgeHtml}
+          </div>
+          <div class="btn-tool btn-purple" onclick="openDispatchModal('${item.key}', '${safe(item.name)}')">
+            <i>🚀</i>派單
+          </div>
+        </div>
+      </div>
+    `}).join('');
+  }
 
-    function pureCopy() {
-        navigator.clipboard.writeText(document.getElementById('lineScriptArea').value).then(() => {
-            markDone(4);
-            document.getElementById('hud').classList.add('show');
-            const btn = document.getElementById('copyBtn');
-            btn.innerText = "✅ 話術已複製";
-            btn.classList.add('copied');
-            setTimeout(() => { btn.innerText = "📋 僅複製話術"; btn.classList.remove('copied'); }, 2500);
-        });
-    }
+  function openUpdateModal(key, name, L, M, N, O, Q, rawP, progress) {
+      currentUpdateKey = key;
+      currentChecks = { L, M, N, O, Q };
+      currentProgress = progress || "聯絡中"; 
 
-    function closeLineModal() { document.getElementById('lineModal').classList.remove('show'); }
-    function closeHUD() { document.getElementById('hud').classList.remove('show'); }
+      if(!interactionCounts[key]) interactionCounts[key] = { call:0, line:0 };
+      tempInteractionCounts = { ...interactionCounts[key] }; 
+      document.getElementById('updateModalTitle').innerText = name;
+      document.getElementById('lbl-call-count').innerText = `(${tempInteractionCounts.call})`;
+      document.getElementById('lbl-line-count').innerText = `(${tempInteractionCounts.line})`;
+      ['L','M','N','O','Q'].forEach(k => {
+          const el = document.getElementById('tog-'+k);
+          if(currentChecks[k]) el.classList.add('active');
+          else el.classList.remove('active');
+      });
+      
+      document.querySelectorAll('.status-btn-big').forEach(btn => {
+          btn.classList.remove('active');
+          if(btn.innerText.includes(currentProgress)) btn.classList.add('active');
+      });
+
+      const noteField = document.getElementById('updateNote');
+      if (rawP && rawP !== "null" && rawP !== "undefined" && rawP.trim() !== "") {
+          let content = rawP;
+          if(!content.includes("傳line紀錄")) content = "傳line紀錄（共0次）：\n" + content;
+          if(!content.includes("撥打紀錄")) content = content.replace("傳line紀錄", "撥打紀錄（共0次）：\n傳line紀錄");
+          noteField.value = rawP; 
+      } else {
+          noteField.value = "傳line紀錄（共0次）：\n撥打紀錄（共0次）：\n其他資訊：\n手動紀錄：";
+      }
+      document.getElementById('updateModalOverlay').style.display = 'block';
+      setTimeout(() => document.getElementById('updateModalOverlay').style.opacity = '1', 10);
+      document.getElementById('updateModal').classList.add('show');
+  }
+  
+  function selectStatus(el, status) {
+      document.querySelectorAll('.status-btn-big').forEach(c => c.classList.remove('active'));
+      el.classList.add('active');
+      currentProgress = status; 
+  }
+
+  function closeUpdateModal() {
+      document.getElementById('updateModal').classList.remove('show');
+      document.getElementById('updateModalOverlay').style.opacity = '0';
+      setTimeout(() => document.getElementById('updateModalOverlay').style.display = 'none', 300);
+  }
+  function toggleStatus(type) {
+      currentChecks[type] = !currentChecks[type];
+      const el = document.getElementById('tog-'+type);
+      el.classList.toggle('active');
+  }
+  function insertNote(text) {
+      const field = document.getElementById('updateNote');
+      let val = field.value;
+      const now = new Date();
+      const timeStr = `[ ${now.getMonth()+1}/${now.getDate()} ｜ ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')} ]`;
+
+      if(text === 'call') {
+          tempInteractionCounts.call++;
+          document.getElementById('lbl-call-count').innerText = `(${tempInteractionCounts.call})`;
+          if (/撥打紀錄（共\d+次）：/.test(val)) {
+              val = val.replace(/撥打紀錄（共\d+次）：/, `撥打紀錄（共${tempInteractionCounts.call}次）：`);
+          } else if (/撥打紀錄：/.test(val)) {
+              val = val.replace(/撥打紀錄：/, `撥打紀錄（共${tempInteractionCounts.call}次）：`);
+          }
+          const lines = val.split('\n');
+          const newLines = lines.map(line => {
+              if(line.startsWith("撥打紀錄")) return line + " " + timeStr + " 已撥打";
+              return line;
+          });
+          val = newLines.join('\n');
+      } else if(text === 'line') {
+          tempInteractionCounts.line++;
+          document.getElementById('lbl-line-count').innerText = `(${tempInteractionCounts.line})`;
+          if (/傳line紀錄（共\d+次）：/.test(val)) {
+              val = val.replace(/傳line紀錄（共\d+次）：/, `傳line紀錄（共${tempInteractionCounts.line}次）：`);
+          } else if (/傳line紀錄：/.test(val)) {
+              val = val.replace(/傳line紀錄：/, `傳line紀錄（共${tempInteractionCounts.line}次）：`);
+          }
+          const lines = val.split('\n');
+          const newLines = lines.map(line => {
+              if(line.startsWith("傳line紀錄")) return line + " " + timeStr + " 已傳訊";
+              return line;
+          });
+          val = newLines.join('\n');
+      } else {
+          const lines = val.split('\n');
+          const newLines = lines.map(line => {
+              if(line.startsWith("其他資訊")) return line + " [" + text + "]";
+              return line;
+          });
+          val = newLines.join('\n');
+      }
+      field.value = val;
+  }
+  function saveUpdate() {
+      const btn = document.querySelector('#updateModal .sheet-confirm-btn');
+      const originalText = btn.innerText;
+      btn.innerText = "⏳ 儲存中...";
+      btn.disabled = true;
+
+      const now = new Date();
+      const timeStamp = `${now.getFullYear()}/${now.getMonth()+1}/${now.getDate()} ${now.getHours()}:${now.getMinutes()}`;
+      const compositeR = `${timeStamp} ｜ ${currentProgress}`; 
+
+      const params = new URLSearchParams({
+          action: 'updateProgress',
+          key: currentUpdateKey,
+          progress: compositeR, 
+          note: document.getElementById('updateNote').value,
+          isL: currentChecks.L,
+          isM: currentChecks.M,
+          isN: currentChecks.N,
+          isO: currentChecks.O,
+          isQ: currentChecks.Q
+      });
+
+      fetch(GAS_URL + "?" + params.toString(), { method: "POST" })
+      .then(res => res.text())
+      .then(result => {
+          if(result.includes("Success")) {
+              alert(`✅ 更新成功！\n狀態：${currentProgress}`);
+              
+              const item = allData.find(i => i.key === currentUpdateKey);
+              if(item) {
+                  item.progressStatus = currentProgress;
+                  item.progress = compositeR; 
+                  item.isIdle = false;
+                  if (currentProgress === '拒絕') {
+                      item.category = 'invalid';
+                      item.actionText = '💀 此單已標記無效';
+                  }
+              }
+              closeUpdateModal();
+              render(); 
+          } else {
+              alert("❌ 儲存失敗，後端回傳錯誤：" + result);
+          }
+      })
+      .catch(err => {
+          alert("❌ 網路連線錯誤，請檢查網路");
+          console.error(err);
+      })
+      .finally(() => {
+          btn.innerText = originalText;
+          btn.disabled = false;
+      });
+  }
+// 🌟 啟動偵測：每 3 秒問一次 (給 Fold 7 用)
+  function startPollingId() {
+      if(pollingTimer) clearInterval(pollingTimer);
+      
+      const idField = document.getElementById('dispatchGroupId');
+      const statusLabel = document.getElementById('groupIdStatus');
+      
+      idField.value = "";
+      idField.placeholder = "等待機器人入群...";
+      statusLabel.innerText = "⏳ 偵測中";
+      statusLabel.style.color = "#888";
+
+      // 立即問一次
+      getLatestGroupIdFromGas();
+
+      // 每 3 秒問一次
+      pollingTimer = setInterval(getLatestGroupIdFromGas, 3000);
+  }
+
+  // 問 GAS 拿 ID
+  function getLatestGroupIdFromGas() {
+      const idField = document.getElementById('dispatchGroupId');
+      const statusLabel = document.getElementById('groupIdStatus');
+
+      fetch(GAS_URL + "?action=getLatestGroupId")
+      .then(res => res.json())
+      .then(res => {
+          if (res.groupId) {
+              idField.value = res.groupId;
+              statusLabel.innerText = "✅ 已自動抓取";
+              statusLabel.style.color = "#00C851"; 
+              
+              // 抓到了就停止計時
+              if(pollingTimer) {
+                  clearInterval(pollingTimer);
+                  pollingTimer = null;
+              }
+          } else {
+              // 沒抓到，繼續等
+              if(statusLabel.innerText.includes("偵測中")) {
+                  statusLabel.innerText = statusLabel.innerText.endsWith("...") ? "⏳ 偵測中" : statusLabel.innerText + ".";
+              }
+          }
+      })
+      .catch(e => console.error("Polling Error:", e));
+  }
+
+  // 打開派單視窗
+  function openDispatchModal(key, name) {
+      currentDispatchKey = key;
+      currentDispatchStore = name;
+      const grid = document.getElementById('salesGrid');
+      grid.innerHTML = SALES_LIST.map(s => `<div class="sales-tile" onclick="selectSales(this, '${s}')">${s} <div class="sales-check">✅</div></div>`).join('');
+      selectedSales = null;
+      document.getElementById('dispatchStoreName').innerText = name;
+      document.getElementById('dispatchLink').value = '';
+      document.getElementById('dispatchNote').value = '';
+      
+      document.getElementById('dispatchStep1').classList.add('active');
+      document.getElementById('dispatchStep2').classList.remove('active');
+      
+      document.getElementById('dispatchModalOverlay').style.display = 'block';
+      setTimeout(() => document.getElementById('dispatchModalOverlay').style.opacity = '1', 10);
+      document.getElementById('dispatchModal').classList.add('show');
+  }
+
+  // 關閉視窗 (務必停止偵測)
+  function closeDispatchModal() {
+      if(pollingTimer) clearInterval(pollingTimer);
+      pollingTimer = null;
+      document.getElementById('dispatchModal').classList.remove('show');
+      document.getElementById('dispatchModalOverlay').style.opacity = '0';
+      setTimeout(() => document.getElementById('dispatchModalOverlay').style.display = 'none', 300);
+  }
+
+  // 按下複製後 -> 啟動偵測
+  function copyStoreAndNext() {
+      navigator.clipboard.writeText(currentDispatchStore + " + ezPretty討論").then(() => {
+          document.getElementById('dispatchStep1').classList.remove('active');
+          document.getElementById('dispatchStep2').classList.add('active');
+          showHUD(currentDispatchStore);
+          
+          // 🚀 啟動自動偵測
+          startPollingId(); 
+      });
+  }
+
+  function backToStep1() {
+      if(pollingTimer) clearInterval(pollingTimer);
+      document.getElementById('dispatchStep2').classList.remove('active');
+      document.getElementById('dispatchStep1').classList.add('active');
+  }
+
+  function selectSales(el, name) {
+      document.querySelectorAll('.sales-tile').forEach(d => d.classList.remove('selected'));
+      el.classList.add('selected');
+      selectedSales = name;
+  }
+
+  function confirmDispatch() {
+      const link = document.getElementById('dispatchLink').value;
+      const note = document.getElementById('dispatchNote').value;
+      const rawGroupId = document.getElementById('dispatchGroupId').value;
+      const finalGroupId = (rawGroupId && rawGroupId.trim() !== "") ? rawGroupId : "無";
+
+      if(!link) { alert("請貼上群組連結！"); return; }
+      if(!selectedSales) { alert("請選擇業務！"); return; }
+      
+      const btn = document.querySelector('#dispatchStep2 .sheet-confirm-btn');
+      const orgText = btn.innerText;
+      btn.innerText = "⏳ 派單中...";
+      btn.disabled = true;
+
+      const params = new URLSearchParams({
+          action: 'dispatch', 
+          key: currentDispatchKey,
+          staff: selectedSales,
+          storeName: currentDispatchStore,
+          link: link,
+          req: note,
+          groupId: finalGroupId
+      });
+
+      fetch(GAS_URL + "?" + params.toString(), { method: "POST" })
+      .then(res => res.text())
+      .then(result => {
+          if(result.includes("Success")) {
+              alert(`✅ 派單成功！\n業務：${selectedSales}\nID：${finalGroupId}`);
+              closeDispatchModal();
+              closeHUD();
+              loadData(); 
+          } else {
+              alert("❌ 失敗：" + result);
+          }
+      })
+      .catch(err => alert("❌ 連線錯誤"))
+      .finally(() => {
+          btn.innerText = orgText;
+          btn.disabled = false;
+      });
+  }
+  
+
+  // 讓網頁載入時單純做資料讀取就好
+  window.onload = loadData;
+
 </script>
 </body>
 </html>
