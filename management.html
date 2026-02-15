@@ -266,7 +266,8 @@
     .line-textarea { width: 100%; height: 130px; border: 1.5px solid #eee; border-radius: 15px; padding: 15px; font-size: 15px; margin-bottom: 15px; box-sizing: border-box; background: #fafafa; resize: none; }
     .btn-final-copy { width: 100%; padding: 18px; border-radius: 15px; border: none; background: #00b894; color: white; font-size: 17px; font-weight: bold; cursor: pointer; box-sizing: border-box; }
     .btn-final-copy.copied { background: #2f3640; }
-//* --- 🌟 最終版：按鈕選中時，變成對應顏色 + 同色系發光 --- */
+
+    /* --- 🌟 最終版：按鈕選中時，變成對應顏色 + 同色系發光 --- */
 
     /* 1. 基礎動效 (放大、上浮、白框) */
     .tab-btn.active {
@@ -325,6 +326,16 @@
     .tab-invalid.active { 
         background: #6c757d !important; 
         box-shadow: 0 4px 15px rgba(108, 117, 125, 0.5) !important; 
+    }
+    
+    /* --- 🌟 修正：按鈕被點擊後，數字消失的問題 --- */
+    /* 強制所有「被選中 (active)」的按鈕，數字一律變為「白底黑字」 */
+    .tab-btn.active .count {
+        background-color: #ffffff !important;  /* 數字背景改純白 */
+        color: #000000 !important;             /* 數字文字改純黑 */
+        opacity: 1 !important;                 /* 不透明 */
+        display: inline-block !important;      /* 確保顯示 */
+        box-shadow: 0 1px 3px rgba(0,0,0,0.3) !important; /* 加點陰影更清楚 */
     }
 
   </style>
@@ -450,7 +461,14 @@
       </div>
       <div id="dispatchStep2" class="dispatch-step">
           <div class="filter-section-title">Step 2: 回填資料</div>
-          <input type="text" id="dispatchLink" class="input-field" placeholder="🔗 貼上 LINE 群組連結 (必填)">
+          
+          <div style="position:relative; margin-bottom:10px;">
+              <input type="text" id="dispatchGroupId" class="input-field" placeholder="正在抓取群組 ID..." readonly style="background:#e9ecef; color:#555; font-weight:bold;">
+              <span style="position:absolute; right:12px; top:12px; font-size:12px; color:#00C851; font-weight:bold;" id="groupIdStatus">⏳ 偵測中</span>
+          </div>
+
+          <input type="text" id="dispatchLink" class="input-field" placeholder="🔗 貼上 LINE 群組連結 (選填)">
+          
           <div class="filter-section-title">選擇業務</div>
           <div class="sales-grid" id="salesGrid"></div>
           <input type="text" id="dispatchNote" class="input-field" placeholder="📝 給業務的備註 (選填)">
@@ -728,7 +746,7 @@
       const wBadgeHtml = wStatus ? `<span class="w-status-badge ${wBadgeClass}">${wStatus}</span>` : "";
       
       // 處理 safeReq 避免 onclick 報錯
-      const safeReq = (item.req || "").replace(/'/g, "\\'").replace(/"/g, '&quot;').replace(/\n/g, ' ');
+      const safeReq = (item.req || "").replace(/'/g, "\\'").replace(/"/g, '"').replace(/\n/g, ' ');
 
       return `
       <div class="store-card card-${item.category} ${idleClass}">
@@ -969,10 +987,19 @@
       selectedSales = name;
   }
   
+  // 🌟 修改版：確認派單 (配合您的 GAS 邏輯)
   function confirmDispatch() {
       const link = document.getElementById('dispatchLink').value;
       const note = document.getElementById('dispatchNote').value;
       
+      // 1. 抓取欄位中的 ID
+      let rawGroupId = document.getElementById('dispatchGroupId').value;
+      
+      // 🌟 關鍵邏輯：如果是空的，就強制變成 "無"
+      // 這樣 GAS 的 if (data.groupId) 才會成立，並寫入 AA 欄
+      const finalGroupId = (rawGroupId && rawGroupId.trim() !== "") ? rawGroupId : "無";
+
+      // 驗證必填
       if(!link) { alert("請貼上群組連結！"); return; }
       if(!selectedSales) { alert("請選擇業務！"); return; }
       
@@ -981,23 +1008,27 @@
       btn.innerText = "⏳ 派單處理中...";
       btn.disabled = true;
 
+      // 2. 準備傳送給 GAS 的參數
       const params = new URLSearchParams({
           action: 'dispatch', 
           key: currentDispatchKey,
           staff: selectedSales,
           storeName: currentDispatchStore,
           link: link,
-          req: note
+          req: note,
+          groupId: finalGroupId // 傳送處理過的 ID (或是 "無")
       });
 
+      // 3. 發送請求
       fetch(GAS_URL + "?" + params.toString(), { method: "POST" })
       .then(res => res.text())
       .then(result => {
           if(result.includes("Success")) {
-              alert(`✅ 派單成功！\n業務：${selectedSales}\n系統已發送通知。`);
+              alert(`✅ 派單成功！\n業務：${selectedSales}\n綁定ID：${finalGroupId}`);
               closeDispatchModal();
               closeHUD();
               
+              // 本地更新狀態
               const item = allData.find(i => i.key === currentDispatchKey);
               if(item) { 
                   item.sales = selectedSales; 
@@ -1324,7 +1355,39 @@
       closeHUD();
   }
 
-  window.onload = loadData;
+  // 🌟 新增：LIFF 初始化與自動抓取 Group ID
+  async function initLiffAndGetContext() {
+      try {
+          await liff.init({ liffId: FORM_LIFF_ID });
+          if (liff.isLoggedIn()) {
+              const context = liff.getContext();
+              const idField = document.getElementById('dispatchGroupId');
+              const statusLabel = document.getElementById('groupIdStatus');
+              
+              if (context && context.groupId) {
+                  // 成功抓到 ID
+                  idField.value = context.groupId;
+                  statusLabel.innerText = "✅ 已自動抓取";
+              } else {
+                  // 不在群組內 (例如在外部瀏覽器或一對一聊天)
+                  idField.value = ""; 
+                  idField.placeholder = "無法自動抓取 (請在群組內開啟)";
+                  statusLabel.innerText = "⚠️ 未偵測到";
+              }
+          }
+      } catch (err) {
+          console.error('LIFF Init Error:', err);
+      }
+  }
+
+  // 記得把 loadData 改成也會呼叫 initLiffAndGetContext
+  const originalOnLoad = window.onload;
+  window.onload = function() {
+      if(originalOnLoad) originalOnLoad();
+      loadData();             // 1. 載入列表資料
+      initLiffAndGetContext(); // 2. 啟動 LIFF 偵測群組 ID
+  };
+
 </script>
 </body>
 </html>
