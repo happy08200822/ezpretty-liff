@@ -3,211 +3,243 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Line 話術快手 (點擊即跳轉版)</title>
+  <title>ezPretty 開發導引台 (終極熄燈版)</title>
   <style>
-    /* --- 基礎背景 --- */
-    body { font-family: -apple-system, "Noto Sans TC", sans-serif; background: #f0f2f5; padding: 20px; margin: 0; -webkit-tap-highlight-color: transparent; }
-    
-    /* HUD 提醒 (橘色漸層) */
+    /* --- 1. 基礎與 HUD --- */
+    body { font-family: -apple-system, "Noto Sans TC", sans-serif; background: #f0f2f5; padding: 15px; margin: 0; }
     #hud { 
         position: fixed; top: 15px; left: 50%; transform: translateX(-50%) translateY(-150%);
-        width: 90%; max-width: 400px;
-        background: linear-gradient(135deg, #FF8008 0%, #FFC837 100%);
-        color: white; border-radius: 50px; padding: 10px 22px;
-        display: flex; align-items: center; justify-content: space-between;
-        z-index: 11000; box-shadow: 0 10px 25px rgba(255, 128, 8, 0.3);
-        font-size: 14px; font-weight: bold;
-        transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        width: 90%; max-width: 400px; background: linear-gradient(135deg, #FF8008 0%, #FFC837 100%);
+        color: white; border-radius: 50px; padding: 8px 15px; display: flex; align-items: center; justify-content: space-between;
+        z-index: 11000; box-shadow: 0 10px 25px rgba(255, 128, 8, 0.3); transition: transform 0.5s;
     }
     #hud.show { transform: translateX(-50%) translateY(0); }
-    .hud-btn { background: white; color: #FF8008; border: none; padding: 6px 16px; border-radius: 20px; font-size: 12px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
 
-    /* 模擬卡片 */
-    .store-card { background: white; border-radius: 20px; padding: 18px; margin-bottom: 16px; border-top: 6px solid #00C851; box-shadow: 0 4px 20px rgba(0,0,0,0.06); }
-    .store-name { font-size: 19px; font-weight: bold; color: #1a1a1a; margin-bottom: 10px; }
-    .btn-tool { display: flex; align-items: center; justify-content: center; padding: 10px 0; border-radius: 12px; font-size: 13px; font-weight: bold; cursor: pointer; text-decoration: none; border: 1px solid #eef0f2; background: #fff; color: #555; }
-
-    /* Bottom Sheet 質感 */
-    .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); z-index: 9998; display: none; opacity: 0; transition: opacity 0.3s; }
-    
+    /* --- 2. 玻璃質感彈窗 --- */
     .bottom-sheet { 
-        position: fixed; bottom: 0; left: 0; right: 0; 
-        background: rgba(255, 255, 255, 0.95);
-        backdrop-filter: blur(20px); 
-        border-radius: 30px 30px 0 0; 
-        z-index: 10000; 
-        transform: translateY(100%); 
-        transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1); 
-        padding: 25px; padding-bottom: 45px; 
-        display: flex; flex-direction: column; 
-        max-height: 92vh; overflow-y: auto;
-        border: 1px solid rgba(255, 255, 255, 0.3);
-        box-shadow: 0 -10px 40px rgba(0,0,0,0.1);
+        position: fixed; bottom: 0; left: 0; right: 0; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(20px); 
+        border-radius: 30px 30px 0 0; z-index: 10000; transform: translateY(100%); transition: transform 0.4s; padding: 0; overflow: hidden;
     }
     .bottom-sheet.show { transform: translateY(0); }
+
+    /* 🌟 新增：彈窗頂部店名標題區 */
+    .sheet-header-box {
+        background: linear-gradient(90deg, #f8f9fa 0%, #ffffff 100%);
+        padding: 20px 20px 15px 20px;
+        border-bottom: 1px solid #eee;
+        text-align: center;
+        position: relative;
+    }
+    .current-store-title {
+        font-size: 20px;
+        font-weight: 900;
+        color: #2c3e50;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+    }
+    .current-store-title span { color: #007bff; font-size: 22px; }
+    .sheet-close-btn { position: absolute; right: 15px; top: 15px; font-size: 24px; color: #ccc; cursor: pointer; border: none; background: none; }
+
+    /* --- 3. 四步導引與熄燈邏輯 --- */
+    .guide-scroll-area { padding: 20px; max-height: 85vh; overflow-y: auto; padding-bottom: 50px; }
+    .guide-container { display: flex; flex-direction: column; gap: 15px; }
+    .step-box { display: flex; gap: 12px; position: relative; }
     
-    .bottom-sheet::before {
-        content: ''; width: 45px; height: 5px; background: #dcdde1; border-radius: 10px;
-        position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+    .step-box:not(:last-child)::after {
+        content: ''; position: absolute; left: 14px; top: 35px; width: 2px; height: calc(100% - 20px); 
+        background: #007bff; transition: background 0.5s; z-index: 1;
     }
+    .step-box.done:not(:last-child)::after { background: #e0e0e0; }
 
-    .sheet-header { font-size: 20px; font-weight: 800; text-align: center; margin-bottom: 20px; color: #2f3640; }
-
-    /* 聯繫資訊卡 */
-    .contact-info-card {
-        background: #ffffff; border-radius: 20px; padding: 20px; margin-bottom: 20px;
-        box-shadow: 0 8px 25px rgba(0,0,0,0.04); border: 1px solid #f1f2f6; text-align: center;
+    .step-num { 
+        min-width: 30px; height: 30px; border-radius: 50%; 
+        background: #007bff; color: white;
+        display: flex; align-items: center; justify-content: center; 
+        font-size: 14px; font-weight: bold; z-index: 2; transition: all 0.3s;
     }
+    .step-box.done .step-num { background: #dcdde1; color: #7f8c8d; }
+    .step-box.done .step-title { color: #bdc3c7; }
 
-    /* 🌟 改良版 ID/電話 點擊鈕 */
+    .step-content { flex: 1; padding-bottom: 5px; }
+    .step-title { font-size: 14px; font-weight: bold; color: #555; margin-bottom: 8px; display: block; transition: color 0.3s; }
+
     .line-jump-btn { 
         display: inline-flex; align-items: center; justify-content: center; gap: 8px; 
-        margin-bottom: 18px; font-size: 20px; font-weight: 700; color: #fff; 
-        background: linear-gradient(135deg, #007bff 0%, #0056b3 100%); 
-        padding: 12px 25px; border-radius: 15px; cursor: pointer; text-decoration: none;
-        box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3); transition: 0.2s;
+        font-size: 18px; font-weight: 700; color: #fff; background: linear-gradient(135deg, #007bff 0%, #0056b3 100%); 
+        padding: 12px 20px; border-radius: 12px; cursor: pointer; text-decoration: none; width: 100%; box-sizing: border-box;
     }
-    .line-jump-btn:active { transform: scale(0.95); opacity: 0.9; }
-
-    /* 名片圖片 */
-    .card-preview-img {
-        width: 100%; max-width: 320px; height: auto; border-radius: 12px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin: 0 auto; display: block;
-        cursor: grab; border: 3px solid #fff; transition: transform 0.2s;
-    }
-    .card-preview-img:active { cursor: grabbing; transform: scale(0.96); }
-
-    .section-label { font-size: 13px; color: #a1a1a1; font-weight: bold; margin-bottom: 8px; display: block; text-transform: uppercase; letter-spacing: 1px; }
-
-    /* 話術文字框 */
-    .line-textarea { 
-        width: 100%; height: 180px; border: 1.5px solid #eee; border-radius: 18px; 
-        padding: 15px; font-size: 15px; line-height: 1.6; resize: none; 
-        margin-bottom: 20px; box-sizing: border-box; background: #fafafa;
-        color: #333; outline: none; transition: 0.3s;
+    
+    .name-copy-group { display: flex; gap: 10px; }
+    .tag-btn { 
+        flex: 1; padding: 10px; background: #fff; border: 1.5px solid #dee2e6; border-radius: 10px;
+        font-size: 13px; font-weight: bold; color: #333; cursor: pointer; text-align: center;
     }
 
-    /* 下方按鈕 */
-    .line-btn-grid { display: grid; grid-template-columns: 1fr 1.6fr; gap: 12px; }
-    .sheet-btn { padding: 16px; border-radius: 16px; font-size: 16px; font-weight: bold; cursor: pointer; border: none; transition: 0.2s; }
-    .btn-copy-only { background: #f1f2f6; color: #7f8c8d; }
-    .btn-copy-go { background: linear-gradient(135deg, #00b894 0%, #009432 100%); color: white; box-shadow: 0 8px 20px rgba(0, 184, 148, 0.3); }
+    .card-img-preview { 
+        width: 100%; max-width: 260px; border-radius: 10px; border: 2px solid #fff; 
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1); cursor: grab;
+    }
+
+    .script-tabs { display: flex; background: #eee; border-radius: 10px; padding: 3px; margin-bottom: 10px; gap: 3px; }
+    .tab-btn { flex: 1; padding: 8px; border: none; border-radius: 7px; font-size: 12px; font-weight: bold; cursor: pointer; background: transparent; color: #777; }
+    .tab-btn.active { background: #fff; color: #007bff; }
+
+    .staff-row { display: none; gap: 8px; margin-bottom: 10px; justify-content: flex-end; }
+    .staff-chip { padding: 4px 12px; border-radius: 20px; font-size: 11px; border: 1px solid #007bff; color: #007bff; background: #fff; cursor: pointer; }
+    .staff-chip.active { background: #007bff; color: white; }
+
+    .line-textarea { width: 100%; height: 120px; border: 1.5px solid #eee; border-radius: 15px; padding: 12px; font-size: 14px; line-height: 1.5; resize: none; margin-bottom: 10px; box-sizing: border-box; background: #fafafa; }
+    .btn-final-go { width: 100%; padding: 16px; border-radius: 15px; border: none; background: linear-gradient(135deg, #00b894 0%, #009432 100%); color: white; font-size: 16px; font-weight: bold; cursor: pointer; }
 
   </style>
 </head>
 <body>
 
   <div id="hud">
-      <div class="hud-left"><span>⏳ 聊完記得回來更新進度！</span></div>
-      <div><button class="hud-btn" onclick="openFakeUpdate()">立刻更新</button></div>
+      <span>⏳ 聊完記得回來更新進度！</span>
+      <button style="background:white; color:#FF8008; border:none; padding:4px 10px; border-radius:10px;" onclick="closeHUD()">關閉</button>
   </div>
 
-  <h3 style="color:#999; text-align:center; font-weight:normal; margin-top:40px;">--- 模擬列表介面 ---</h3>
-  
-  <div class="store-card">
-    <div class="store-name">愛洛雅時尚美學</div>
-    <div class="action-grid">
-        <div class="btn-tool" onclick="openLineModal('愛洛雅時尚美學', 'love_aloya', '0912345678', '預約系統與薪資計算')">
-            <span style="font-size:18px; margin-right:5px;">💬</span> 開始聯絡
-        </div>
-    </div>
+  <div style="text-align:center; padding-top:50px;">
+    <button onclick="openLineModal('愛洛雅時尚美學', 'love_aloya', '0912345678', '預約系統與薪資計算', '台中')" style="padding:15px 30px; border-radius:15px; background:#00C851; color:white; border:none; font-weight:bold; cursor:pointer;">
+        測試：開始聯絡店家
+    </button>
   </div>
 
-  <div class="modal-overlay" id="lineModalOverlay" onclick="closeLineModal()"></div>
   <div class="bottom-sheet" id="lineModal">
-      <div class="sheet-header">聯繫名單</div>
-      
-      <div class="contact-info-card">
-          <span class="section-label">👇 點擊直接跳轉 LINE 加好友</span>
-          <a id="lineJumpBtn" href="#" class="line-jump-btn" target="_blank" onclick="triggerHudFromId()">
-              <span id="lineInfoIcon">🆔</span> <span id="lineInfoText">--</span>
-          </a>
-
-          <span class="section-label" style="margin-top:10px;">長按名片可拖曳至 LINE</span>
-          <img src="https://happy08200822.github.io/ezpretty-liff/card.jpg" class="card-preview-img" draggable="true">
+      <div class="sheet-header-box">
+          <button class="sheet-close-btn" onclick="closeLineModal()">✕</button>
+          <p class="current-store-title">🏠 <span id="displayStoreName">店名載入中</span></p>
       </div>
 
-      <span class="section-label">預設開發話術</span>
-      <textarea id="lineScriptArea" class="line-textarea"></textarea>
-      
-      <div class="line-btn-grid">
-          <button class="sheet-btn btn-copy-only" onclick="copyScriptOnly()">📋 僅複製話術</button>
-          <button class="sheet-btn btn-copy-go" onclick="copyAndGoLine()">🚀 複製並前往</button>
+      <div class="guide-scroll-area">
+          <div class="guide-container">
+              
+              <div class="step-box" id="step1">
+                  <div class="step-num">1</div>
+                  <div class="step-content">
+                      <span class="step-title">點擊 ID 加好友 (跳轉 LINE)</span>
+                      <a id="lineJumpBtn" href="#" class="line-jump-btn" target="_blank" onclick="markDone(1)">
+                          <span id="lineInfoIcon">🆔</span> <span id="lineInfoText">ID 載入中</span>
+                      </a>
+                  </div>
+              </div>
+
+              <div class="step-box" id="step2">
+                  <div class="step-num">2</div>
+                  <div class="step-content">
+                      <span class="step-title">複製暱稱（記得在 LINE 修改名字）</span>
+                      <div class="name-copy-group">
+                          <div class="tag-btn" id="tagUser" onclick="copyNick('user'); markDone(2)">👤 暱稱</div>
+                          <div class="tag-btn" id="tagTeacher" onclick="copyNick('teacher'); markDone(2)">🧑‍🏫 暱稱</div>
+                      </div>
+                  </div>
+              </div>
+
+              <div class="step-box" id="step3">
+                  <div class="step-num">3</div>
+                  <div class="step-content">
+                      <span class="step-title">傳送名片 (長按拖曳至右側視窗)</span>
+                      <img src="https://happy08200822.github.io/ezpretty-liff/card.jpg" class="card-img-preview" draggable="true" ondragstart="markDone(3)">
+                  </div>
+              </div>
+
+              <div class="step-box" id="step4">
+                  <div class="step-num">4</div>
+                  <div class="step-content">
+                      <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span class="step-title">複製話術並發送</span>
+                        <div class="staff-row" id="staffSelector">
+                            <div class="staff-chip active" id="chipK" onclick="selectS('Kelvin')">Kelvin</div>
+                            <div class="staff-chip" id="chipD" onclick="selectS('David')">David</div>
+                        </div>
+                      </div>
+                      <div class="script-tabs">
+                          <button class="tab-btn active" onclick="setS('first')">初次</button>
+                          <button class="tab-btn" onclick="setS('follow')">二敲</button>
+                          <button class="tab-btn" onclick="setS('success')">邀約</button>
+                      </div>
+                      <textarea id="lineScriptArea" class="line-textarea"></textarea>
+                      <button class="btn-final-go" onclick="copyAndGoLine(); markDone(4)">🚀 複製並跳回 LINE</button>
+                  </div>
+              </div>
+
+          </div>
       </div>
   </div>
 
-  <script>
-    let currentLineData = { id: "", url: "" };
+<script>
+    let cur = { name: "", req: "", area: "", staff: "Kelvin", tab: "first" };
 
-    function openLineModal(name, lineId, phone, req) {
-        const infoText = document.getElementById('lineInfoText');
-        const jumpBtn = document.getElementById('lineJumpBtn');
-        const infoIcon = document.getElementById('lineInfoIcon');
-        
-        if (lineId && lineId !== "--") {
-            infoText.innerText = lineId;
-            infoIcon.innerText = "🆔";
-            currentLineData.id = lineId;
-            currentLineData.url = `https://line.me/ti/p/~${lineId}`;
-        } else {
-            infoText.innerText = phone;
-            infoIcon.innerText = "📞";
-            currentLineData.id = phone;
-            currentLineData.url = `https://line.me/ti/p/~${phone}`;
+    function openLineModal(name, lid, ph, req, area) {
+        // 重置所有步驟與顯示店名
+        for(let i=1; i<=4; i++) {
+            document.getElementById(`step${i}`).classList.remove('done');
         }
-
-        // 設定跳轉連結
-        jumpBtn.href = currentLineData.url;
-
-        const reqText = (req && req.trim() !== "") ? req : "相關";
-        const script = `哈囉 老闆 您好！您這邊是 ${name} 店家嗎～\n我是 ezPretty 預約科技的業務經理 暐庭 😊\n剛才有收到您的諮詢，您想了解我們預約pos系統的【${reqText}】的功能嗎？\n\n您看到訊息後，方便跟您通話1分鐘嗎？\n先簡單跟您了解一下需求，後續我再安排業務跟您介紹系統，約線上會議 或是 線下見面都可以唷！`;
+        document.getElementById('displayStoreName').innerText = name;
         
-        document.getElementById('lineScriptArea').value = script;
-
-        document.getElementById('lineModalOverlay').style.display = 'block';
-        setTimeout(() => {
-            document.getElementById('lineModalOverlay').style.opacity = '1';
-            document.getElementById('lineModal').classList.add('show');
-        }, 10);
+        cur = { name, req, area, staff: "Kelvin", tab: "first" };
+        const idVal = lid !== "--" ? lid : ph;
+        document.getElementById('lineInfoText').innerText = idVal;
+        document.getElementById('lineJumpBtn').href = `https://line.me/ti/p/~${idVal}`;
+        document.getElementById('tagUser').innerText = `👤 ${name}-`;
+        document.getElementById('tagTeacher').innerText = `🧑‍🏫 ${name}-`;
+        setS('first');
+        document.getElementById('lineModal').classList.add('show');
     }
 
-    // 🌟 如果直接點 ID 跳轉，也要啟動 HUD 提醒
-    function triggerHudFromId() {
-        setTimeout(() => {
-            closeLineModal();
+    function markDone(step) {
+        document.getElementById(`step${step}`).classList.add('done');
+    }
+
+    function copyNick(type) {
+        const prefix = type === 'user' ? '👤' : '🧑‍🏫';
+        navigator.clipboard.writeText(`${prefix}${cur.name}-`);
+        const id = type === 'user' ? 'tagUser' : 'tagTeacher';
+        const old = document.getElementById(id).innerText;
+        document.getElementById(id).innerText = "✅ 已複製";
+        setTimeout(() => { document.getElementById(id).innerText = old; }, 1200);
+    }
+
+    function setS(type) {
+        cur.tab = type;
+        document.getElementById('staffSelector').style.display = (type === 'success') ? 'flex' : 'none';
+        const btns = document.querySelectorAll('.tab-btn');
+        btns.forEach((b, i) => b.classList.toggle('active', (i===0 && type==='first') || (i===1 && type==='follow') || (i===2 && type==='success')));
+        gen();
+    }
+
+    function selectS(s) {
+        cur.staff = s;
+        document.getElementById('chipK').classList.toggle('active', s === 'Kelvin');
+        document.getElementById('chipD').classList.toggle('active', s === 'David');
+        gen();
+    }
+
+    function gen() {
+        const { name, req, area, staff, tab } = cur;
+        const r = req || "相關";
+        const textarea = document.getElementById('lineScriptArea');
+        if (tab === 'first') textarea.value = `哈囉 老員 您好！您這邊是 ${name} 店家嗎～\n我是 ezPretty 預約科技的業務經理 暐庭 😊\n剛才有收到您的諮詢，您想了解我們預約pos系統的【${r}】的功能嗎？\n\n您看到訊息後，方便跟您通話1分鐘嗎？`;
+        else if (tab === 'follow') textarea.value = `哈囉老闆，擔心您近日忙碌漏掉訊息，所以再跟您打個招呼 😊\n\n近期有收到您的諮詢，您想了解我們預約pos系統的【${r}】的功能嗎？`;
+        else if (tab === 'success') textarea.value = `好的，我待會拉個群組，我請我的組員 ${staff} 和您約時間介紹系統唷！\n群組名稱是 『${area}${name} + ezPretty討論』\n\n您再留意一下群組的訊息唷～`;
+    }
+
+    function copyAndGoLine() {
+        navigator.clipboard.writeText(document.getElementById('lineScriptArea').value).then(() => {
             document.getElementById('hud').classList.add('show');
-        }, 500);
+            window.location.href = "line://"; 
+        });
     }
 
     function closeLineModal() {
         document.getElementById('lineModal').classList.remove('show');
-        document.getElementById('lineModalOverlay').style.opacity = '0';
-        setTimeout(() => document.getElementById('lineModalOverlay').style.display = 'none', 300);
     }
 
-    function copyScriptOnly() {
-        const text = document.getElementById('lineScriptArea').value;
-        navigator.clipboard.writeText(text);
-        alert("✅ 話術已複製");
-    }
-
-    function copyAndGoLine() {
-        const text = document.getElementById('lineScriptArea').value;
-        navigator.clipboard.writeText(text).then(() => {
-            closeLineModal();
-            document.getElementById('hud').classList.add('show');
-            window.open(currentLineData.url, '_blank');
-        });
-    }
-
-    function openFakeUpdate() {
-        alert("已開啟更新視窗！");
-        closeHUD();
-    }
-
-    function closeHUD() {
-        document.getElementById('hud').classList.remove('show');
-    }
-  </script>
+    function closeHUD() { document.getElementById('hud').classList.remove('show'); }
+</script>
 </body>
 </html>
