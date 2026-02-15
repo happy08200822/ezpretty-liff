@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>ezPretty 戰情室 (終極修復版2)</title>
+  <title>ezPretty 戰情室 (終極修復版3)</title>
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   
@@ -779,9 +779,9 @@
           <div class="btn-tool btn-orange" onclick="openUpdateModal('${item.key}', '${item.name}', ${item.isL}, ${item.isM}, ${item.isN}, ${item.isO}, ${item.isQ}, '${cleanRawP}', '${currentProgress}')">
             <i>📝</i>更新${badgeHtml}
           </div>
-          <div class="btn-tool btn-purple" onclick="openDispatchModal('${item.key}', '${item.name}')">
-            <i>🚀</i>派單
-          </div>
+          <div class="btn-tool btn-purple" onclick="window.location.href='https://happy08200822.github.io/ezpretty-liff/dispatch.html?key=${item.key}&store=${encodeURIComponent(item.name)}&city=${encodeURIComponent(item.area)}'">
+  <i>🚀</i>派單
+</div>
         </div>
       </div>
     `}).join('');
