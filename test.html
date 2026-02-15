@@ -3,121 +3,85 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>ezPretty 開發導引台 (終極熄燈版)</title>
+  <title>ezPretty 開發導引台 (Fold 7 強化版)</title>
   <style>
-    /* --- 1. 基礎與 HUD --- */
-    body { font-family: -apple-system, "Noto Sans TC", sans-serif; background: #f0f2f5; padding: 15px; margin: 0; }
+    /* --- 1. 基礎背景與 HUD --- */
+    body { font-family: -apple-system, "Noto Sans TC", sans-serif; background: #f0f2f5; padding: 15px; margin: 0; -webkit-tap-highlight-color: transparent; }
+    
     #hud { 
         position: fixed; top: 15px; left: 50%; transform: translateX(-50%) translateY(-150%);
         width: 90%; max-width: 400px; background: linear-gradient(135deg, #FF8008 0%, #FFC837 100%);
-        color: white; border-radius: 50px; padding: 8px 15px; display: flex; align-items: center; justify-content: space-between;
-        z-index: 11000; box-shadow: 0 10px 25px rgba(255, 128, 8, 0.3); transition: transform 0.5s;
+        color: white; border-radius: 50px; padding: 8px 15px 8px 22px;
+        display: flex; align-items: center; justify-content: space-between;
+        z-index: 11000; box-shadow: 0 10px 25px rgba(255, 128, 8, 0.3);
+        font-size: 14px; font-weight: bold; transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
     #hud.show { transform: translateX(-50%) translateY(0); }
+    .hud-btn { background: white; color: #FF8008; border: none; padding: 6px 14px; border-radius: 20px; font-size: 12px; cursor: pointer; font-weight: bold; }
 
     /* --- 2. 玻璃質感彈窗 --- */
     .bottom-sheet { 
         position: fixed; bottom: 0; left: 0; right: 0; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(20px); 
-        border-radius: 30px 30px 0 0; z-index: 10000; transform: translateY(100%); transition: transform 0.4s; padding: 0; overflow: hidden;
+        border-radius: 30px 30px 0 0; z-index: 10000; transform: translateY(100%); transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1); 
+        padding: 0; overflow: hidden; box-shadow: 0 -10px 40px rgba(0,0,0,0.1);
     }
     .bottom-sheet.show { transform: translateY(0); }
 
-    /* 🌟 新增：彈窗頂部店名標題區 */
-    .sheet-header-box {
-        background: linear-gradient(90deg, #f8f9fa 0%, #ffffff 100%);
-        padding: 20px 20px 15px 20px;
-        border-bottom: 1px solid #eee;
-        text-align: center;
-        position: relative;
-    }
-    .current-store-title {
-        font-size: 20px;
-        font-weight: 900;
-        color: #2c3e50;
-        margin: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-    }
-    .current-store-title span { color: #007bff; font-size: 22px; }
+    .sheet-header-box { background: #fff; padding: 20px 20px 15px 20px; border-bottom: 1px solid #eee; text-align: center; position: relative; }
+    .current-store-title { font-size: 20px; font-weight: 900; color: #2c3e50; margin: 0; display: flex; align-items: center; justify-content: center; gap: 8px; }
     .sheet-close-btn { position: absolute; right: 15px; top: 15px; font-size: 24px; color: #ccc; cursor: pointer; border: none; background: none; }
 
     /* --- 3. 四步導引與熄燈邏輯 --- */
     .guide-scroll-area { padding: 20px; max-height: 85vh; overflow-y: auto; padding-bottom: 50px; }
-    .guide-container { display: flex; flex-direction: column; gap: 15px; }
-    .step-box { display: flex; gap: 12px; position: relative; }
-    
-    .step-box:not(:last-child)::after {
-        content: ''; position: absolute; left: 14px; top: 35px; width: 2px; height: calc(100% - 20px); 
-        background: #007bff; transition: background 0.5s; z-index: 1;
-    }
+    .step-box { display: flex; gap: 12px; position: relative; margin-bottom: 15px; }
+    .step-box:not(:last-child)::after { content: ''; position: absolute; left: 14px; top: 35px; width: 2px; height: calc(100% - 15px); background: #007bff; transition: background 0.5s; z-index: 1; }
     .step-box.done:not(:last-child)::after { background: #e0e0e0; }
 
-    .step-num { 
-        min-width: 30px; height: 30px; border-radius: 50%; 
-        background: #007bff; color: white;
-        display: flex; align-items: center; justify-content: center; 
-        font-size: 14px; font-weight: bold; z-index: 2; transition: all 0.3s;
-    }
+    .step-num { min-width: 30px; height: 30px; border-radius: 50%; background: #007bff; color: white; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold; z-index: 2; transition: all 0.3s; }
     .step-box.done .step-num { background: #dcdde1; color: #7f8c8d; }
     .step-box.done .step-title { color: #bdc3c7; }
 
-    .step-content { flex: 1; padding-bottom: 5px; }
+    .step-content { flex: 1; }
     .step-title { font-size: 14px; font-weight: bold; color: #555; margin-bottom: 8px; display: block; transition: color 0.3s; }
 
-    .line-jump-btn { 
-        display: inline-flex; align-items: center; justify-content: center; gap: 8px; 
-        font-size: 18px; font-weight: 700; color: #fff; background: linear-gradient(135deg, #007bff 0%, #0056b3 100%); 
-        padding: 12px 20px; border-radius: 12px; cursor: pointer; text-decoration: none; width: 100%; box-sizing: border-box;
-    }
-    
-    .name-copy-group { display: flex; gap: 10px; }
-    .tag-btn { 
-        flex: 1; padding: 10px; background: #fff; border: 1.5px solid #dee2e6; border-radius: 10px;
-        font-size: 13px; font-weight: bold; color: #333; cursor: pointer; text-align: center;
-    }
+    /* 按鈕樣式 */
+    .line-jump-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-size: 18px; font-weight: 700; color: #fff; background: linear-gradient(135deg, #007bff 0%, #0056b3 100%); padding: 12px; border-radius: 12px; cursor: pointer; text-decoration: none; width: 100%; box-sizing: border-box; box-shadow: 0 4px 12px rgba(0,123,255,0.2); }
+    .tag-btn-group { display: flex; gap: 10px; }
+    .tag-btn { flex: 1; padding: 10px; background: #fff; border: 1.5px solid #dee2e6; border-radius: 10px; font-size: 13px; font-weight: bold; cursor: pointer; text-align: center; }
+    .card-img-preview { width: 100%; max-width: 260px; border-radius: 10px; border: 2px solid #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.1); cursor: grab; }
 
-    .card-img-preview { 
-        width: 100%; max-width: 260px; border-radius: 10px; border: 2px solid #fff; 
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1); cursor: grab;
-    }
-
+    /* 話術區 */
     .script-tabs { display: flex; background: #eee; border-radius: 10px; padding: 3px; margin-bottom: 10px; gap: 3px; }
-    .tab-btn { flex: 1; padding: 8px; border: none; border-radius: 7px; font-size: 12px; font-weight: bold; cursor: pointer; background: transparent; color: #777; }
-    .tab-btn.active { background: #fff; color: #007bff; }
-
+    .tab-btn { flex: 1; padding: 8px; border: none; border-radius: 7px; font-size: 12px; font-weight: bold; cursor: pointer; color: #777; }
+    .tab-btn.active { background: #fff; color: #007bff; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
     .staff-row { display: none; gap: 8px; margin-bottom: 10px; justify-content: flex-end; }
-    .staff-chip { padding: 4px 12px; border-radius: 20px; font-size: 11px; border: 1px solid #007bff; color: #007bff; background: #fff; cursor: pointer; }
+    .staff-chip { padding: 4px 12px; border-radius: 20px; font-size: 11px; border: 1px solid #007bff; color: #007bff; cursor: pointer; }
     .staff-chip.active { background: #007bff; color: white; }
-
     .line-textarea { width: 100%; height: 120px; border: 1.5px solid #eee; border-radius: 15px; padding: 12px; font-size: 14px; line-height: 1.5; resize: none; margin-bottom: 10px; box-sizing: border-box; background: #fafafa; }
-    .btn-final-go { width: 100%; padding: 16px; border-radius: 15px; border: none; background: linear-gradient(135deg, #00b894 0%, #009432 100%); color: white; font-size: 16px; font-weight: bold; cursor: pointer; }
-
+    .btn-final-go { width: 100%; padding: 16px; border-radius: 15px; border: none; background: linear-gradient(135deg, #00b894 0%, #009432 100%); color: white; font-size: 16px; font-weight: bold; cursor: pointer; box-shadow: 0 8px 20px rgba(0,184,148,0.2); }
   </style>
 </head>
 <body>
 
   <div id="hud">
       <span>⏳ 聊完記得回來更新進度！</span>
-      <button style="background:white; color:#FF8008; border:none; padding:4px 10px; border-radius:10px;" onclick="closeHUD()">關閉</button>
+      <button class="hud-btn" onclick="closeHUD()">✕</button>
   </div>
 
-  <div style="text-align:center; padding-top:50px;">
+  <div style="text-align:center; padding-top:100px;">
     <button onclick="openLineModal('愛洛雅時尚美學', 'love_aloya', '0912345678', '預約系統與薪資計算', '台中')" style="padding:15px 30px; border-radius:15px; background:#00C851; color:white; border:none; font-weight:bold; cursor:pointer;">
-        測試：開始聯絡店家
+        🚀 開始聯絡店家 (測試)
     </button>
   </div>
 
   <div class="bottom-sheet" id="lineModal">
       <div class="sheet-header-box">
           <button class="sheet-close-btn" onclick="closeLineModal()">✕</button>
-          <p class="current-store-title">🏠 <span id="displayStoreName">店名載入中</span></p>
+          <p class="current-store-title">🏠 <span id="displayStoreName">--</span></p>
       </div>
 
       <div class="guide-scroll-area">
           <div class="guide-container">
-              
               <div class="step-box" id="step1">
                   <div class="step-num">1</div>
                   <div class="step-content">
@@ -127,18 +91,16 @@
                       </a>
                   </div>
               </div>
-
               <div class="step-box" id="step2">
                   <div class="step-num">2</div>
                   <div class="step-content">
-                      <span class="step-title">複製暱稱（記得在 LINE 修改名字）</span>
-                      <div class="name-copy-group">
+                      <span class="step-title">複製暱稱 (記得在 LINE 修改名字)</span>
+                      <div class="tag-btn-group">
                           <div class="tag-btn" id="tagUser" onclick="copyNick('user'); markDone(2)">👤 暱稱</div>
                           <div class="tag-btn" id="tagTeacher" onclick="copyNick('teacher'); markDone(2)">🧑‍🏫 暱稱</div>
                       </div>
                   </div>
               </div>
-
               <div class="step-box" id="step3">
                   <div class="step-num">3</div>
                   <div class="step-content">
@@ -146,7 +108,6 @@
                       <img src="https://happy08200822.github.io/ezpretty-liff/card.jpg" class="card-img-preview" draggable="true" ondragstart="markDone(3)">
                   </div>
               </div>
-
               <div class="step-box" id="step4">
                   <div class="step-num">4</div>
                   <div class="step-content">
@@ -166,7 +127,6 @@
                       <button class="btn-final-go" onclick="copyAndGoLine(); markDone(4)">🚀 複製並跳回 LINE</button>
                   </div>
               </div>
-
           </div>
       </div>
   </div>
@@ -175,12 +135,8 @@
     let cur = { name: "", req: "", area: "", staff: "Kelvin", tab: "first" };
 
     function openLineModal(name, lid, ph, req, area) {
-        // 重置所有步驟與顯示店名
-        for(let i=1; i<=4; i++) {
-            document.getElementById(`step${i}`).classList.remove('done');
-        }
+        for(let i=1; i<=4; i++) { document.getElementById(`step${i}`).classList.remove('done'); }
         document.getElementById('displayStoreName').innerText = name;
-        
         cur = { name, req, area, staff: "Kelvin", tab: "first" };
         const idVal = lid !== "--" ? lid : ph;
         document.getElementById('lineInfoText').innerText = idVal;
@@ -191,9 +147,7 @@
         document.getElementById('lineModal').classList.add('show');
     }
 
-    function markDone(step) {
-        document.getElementById(`step${step}`).classList.add('done');
-    }
+    function markDone(step) { document.getElementById(`step${step}`).classList.add('done'); }
 
     function copyNick(type) {
         const prefix = type === 'user' ? '👤' : '🧑‍🏫';
@@ -223,22 +177,20 @@
         const { name, req, area, staff, tab } = cur;
         const r = req || "相關";
         const textarea = document.getElementById('lineScriptArea');
-        if (tab === 'first') textarea.value = `哈囉 老員 您好！您這邊是 ${name} 店家嗎～\n我是 ezPretty 預約科技的業務經理 暐庭 😊\n剛才有收到您的諮詢，您想了解我們預約pos系統的【${r}】的功能嗎？\n\n您看到訊息後，方便跟您通話1分鐘嗎？`;
+        if (tab === 'first') textarea.value = `哈囉 老闆 您好！您這邊是 ${name} 店家嗎～\n我是 ezPretty 預約科技的業務經理 暐庭 😊\n剛才有收到您的諮詢，您想了解我們預約pos系統的【${r}】的功能嗎？\n\n您看到訊息後，方便跟您通話1分鐘嗎？`;
         else if (tab === 'follow') textarea.value = `哈囉老闆，擔心您近日忙碌漏掉訊息，所以再跟您打個招呼 😊\n\n近期有收到您的諮詢，您想了解我們預約pos系統的【${r}】的功能嗎？`;
-        else if (tab === 'success') textarea.value = `好的，我待會拉個群組，我請我的組員 ${staff} 和您約時間介紹系統唷！\n群組名稱是 『${area}${name} + ezPretty討論』\n\n您再留意一下群組的訊息唷～`;
+        else if (tab === 'success') textarea.value = `好的，我待會拉個群組，我請我的組員 ${staff} 和您約時間介紹系統唷！\n群組名稱是 『${area}${name}（ＤＥ）+ ezPretty討論』\n\n您再留意一下群組的訊息唷～`;
     }
 
     function copyAndGoLine() {
         navigator.clipboard.writeText(document.getElementById('lineScriptArea').value).then(() => {
             document.getElementById('hud').classList.add('show');
-            window.location.href = "line://"; 
+            const intentUrl = "intent://#Intent;scheme=line;package=jp.naver.line.android;end";
+            try { window.location.assign(intentUrl); } catch (e) { window.location.href = "line://"; }
         });
     }
 
-    function closeLineModal() {
-        document.getElementById('lineModal').classList.remove('show');
-    }
-
+    function closeLineModal() { document.getElementById('lineModal').classList.remove('show'); }
     function closeHUD() { document.getElementById('hud').classList.remove('show'); }
 </script>
 </body>
