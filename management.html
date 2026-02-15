@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>ezPretty 戰情室 (終極修復版1)</title>
+  <title>ezPretty 戰情室 (終極修復版2)</title>
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   
@@ -554,6 +554,7 @@
       </div>
   </div>
 
+
 <script>
   const FORM_LIFF_ID = "2009117067-6y3yHx9o"; 
   const GAS_URL = "https://script.google.com/macros/s/AKfycbzIKHpWcWj0bOhaQsx-OynY5FVVorMJvTNON5PBOywj1q-Nd5EylLCSl-zTlFW9Rb5U/exec";
@@ -570,7 +571,6 @@
   const charts = { status: null, sales: null, date: null, source: null, area: null };
   let filterState = { dateStart: null, dateEnd: null, source: [], area: [], industry: [] };
   
-  // Modal State
   let currentUpdateKey = null;
   let currentChecks = { L:false, M:false, N:false, O:false, Q:false };
   let currentProgress = "聯絡中"; 
@@ -578,43 +578,35 @@
   let currentDispatchKey = null;
   let currentDispatchStore = "";
   let selectedSales = null;
-  
-  // 🌟 新增 HUD 模式狀態
   let currentHudMode = 'update';
 
   const SALES_LIST = ['WT', 'Kelvin', 'David']; 
 
-  // 🌟 修復與加速：Load Data 改寫
+  // 1. 讀取資料 (修復 Loading 卡住問題)
   async function loadData() {
     document.getElementById('loadingOverlay').style.opacity = '1';
     document.getElementById('loadingOverlay').style.display = 'flex';
     try {
-      // 加上時間戳防止快取
       const response = await fetch(GAS_URL + "?action=getManagementList&t=" + new Date().getTime());
       const rawData = await response.json();
       allData = rawData.map(processItem); 
       checkDuplicates(allData); 
       initFilterOptions(); 
-      
-      // 注意：initAllCharts 移除了，不在這裡畫
-      
       calculateInsights(allData);
       doSort(); 
       render(); 
     } catch (e) { console.error(e); }
     
-    // 🚀 關鍵優化：先關閉 Loading，再畫圖表
+    // 延遲關閉 Loading 並繪製圖表
     setTimeout(() => {
         document.getElementById('loadingOverlay').style.opacity = '0';
         setTimeout(() => {
             document.getElementById('loadingOverlay').style.display = 'none';
-            // 延遲繪製圖表，避免卡住畫面
             try { initAllCharts(); } catch(e) { console.log('Chart load deferred'); }
         }, 300);
     }, 100);
   }
 
-  // 🌟 修復日期解析 (防止 NaN)
   function parseDate(dateStr) {
       if(!dateStr) return null;
       let clean = dateStr.toString().split(" ")[0].replace(/[^\d\/\-\.]/g, ''); 
@@ -625,18 +617,14 @@
 
   function processItem(i) {
     const L = !!i.isL; const M = !!i.isM; const N = !!i.isN; const O = !!i.isO; const Q = !!i.isQ;
-    
-    // 1. 解析 R 欄
     const rawR = String(i.progress || ""); 
     const parts = rawR.split(/[|｜]/); 
     const lastUpdateStr = parts[0] ? parts[0].trim() : "";
     const statusStr = parts[1] ? parts[1].trim() : (parts[0] || ""); 
 
-    // 2. 垃圾判斷
     const isReject = rawR.includes("拒絕");
     const isInvalid = (String(i.detailLabel)||"").includes('無效') || i.status === '無效單' || isReject;
     
-    // 3. 久未聯絡判斷
     let isIdle = false;
     if (lastUpdateStr && !isInvalid) {
         const lastDate = parseDate(lastUpdateStr);
@@ -725,7 +713,6 @@
       const badgeHtml = localCount > 0 ? `<span class="update-badge">${localCount}</span>` : '';
       
       let lineUrl = item.lineId ? `https://line.me/ti/p/~${item.lineId}` : (item.phone ? `https://line.me/ti/p/~${item.phone}` : "#");
-      // 🌟 修復地圖連結錯誤
       const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.area + item.name)}`;
       
       const cleanRawP = (item.rawP || "").replace(/'/g, "\\'").replace(/\n/g, "\\n");
@@ -745,7 +732,6 @@
       
       const wBadgeHtml = wStatus ? `<span class="w-status-badge ${wBadgeClass}">${wStatus}</span>` : "";
       
-      // 處理 safeReq 避免 onclick 報錯
       const safeReq = (item.req || "").replace(/'/g, "\\'").replace(/"/g, '"').replace(/\n/g, ' ');
 
       return `
@@ -975,9 +961,7 @@
           document.getElementById('dispatchStep1').classList.remove('active');
           document.getElementById('dispatchStep2').classList.add('active');
           showHUD(currentDispatchStore);
-          
-          // 🌟 新增這一行：切換到填寫頁面時，立刻去抓最新 ID
-          getLatestGroupIdFromGas(); 
+          getLatestGroupIdFromGas();
       });
   }
   function backToStep1() {
@@ -990,19 +974,15 @@
       selectedSales = name;
   }
   
-  // 🌟 修改版：確認派單 (配合您的 GAS 邏輯)
+  // 🌟 修復錯誤：移除了多餘的 f
   function confirmDispatch() {
       const link = document.getElementById('dispatchLink').value;
       const note = document.getElementById('dispatchNote').value;
       
-      // 1. 抓取欄位中的 ID
       let rawGroupId = document.getElementById('dispatchGroupId').value;
       
-      // 🌟 關鍵邏輯：如果是空的，就強制變成 "無"
-      // 這樣 GAS 的 if (data.groupId) 才會成立，並寫入 AA 欄
       const finalGroupId = (rawGroupId && rawGroupId.trim() !== "") ? rawGroupId : "無";
 
-      // 驗證必填
       if(!link) { alert("請貼上群組連結！"); return; }
       if(!selectedSales) { alert("請選擇業務！"); return; }
       
@@ -1011,7 +991,6 @@
       btn.innerText = "⏳ 派單處理中...";
       btn.disabled = true;
 
-      // 2. 準備傳送給 GAS 的參數
       const params = new URLSearchParams({
           action: 'dispatch', 
           key: currentDispatchKey,
@@ -1019,10 +998,9 @@
           storeName: currentDispatchStore,
           link: link,
           req: note,
-          groupId: finalGroupId // 傳送處理過的 ID (或是 "無")
+          groupId: finalGroupId
       });
 
-      // 3. 發送請求
       fetch(GAS_URL + "?" + params.toString(), { method: "POST" })
       .then(res => res.text())
       .then(result => {
@@ -1031,7 +1009,6 @@
               closeDispatchModal();
               closeHUD();
               
-              // 本地更新狀態
               const item = allData.find(i => i.key === currentDispatchKey);
               if(item) { 
                   item.sales = selectedSales; 
