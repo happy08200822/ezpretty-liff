@@ -708,32 +708,67 @@
       }
       field.value = val;
   }
+  // 🌟 [修正] 真實連線版：儲存更新
   function saveUpdate() {
-      clickCounts[currentUpdateKey] = (clickCounts[currentUpdateKey] || 0) + 1;
-      localStorage.setItem('ezPretty_ClickCounts', JSON.stringify(clickCounts));
-      interactionCounts[currentUpdateKey] = tempInteractionCounts;
-      localStorage.setItem('ezPretty_InteractionCounts', JSON.stringify(interactionCounts));
-      
+      // 1. 鎖定按鈕避免重複點擊
+      const btn = document.querySelector('#updateModal .sheet-confirm-btn');
+      const originalText = btn.innerText;
+      btn.innerText = "⏳ 儲存中...";
+      btn.disabled = true;
+
+      // 2. 準備資料
       const now = new Date();
       const timeStamp = `${now.getFullYear()}/${now.getMonth()+1}/${now.getDate()} ${now.getHours()}:${now.getMinutes()}`;
+      // 組合 R 欄：時間 ｜ 狀態 (注意是用全形 ｜)
       const compositeR = `${timeStamp} ｜ ${currentProgress}`; 
 
-      alert(`已更新：${currentUpdateKey}\n狀態(R)：${currentProgress}\n(模擬送出成功)`);
-      
-      const item = allData.find(i => i.key === currentUpdateKey);
-      if(item) {
-          item.progressStatus = currentProgress;
-          item.progress = compositeR; 
-          item.isIdle = false; 
-          
-          if (currentProgress === '拒絕') {
-              item.category = 'invalid';
-              item.actionText = '💀 此單已標記無效';
-          }
-      }
+      // 3. 打包參數 (對應 Main.gs 的 handleUpdateProgress)
+      const params = new URLSearchParams({
+          action: 'updateProgress', // 呼叫後端新寫的入口
+          key: currentUpdateKey,
+          progress: compositeR,     // R 欄
+          note: document.getElementById('updateNote').value, // P 欄
+          isL: currentChecks.L,
+          isM: currentChecks.M,
+          isN: currentChecks.N,
+          isO: currentChecks.O,
+          isQ: currentChecks.Q
+      });
 
-      closeUpdateModal();
-      render(); 
+      // 4. 發送請求
+      fetch(GAS_URL + "?" + params.toString(), { method: "POST" })
+      .then(res => res.text())
+      .then(result => {
+          if(result.includes("Success")) {
+              alert(`✅ 更新成功！\n狀態：${currentProgress}`);
+              
+              // 本地即時更新顯示 (讓體驗更順暢)
+              const item = allData.find(i => i.key === currentUpdateKey);
+              if(item) {
+                  item.progressStatus = currentProgress;
+                  item.progress = compositeR; 
+                  item.isIdle = false; // 更新後就不算久未聯絡
+                  // 垃圾單立即過濾
+                  if (currentProgress === '拒絕') {
+                      item.category = 'invalid';
+                      item.actionText = '💀 此單已標記無效';
+                  }
+              }
+              closeUpdateModal();
+              render(); // 重新渲染畫面
+          } else {
+              alert("❌ 儲存失敗，後端回傳錯誤：" + result);
+          }
+      })
+      .catch(err => {
+          alert("❌ 網路連線錯誤，請檢查網路");
+          console.error(err);
+      })
+      .finally(() => {
+          // 解鎖按鈕
+          btn.innerText = originalText;
+          btn.disabled = false;
+      });
   }
 
   function openDispatchModal(key, name) {
@@ -773,19 +808,24 @@
       selectedSales = name;
   }
   
+  // 🌟 [修正] 真實連線版：確認派單
   function confirmDispatch() {
       const link = document.getElementById('dispatchLink').value;
       const note = document.getElementById('dispatchNote').value;
+      
+      // 驗證必填
       if(!link) { alert("請貼上群組連結！"); return; }
       if(!selectedSales) { alert("請選擇業務！"); return; }
       
+      // 1. 鎖定按鈕
       const btn = document.querySelector('#dispatchStep2 .sheet-confirm-btn');
       const originalText = btn.innerText;
-      btn.innerText = "⏳ 處理中...";
+      btn.innerText = "⏳ 派單處理中...";
       btn.disabled = true;
 
+      // 2. 打包參數 (對應 Feature_Dispatch.receiveLiffData)
       const params = new URLSearchParams({
-          action: 'dispatch',
+          action: 'dispatch', // 呼叫後端派單入口
           key: currentDispatchKey,
           staff: selectedSales,
           storeName: currentDispatchStore,
@@ -793,15 +833,25 @@
           req: note
       });
 
+      // 3. 發送請求
       fetch(GAS_URL + "?" + params.toString(), { method: "POST" })
       .then(res => res.text())
       .then(result => {
-          alert(`✅ 派單成功！\n業務：${selectedSales}`);
-          closeDispatchModal();
-          closeHUD();
-          const item = allData.find(i => i.key === currentDispatchKey);
-          if(item) { item.sales = selectedSales; item.category = 'dispatched'; }
-          render();
+          if(result.includes("Success")) {
+              alert(`✅ 派單成功！\n業務：${selectedSales}\n系統已發送通知。`);
+              closeDispatchModal();
+              closeHUD();
+              
+              // 本地即時更新
+              const item = allData.find(i => i.key === currentDispatchKey);
+              if(item) { 
+                  item.sales = selectedSales; 
+                  item.category = 'dispatched'; 
+              }
+              render();
+          } else {
+              alert("❌ 派單失敗：" + result);
+          }
       })
       .catch(err => {
           alert("❌ 連線失敗，請檢查網路或後端");
