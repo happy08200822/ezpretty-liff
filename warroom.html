@@ -461,7 +461,8 @@
             this.copyText(groupName);
             this.showToast(`已複製：「${groupName}」跳轉中...`);
             const target = this.currentItem.lineId || this.currentItem.phone || '';
-            setTimeout(() => window.open('https://line.me/ti/p/~' + target), 800);
+            // 🌟 改成跳轉到 LINE 的「加入好友/建立群組」面板
+            setTimeout(() => window.open('https://line.me/R/nv/addFriends'), 800);
           },
 
           fetchGroupIds() {
