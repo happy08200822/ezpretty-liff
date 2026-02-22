@@ -6,17 +6,16 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <style>
-      [v-cloak] { display: none; }
+      /* 加入 !important 強制隱藏，避免載入時閃爍破版 */
+      [v-cloak] { display: none !important; } 
       body { font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif; background-color: #f4f6f9; -webkit-tap-highlight-color: transparent; }
       .no-scrollbar::-webkit-scrollbar { display: none; }
       .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
       
-      /* 下拉面板動畫 */
       .slide-fade-enter-active, .slide-fade-leave-active { transition: all 0.3s ease-in-out; }
       .slide-fade-enter-from, .slide-fade-leave-to { transform: translateY(-10px); opacity: 0; max-height: 0; overflow: hidden; }
       .slide-fade-enter-to, .slide-fade-leave-from { transform: translateY(0); opacity: 1; max-height: 1200px; }
       
-      /* 彈出視窗動畫 */
       .modal-fade-enter-active, .modal-fade-leave-active { transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); }
       .modal-fade-enter-from, .modal-fade-leave-to { transform: translateY(100%); opacity: 0; }
       .modal-fade-enter-to, .modal-fade-leave-from { transform: translateY(0); opacity: 1; }
@@ -89,62 +88,62 @@
       <div v-if="loading" class="text-center py-20 text-gray-400 font-bold animate-pulse"><div class="w-12 h-12 border-4 border-gray-200 border-t-blue-500 rounded-full animate-spin mx-auto mb-4"></div>同步雲端資料中...</div>
       <div v-else-if="finalSortedData.length === 0" class="text-center py-20 text-gray-400 font-bold text-lg">目前此條件無名單 📭</div>
 
-     <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-  <div v-for="(item, index) in finalSortedData" :key="index" 
-       class="bg-white rounded-[2rem] shadow-sm border border-gray-100 overflow-hidden flex flex-col h-full border-t-[6px]" 
-       :style="{ borderTopColor: getCategoryColor(getCategory(item)) }">
-    
-    <div class="p-4 flex flex-col flex-grow">
-      <div class="flex justify-between items-start mb-2">
-        <h2 class="text-lg font-black text-gray-800 leading-tight flex-grow pr-2">
-          [[ item.area ]][[ item.storeName ]]
-          <div :class="['inline-block text-[10px] px-2 py-0.5 rounded-full border ml-1', getActionAlert(item).color]">
-            [[ getActionAlert(item).text.split('！')[0] ]]
+      <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div v-for="(item, index) in finalSortedData" :key="index" 
+             class="bg-white rounded-[2rem] shadow-sm border border-gray-100 overflow-hidden flex flex-col h-full border-t-[6px]" 
+             :style="{ borderTopColor: getCategoryColor(getCategory(item)) }">
+          
+          <div class="p-4 flex flex-col flex-grow">
+            <div class="flex justify-between items-start mb-2">
+              <h2 class="text-lg font-black text-gray-800 leading-tight flex-grow pr-2">
+                [[ item.area ]][[ item.storeName ]]
+                <div :class="['inline-block text-[10px] px-2 py-0.5 rounded-full border ml-1', getActionAlert(item).color]">
+                  [[ getActionAlert(item).text.split('！')[0] ]]
+                </div>
+              </h2>
+              <div class="flex flex-col items-end shrink-0">
+                <span class="bg-green-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded shadow-sm mb-1">[[ item.source ]]</span>
+                <span class="text-[9px] font-bold text-gray-400">[[ formatDate(item.formDate) ]]</span>
+              </div>
+            </div>
+            
+            <div class="bg-blue-50/40 rounded-xl px-3 py-2 mb-3 border border-blue-50/50 flex items-center justify-between text-[11px] font-bold">
+              <span class="text-gray-700 truncate max-w-[60px]">👤 [[ item.bossName || '未填' ]]</span>
+              <span class="text-gray-300">|</span>
+              <span class="text-blue-600 active:scale-95 transition" @click="copyText(item.phone)">📞 [[ item.phone || '--' ]]</span>
+              <span class="text-gray-300">|</span>
+              <span class="text-purple-600 active:scale-95 transition" @click="copyText(item.lineId)">🆔 [[ item.lineId || '--' ]]</span>
+            </div>
+
+            <p class="text-[11px] font-bold text-orange-600 px-1 mb-3 truncate">📝 需求: [[ item.adDemand || '無' ]]</p>
+
+            <div class="grid grid-cols-5 gap-1 mb-3">
+              <span v-for="tag in ['加Line','已讀','撥電話','是否撥通','Email']" :key="tag" 
+                    :class="[pillClass(tag, item), 'py-1 rounded-md text-[9px] font-black border text-center transition-all']">
+                [[ tag === '是否撥通' ? '撥通' : tag ]]
+              </span>
+            </div>
+
+            <div class="mb-4 bg-gray-50/60 p-2.5 rounded-2xl border border-gray-100 flex-grow">
+              <p class="text-[9px] font-black text-gray-400 mb-1 tracking-tighter">最新追蹤：</p>
+              <div class="text-[11px] text-gray-600 line-clamp-2 leading-snug font-bold">[[ item.callCount || '尚無紀錄' ]]</div>
+            </div>
+
+            <div class="space-y-1.5">
+              <div class="grid grid-cols-3 gap-1.5">
+                <button @click="openLineModal(item)" class="bg-white border border-gray-100 py-2 rounded-xl font-black text-[10px] shadow-sm active:bg-gray-100">💬 Line</button>
+                <a :href="'tel:' + item.phone" class="flex items-center justify-center bg-white border border-gray-200 py-2 rounded-xl font-black text-[10px] shadow-sm active:bg-gray-100">📞 電話</a>
+                <a :href="'mailto:' + item.email" class="flex items-center justify-center bg-white border border-gray-200 py-2 rounded-xl font-black text-[10px] shadow-sm active:bg-gray-100">✉️ Email</a>
+              </div>
+              <div class="grid grid-cols-3 gap-1.5">
+                <a :href="'http://googleusercontent.com/maps.google.com/5' + item.area + item.storeName" target="_blank" class="flex items-center justify-center bg-white border border-gray-200 py-2 rounded-xl font-black text-[10px] shadow-sm active:bg-gray-100">🗺️ 地圖</a>
+                <button @click="openUpdateModal(item)" class="bg-orange-500 text-white py-2 rounded-xl font-black text-[10px] shadow-md active:scale-95">📝 更新</button>
+                <button @click="openDispatch(item)" class="bg-purple-600 text-white py-2 rounded-xl font-black text-[10px] shadow-md active:scale-95">🚀 派單</button>
+              </div>
+            </div>
           </div>
-        </h2>
-        <div class="flex flex-col items-end shrink-0">
-          <span class="bg-green-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded shadow-sm mb-1">[[ item.source ]]</span>
-          <span class="text-[9px] font-bold text-gray-400">[[ formatDate(item.formDate) ]]</span>
         </div>
       </div>
-      
-      <div class="bg-blue-50/40 rounded-xl px-3 py-2 mb-3 border border-blue-50/50 flex items-center justify-between text-[11px] font-bold">
-        <span class="text-gray-700 truncate max-w-[60px]">👤 [[ item.bossName || '未填' ]]</span>
-        <span class="text-gray-300">|</span>
-        <span class="text-blue-600 active:scale-95 transition" @click="copyText(item.phone)">📞 [[ item.phone || '--' ]]</span>
-        <span class="text-gray-300">|</span>
-        <span class="text-purple-600 active:scale-95 transition" @click="copyText(item.lineId)">🆔 [[ item.lineId || '--' ]]</span>
-      </div>
-
-      <p class="text-[11px] font-bold text-orange-600 px-1 mb-3 truncate">📝 需求: [[ item.adDemand || '無' ]]</p>
-
-      <div class="grid grid-cols-5 gap-1 mb-3">
-        <span v-for="tag in ['加Line','已讀','撥電話','是否撥通','Email']" :key="tag" 
-              :class="[pillClass(tag, item), 'py-1 rounded-md text-[9px] font-black border text-center transition-all']">
-          [[ tag === '是否撥通' ? '撥通' : tag ]]
-        </span>
-      </div>
-
-      <div class="mb-4 bg-gray-50/60 p-2.5 rounded-2xl border border-gray-100 flex-grow">
-        <p class="text-[9px] font-black text-gray-400 mb-1 tracking-tighter">最新追蹤：</p>
-        <div class="text-[11px] text-gray-600 line-clamp-2 leading-snug font-bold">[[ item.callCount || '尚無紀錄' ]]</div>
-      </div>
-
-      <div class="space-y-1.5">
-        <div class="grid grid-cols-3 gap-1.5">
-          <button @click="openLineModal(item)" class="bg-white border border-gray-100 py-2 rounded-xl font-black text-[10px] shadow-sm active:bg-gray-100">💬 Line</button>
-          <a :href="'tel:' + item.phone" class="flex items-center justify-center bg-white border border-gray-200 py-2 rounded-xl font-black text-[10px] shadow-sm active:bg-gray-100">📞 電話</a>
-          <a :href="'mailto:' + item.email" class="flex items-center justify-center bg-white border border-gray-200 py-2 rounded-xl font-black text-[10px] shadow-sm active:bg-gray-100">✉️ Email</a>
-        </div>
-        <div class="grid grid-cols-3 gap-1.5">
-          <a :href="'http://googleusercontent.com/maps.google.com/5' + item.area + item.storeName" target="_blank" class="flex items-center justify-center bg-white border border-gray-200 py-2 rounded-xl font-black text-[10px] shadow-sm active:bg-gray-100">🗺️ 地圖</a>
-          <button @click="openUpdateModal(item)" class="bg-orange-500 text-white py-2 rounded-xl font-black text-[10px] shadow-md active:scale-95">📝 更新</button>
-          <button @click="openDispatch(item)" class="bg-purple-600 text-white py-2 rounded-xl font-black text-[10px] shadow-md active:scale-95">🚀 派單</button>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
 
       <transition name="modal-fade">
         <div v-if="showLineModal" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-gray-900/60 backdrop-blur-md" @click.self="closeLineModal">
@@ -173,15 +172,15 @@
               <button @click="closeUpdateModal" class="text-gray-300 hover:text-gray-500 text-4xl font-light">✕</button>
             </div>
             <div class="grid grid-cols-2 gap-3 mb-8">
-  <button @click="editData.newTracking = '聯絡中'" 
-          :class="['py-4 rounded-[1.5rem] font-black text-sm transition-all shadow-sm', String(editData.newTracking || '').includes('聯絡中') ? 'bg-blue-600 text-white shadow-md ring-2 ring-blue-200 ring-offset-1 scale-[1.02]' : 'bg-gray-100 text-gray-500 hover:bg-gray-200']">
-    📞 聯絡中
-  </button>
-  <button @click="editData.newTracking = '拒絕/無效'" 
-          :class="['py-4 rounded-[1.5rem] font-black text-sm transition-all shadow-sm', (String(editData.newTracking || '').includes('拒絕') || String(editData.newTracking || '').includes('無效')) ? 'bg-red-600 text-white shadow-md ring-2 ring-red-200 ring-offset-1 scale-[1.02]' : 'bg-gray-100 text-gray-500 hover:bg-gray-200']">
-    🚫 拒絕/無效
-  </button>
-</div>
+              <button @click="editData.newTracking = '聯絡中'" 
+                      :class="['py-4 rounded-[1.5rem] font-black text-sm transition-all shadow-sm', String(editData.newTracking || '').includes('聯絡中') ? 'bg-blue-600 text-white shadow-md ring-2 ring-blue-200 ring-offset-1 scale-[1.02]' : 'bg-gray-100 text-gray-500 hover:bg-gray-200']">
+                📞 聯絡中
+              </button>
+              <button @click="editData.newTracking = '拒絕/無效'" 
+                      :class="['py-4 rounded-[1.5rem] font-black text-sm transition-all shadow-sm', (String(editData.newTracking || '').includes('拒絕') || String(editData.newTracking || '').includes('無效')) ? 'bg-red-600 text-white shadow-md ring-2 ring-red-200 ring-offset-1 scale-[1.02]' : 'bg-gray-100 text-gray-500 hover:bg-gray-200']">
+                🚫 拒絕/無效
+              </button>
+            </div>
             <p class="text-xs font-black text-gray-400 mb-4 tracking-widest uppercase px-1">📍 聯絡狀態勾選</p>
             <div class="flex flex-wrap gap-2 mb-8">
               <button v-for="tag in ['加Line','已讀','撥電話','是否撥通','Email']" :key="tag" @click="toggleEditCheck(tag)"
@@ -200,9 +199,6 @@
             </button>
           </div>
         </div>
-      </transition>
-
-</div>
       </transition>
 
       <transition name="modal-fade">
@@ -246,9 +242,9 @@
           </div>
         </div>
       </transition>
+
       <div v-if="toastMessage" class="fixed bottom-10 left-1/2 transform -translate-x-1/2 bg-gray-800/95 backdrop-blur text-white px-8 py-4 rounded-full text-sm font-black shadow-2xl z-50 transition-all tracking-wider border border-white/10 animate-bounce">[[ toastMessage ]]</div>
     </div>
-      
 
     <script>
       const GAS_URL = "https://script.google.com/macros/s/AKfycbzIKHpWcWj0bOhaQsx-OynY5FVVorMJvTNON5PBOywj1q-Nd5EylLCSl-zTlFW9Rb5U/exec";
@@ -263,11 +259,9 @@
             showLineModal: false, currentLineItem: null, lineScriptTab: 'first',
             showUpdateModal: false, isUpdating: false, currentItem: null,
             editData: { newTracking: '', addLine: '', readStatus: '', callStatus: '', isConnected: '', emailSent: '', note: '' },
-            // 🌟 將下方兩行貼在這裡 🌟
             showDispatchModal: false, isDispatching: false,
             dispatchData: { groupId: '', groupLink: '', owner: 'Kelvin', initialDemand: '' },
             availableGroupIds: [],
-            // 🌟 貼到這裡結束 🌟
             tabs: [
               { id: 'all', icon: '📂', label: '全部', activeClass: 'bg-gray-700 text-white', ringClass: 'ring-gray-300' },
               { id: 'new', icon: '🆕', label: '新單', activeClass: 'bg-[#00C851] text-white', ringClass: 'ring-green-300' },
@@ -345,24 +339,21 @@
               .catch(e => { alert("抓取失敗: " + e.message); this.loading = false; });
           },
           parseSafeDate(s) { if(!s) return null; let clean = String(s).split(" ")[0].replace(/[^\d\/\-\.]/g, ''); let d = new Date(clean); return isNaN(d.getTime()) ? null : d; },
+          
           openUpdateModal(item) {
             this.currentItem = item;
             this.editData = JSON.parse(JSON.stringify(item));
-            
-            // 🌟 關鍵修正：去抓取妳試算表 P 欄 (callCount) 的舊紀錄
+            // 抓舊紀錄，如果沒有就套用範本
             let oldRecord = this.editData.callCount || this.editData.note || '';
-            
-            // 如果舊紀錄是空的、或是寫著「無」，才套用預設模板
             if (oldRecord.trim() === '' || oldRecord === '無' || oldRecord === '尚無紀錄') {
               this.editData.note = "傳line紀錄（共0次）：\n撥打紀錄（共0次）：\n手動紀錄：";
             } else {
-              // 如果有舊紀錄，就直接顯示在文字框裡！
               this.editData.note = oldRecord;
             }
-            
             this.showUpdateModal = true;
           },
           closeUpdateModal() { this.showUpdateModal = false; },
+          
           isTagChecked(tag) {
             const m = { '加Line':'addLine', '已讀':'readStatus', '撥電話':'callStatus', '是否撥通':'isConnected', 'Email':'emailSent' };
             return String(this.editData[m[tag]]).includes('✅');
@@ -384,6 +375,7 @@
             }
           },
           addNoteManual(text) { this.editData.note = this.editData.note.replace('手動紀錄：', `手動紀錄：\n[${text}] `); },
+          
           submitUpdate() {
             this.isUpdating = true;
             const params = new URLSearchParams({
@@ -399,6 +391,7 @@
               .then(res => res.text()).then(r => { if(r==="Success") { this.showToast("✅ 雲端同步成功！"); this.loadData(); this.closeUpdateModal(); } })
               .finally(() => this.isUpdating = false);
           },
+
           openLineModal(item) { this.currentLineItem = item; this.showLineModal = true; },
           closeLineModal() { this.showLineModal = false; },
           jumpAndCopyName() {
@@ -408,6 +401,7 @@
             setTimeout(() => window.open('https://line.me/ti/p/~' + (this.currentLineItem.lineId || this.currentLineItem.phone)), 800);
           },
           copyScript() { this.copyText(this.lineScriptContent); this.showToast('✅ 開發話術已複製！'); },
+
           getCategory(i) {
             const L=String(i.addLine).includes('✅'), M=String(i.readStatus).includes('✅'), N=String(i.callStatus).includes('✅'), O=String(i.isConnected).includes('✅');
             if (i.owner) return i.source === '業務自開件' ? 'self' : 'dispatched';
@@ -447,7 +441,8 @@
           copyText(text) { if (!text) return; const el = document.createElement('textarea'); el.value = text; document.body.appendChild(el); el.select(); document.execCommand('copy'); document.body.removeChild(el); },
           showToast(m) { this.toastMessage = m; setTimeout(() => this.toastMessage = '', 2500); },
           formatDate(d) { if(!d) return ''; const t = new Date(d); return isNaN(t) ? d : `${t.getMonth()+1}/${t.getDate()}`; },
-         // 🌟 刪掉原本的 openDispatch，把這整段貼在 methods 的最下面 🌟
+          
+          // 🚀 派單交接面板邏輯
           openDispatch(item) {
             this.currentItem = item;
             this.dispatchData = { 
@@ -457,14 +452,14 @@
               initialDemand: item.initialDemand || item.adDemand || '' 
             };
             this.showDispatchModal = true;
-            this.fetchGroupIds(); // 打開時去 GAS 抓最新群組 ID
+            this.fetchGroupIds();
           },
           closeDispatchModal() { this.showDispatchModal = false; },
           
           copyAndJumpForGroup() {
             const groupName = `${this.currentItem.area || ''}${this.currentItem.storeName || ''} + ezPretty討論`;
             this.copyText(groupName);
-            this.showToast(`已複製：「${groupName}」跳轉 LINE 中...`);
+            this.showToast(`已複製：「${groupName}」跳轉中...`);
             const target = this.currentItem.lineId || this.currentItem.phone || '';
             setTimeout(() => window.open('https://line.me/ti/p/~' + target), 800);
           },
@@ -490,17 +485,13 @@
               .then(res => res.text())
               .then(r => { 
                 if(r === "Success") { 
-                  this.showToast("🚀 派單寫入成功！"); 
+                  this.showToast("🚀 派單同步成功！"); 
                   this.loadData(); 
                   this.closeDispatchModal(); 
                 } 
               })
               .finally(() => this.isDispatching = false);
           }
-          // 🌟 貼到這裡結束 🌟
-        } // 這是 methods 結尾的大括號
-      }).mount('#app');
-    </script>
         }
       }).mount('#app');
     </script>
