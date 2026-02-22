@@ -220,7 +220,7 @@
             <div class="flex gap-2 mb-3">
               <select v-model="dispatchData.groupId" class="flex-grow p-3.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold text-gray-700 outline-none">
                 <option value="">🤖 請選擇偵測到的群組 ID...</option>
-                <option v-for="gid in availableGroupIds" :key="gid" :value="gid">[[ gid ]]</option>
+                <option v-for="g in availableGroupIds" :key="g.id" :value="g.id">[[ g.name ]] (剛偵測到)</option>
               </select>
               <button @click="fetchGroupIds" class="bg-gray-100 border border-gray-200 px-4 rounded-xl font-black text-gray-600 active:bg-gray-200 transition shadow-sm">🔄</button>
             </div>
