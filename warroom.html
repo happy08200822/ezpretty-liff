@@ -1,134 +1,135 @@
 <!DOCTYPE html>
 <html>
   <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <style>
       [v-cloak] { display: none; }
-      body { font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif; background-color: #f4f6f9; }
+      body { font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif; background-color: #f4f6f9; -webkit-tap-highlight-color: transparent; }
       .no-scrollbar::-webkit-scrollbar { display: none; }
       .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
       
-      /* 面板動畫 */
+      /* 下拉面板動畫 */
       .slide-fade-enter-active, .slide-fade-leave-active { transition: all 0.3s ease-in-out; }
       .slide-fade-enter-from, .slide-fade-leave-to { transform: translateY(-10px); opacity: 0; max-height: 0; overflow: hidden; }
-      .slide-fade-enter-to, .slide-fade-leave-from { transform: translateY(0); opacity: 1; max-height: 1000px; }
+      .slide-fade-enter-to, .slide-fade-leave-from { transform: translateY(0); opacity: 1; max-height: 1200px; }
       
       /* 彈出視窗動畫 */
-      .modal-fade-enter-active, .modal-fade-leave-active { transition: all 0.3s ease-out; }
+      .modal-fade-enter-active, .modal-fade-leave-active { transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); }
       .modal-fade-enter-from, .modal-fade-leave-to { transform: translateY(100%); opacity: 0; }
       .modal-fade-enter-to, .modal-fade-leave-from { transform: translateY(0); opacity: 1; }
     </style>
   </head>
   <body class="pb-20">
-    <div id="app" v-cloak class="w-full 2xl:max-w-[1600px] mx-auto p-4 md:p-6">
+    <div id="app" v-cloak class="w-full px-3 md:px-6 pt-2">
       
-      <div class="sticky top-0 z-30 bg-[#f4f6f9] pb-3 pt-2 mb-4 border-b border-gray-200 shadow-sm">
-        <div class="flex gap-2 mb-3 w-full">
-          <div class="relative flex-grow">
-            <input v-model="searchQuery" type="text" placeholder="🔍 搜尋店名、地區或負責人..." 
-                   class="w-full px-4 py-3 rounded-xl border border-gray-200 shadow-inner focus:ring-2 focus:ring-blue-500 outline-none text-sm bg-white">
-          </div>
-          <button @click="toggleSort" :class="['w-12 md:w-16 shrink-0 rounded-xl border shadow-sm font-bold text-lg flex items-center justify-center transition active:scale-95', sortDesc ? 'bg-blue-50 border-blue-200 text-blue-600' : 'bg-white border-gray-200 text-gray-600']">⇅</button>
-          <button @click="loadData" class="w-12 md:w-16 shrink-0 bg-white rounded-xl border border-gray-200 shadow-sm text-lg flex items-center justify-center hover:bg-gray-50 active:scale-95 transition">🔄</button>
+      <div class="sticky top-0 z-30 bg-[#f4f6f9] pb-3 mb-2 border-b border-gray-200">
+        <div class="flex gap-2 mb-3">
+          <input v-model="searchQuery" type="text" placeholder="🔍 搜尋店名、地區或負責人..." 
+                 class="flex-grow px-4 py-3 rounded-2xl border border-gray-200 shadow-inner focus:ring-2 focus:ring-blue-500 outline-none text-sm bg-white">
+          <button @click="toggleSort" :class="['w-12 shrink-0 rounded-2xl border shadow-sm font-bold text-lg transition active:scale-90', sortDesc ? 'bg-blue-50 border-blue-200 text-blue-600' : 'bg-white text-gray-400']">⇅</button>
+          <button @click="loadData" class="w-12 shrink-0 bg-white rounded-2xl border border-gray-200 shadow-sm text-lg active:scale-90 transition">🔄</button>
         </div>
         
-        <div class="flex overflow-x-auto w-full gap-2 no-scrollbar mb-3 pb-1">
+        <div class="flex overflow-x-auto gap-2 no-scrollbar mb-3">
           <button v-for="tab in tabs" :key="tab.id" @click="currentTab = tab.id"
-                  :class="['flex-1 min-w-[75px] flex flex-col items-center justify-center py-2 px-2 rounded-xl border transition-all duration-200 shadow-sm', currentTab === tab.id ? tab.activeClass + ' scale-105 border-white ring-2 ring-offset-1 z-10 ' + tab.ringClass : 'bg-white text-gray-500 border-gray-100 hover:bg-gray-50']">
-            <span class="text-lg leading-none mb-1">[[ tab.icon ]]</span>
-            <span class="text-[11px] font-bold mb-1 whitespace-nowrap">[[ tab.label ]]</span>
-            <span :class="['text-[10px] px-2 py-0.5 rounded-lg font-bold', currentTab === tab.id ? 'bg-white text-gray-900 shadow-sm' : 'bg-gray-100 text-gray-400']">[[ getTabCount(tab.id) ]]</span>
+                  :class="['flex-1 min-w-[70px] flex flex-col items-center justify-center py-2 rounded-xl border transition-all duration-200', currentTab === tab.id ? tab.activeClass + ' scale-105 border-white ring-2 ring-offset-1 ' + tab.ringClass : 'bg-white text-gray-500 border-gray-100 shadow-sm']">
+            <span class="text-lg leading-none mb-0.5">[[ tab.icon ]]</span>
+            <span class="text-[10px] font-bold mb-0.5 whitespace-nowrap">[[ tab.label ]]</span>
+            <span :class="['text-[10px] px-1.5 py-0.5 rounded-lg font-black', currentTab === tab.id ? 'bg-white text-gray-900 shadow-sm' : 'bg-gray-100 text-gray-400']">[[ getTabCount(tab.id) ]]</span>
           </button>
         </div>
 
-        <div class="flex gap-2 w-full">
-          <button @click="toggleFilterPanel" :class="['flex-1 py-2.5 rounded-xl font-bold text-sm border shadow-sm transition flex justify-center items-center gap-1', showFilter ? 'bg-blue-500 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-200']">🌪️ 進階篩選 <span v-if="activeFilterCount > 0" class="bg-white text-blue-600 px-1.5 py-0.5 rounded-md text-[10px] ml-1">[[ activeFilterCount ]]</span></button>
-          <button @click="toggleChartPanel" :class="['flex-1 py-2.5 rounded-xl font-bold text-sm border shadow-sm transition flex justify-center items-center gap-1', showChart ? 'bg-purple-600 text-white border-purple-700' : 'bg-white text-gray-600 border-gray-200']">📊 數據報表</button>
+        <div class="flex gap-2">
+          <button @click="toggleFilterPanel" :class="['flex-1 py-3 rounded-2xl font-bold text-xs border shadow-sm transition flex justify-center items-center gap-1', showFilter ? 'bg-blue-600 text-white border-blue-700' : 'bg-white text-gray-600 border-gray-200']">🌪️ 篩選 <span v-if="activeFilterCount > 0" class="bg-white text-blue-600 px-1.5 py-0.5 rounded-md text-[9px]">[[ activeFilterCount ]]</span></button>
+          <button @click="toggleChartPanel" :class="['flex-1 py-3 rounded-2xl font-bold text-xs border shadow-sm transition flex justify-center items-center gap-1', showChart ? 'bg-purple-600 text-white border-purple-700' : 'bg-white text-gray-600 border-gray-200']">📊 報表</button>
         </div>
 
         <transition name="slide-fade">
-          <div v-show="showFilter" class="mt-3 bg-white border border-gray-200 rounded-2xl shadow-lg p-5 w-full">
-            <div class="mb-6 bg-gray-50 p-4 rounded-xl border border-gray-100 shadow-inner">
-              <p class="text-[13px] font-bold text-gray-500 mb-3">📅 填單日期區間</p>
-              <div class="grid grid-cols-4 gap-2 mb-3">
-                <button v-for="t in ['thisMonth','lastMonth','thisWeek','lastWeek']" :key="t" @click="setQuickDate(t)" class="py-2 bg-white border border-gray-200 rounded-lg text-xs font-bold text-gray-600 active:bg-blue-600 active:text-white transition">[[ {thisMonth:'本月',lastMonth:'上月',thisWeek:'本週',lastWeek:'上週'}[t] ]]</button>
+          <div v-show="showFilter" class="mt-3 bg-white border border-gray-200 rounded-3xl shadow-xl p-5 w-full">
+            <div class="mb-6 bg-gray-50 p-4 rounded-2xl border border-gray-100">
+              <p class="text-xs font-bold text-gray-400 mb-3 uppercase tracking-wider">📅 填單日期區間</p>
+              <div class="grid grid-cols-4 gap-2 mb-4">
+                <button v-for="t in ['thisMonth','lastMonth','thisWeek','lastWeek']" :key="t" @click="setQuickDate(t)" class="py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-600 active:bg-blue-600 active:text-white transition">[[ {thisMonth:'本月',lastMonth:'上月',thisWeek:'本週',lastWeek:'上週'}[t] ]]</button>
               </div>
               <div class="flex items-center gap-2">
-                <input type="date" v-model="filterStartDate" @change="validateDateRange" class="flex-1 p-2 rounded-lg border border-gray-300 text-sm">
-                <span class="text-gray-400">➝</span>
-                <input type="date" v-model="filterEndDate" @change="validateDateRange" class="flex-1 p-2 rounded-lg border border-gray-300 text-sm">
+                <input type="date" v-model="filterStartDate" @change="validateDateRange" class="flex-1 p-3 rounded-xl border border-gray-200 text-sm outline-none">
+                <span class="text-gray-300">➝</span>
+                <input type="date" v-model="filterEndDate" @change="validateDateRange" class="flex-1 p-3 rounded-xl border border-gray-200 text-sm outline-none">
               </div>
             </div>
-            
-            <div class="space-y-4">
-              <div><p class="text-xs font-bold text-gray-400 mb-2 uppercase tracking-widest">📢 來源 (可多選)</p><div class="flex flex-wrap gap-2"><button v-for="v in uniqueSources" :key="v" @click="toggleFilterItem('Source',v)" :class="['px-3 py-1.5 rounded-lg text-xs font-bold border transition', filterSource.includes(v)?'bg-blue-600 text-white border-blue-700 shadow-md':'bg-gray-50 text-gray-500 border-gray-200']">[[ v ]]</button></div></div>
-              <div><p class="text-xs font-bold text-gray-400 mb-2 uppercase tracking-widest">🏙️ 地區 (可多選)</p><div class="flex flex-wrap gap-2"><button v-for="v in uniqueAreas" :key="v" @click="toggleFilterItem('Area',v)" :class="['px-3 py-1.5 rounded-lg text-xs font-bold border transition', filterArea.includes(v)?'bg-orange-500 text-white border-orange-600 shadow-md':'bg-gray-50 text-gray-500 border-gray-200']">[[ v ]]</button></div></div>
-              <div><p class="text-xs font-bold text-gray-400 mb-2 uppercase tracking-widest">🏭 產業 (可多選)</p><div class="flex flex-wrap gap-2"><button v-for="v in uniqueIndustries" :key="v" @click="toggleFilterItem('Industry',v)" :class="['px-3 py-1.5 rounded-lg text-xs font-bold border transition', filterIndustry.includes(v)?'bg-green-600 text-white border-green-700 shadow-md':'bg-gray-50 text-gray-500 border-gray-200']">[[ v ]]</button></div></div>
+            <div class="space-y-5">
+              <div><p class="text-xs font-black text-gray-400 mb-2 tracking-widest">📢 來源篩選</p><div class="flex flex-wrap gap-2"><button v-for="v in uniqueSources" :key="v" @click="toggleFilterItem('Source',v)" :class="['px-3 py-2 rounded-xl text-xs font-bold border transition', filterSource.includes(v)?'bg-blue-600 text-white border-blue-700 shadow-md':'bg-gray-50 text-gray-500 border-gray-200']">[[ v ]]</button></div></div>
+              <div><p class="text-xs font-black text-gray-400 mb-2 tracking-widest">🏙️ 地區篩選</p><div class="flex flex-wrap gap-2"><button v-for="v in uniqueAreas" :key="v" @click="toggleFilterItem('Area',v)" :class="['px-3 py-2 rounded-xl text-xs font-bold border transition', filterArea.includes(v)?'bg-orange-500 text-white border-orange-600 shadow-md':'bg-gray-50 text-gray-500 border-gray-200']">[[ v ]]</button></div></div>
             </div>
-            <button @click="clearFilters" class="w-full py-3 mt-6 bg-red-50 text-red-500 font-bold text-sm rounded-xl border border-red-100 active:bg-red-100 transition shadow-sm">🗑️ 清除所有條件</button>
+            <button @click="clearFilters" class="w-full py-4 mt-6 bg-red-50 text-red-500 font-black text-sm rounded-2xl border border-red-100 active:bg-red-200 transition">🗑️ 清除所有條件</button>
           </div>
         </transition>
 
         <transition name="slide-fade">
-          <div v-show="showChart" class="mt-3 bg-white border border-gray-200 rounded-2xl shadow-lg p-5 w-full">
-            <div class="flex justify-around bg-gray-50 p-4 rounded-xl border border-gray-100 mb-5 shadow-inner">
-              <div class="text-center w-1/2 border-r border-gray-200"><p class="text-[10px] text-gray-500 font-bold mb-1">🚀 派單轉化率</p><p class="text-3xl font-black text-green-600">[[ conversionRate ]]%</p></div>
-              <div class="text-center w-1/2"><p class="text-[10px] text-gray-500 font-bold mb-1">🗑️ 垃圾單率</p><p class="text-3xl font-black text-red-600">[[ junkRate ]]%</p></div>
+          <div v-show="showChart" class="mt-3 bg-white border border-gray-200 rounded-3xl shadow-xl p-5 w-full">
+            <div class="flex gap-3 mb-5">
+              <div class="flex-1 bg-green-50 p-4 rounded-2xl border border-green-100 text-center"><p class="text-[10px] text-green-600 font-bold mb-1">🚀 派單轉化</p><p class="text-3xl font-black text-green-700">[[ conversionRate ]]%</p></div>
+              <div class="flex-1 bg-red-50 p-4 rounded-2xl border border-red-100 text-center"><p class="text-[10px] text-red-600 font-bold mb-1">🗑️ 垃圾單率</p><p class="text-3xl font-black text-red-700">[[ junkRate ]]%</p></div>
             </div>
-            <p class="text-sm font-bold text-gray-500 mb-3">🏆 業務手持派單排行 (依當前篩選)</p>
-            <div class="space-y-3 bg-gray-50 p-4 rounded-xl shadow-inner">
+            <p class="text-sm font-black text-gray-600 mb-3">🏆 指派業務排行榜</p>
+            <div class="space-y-3 bg-gray-50 p-4 rounded-2xl shadow-inner">
               <div v-for="(count, name) in salesLeaderboard" :key="name" class="flex items-center gap-3">
-                <span class="text-xs font-bold text-gray-600 w-14 truncate text-right">[[ name ]]</span>
-                <div class="flex-grow bg-gray-200 rounded-full h-3 overflow-hidden shadow-inner"><div class="bg-purple-600 h-full rounded-full transition-all duration-500" :style="{ width: (count / maxSalesCount * 100) + '%' }"></div></div>
-                <span class="text-xs font-black text-purple-600 w-8">[[ count ]]</span>
+                <span class="text-xs font-bold text-gray-500 w-14 truncate text-right">[[ name ]]</span>
+                <div class="flex-grow bg-gray-200 rounded-full h-4 overflow-hidden shadow-inner"><div class="bg-gradient-to-r from-purple-500 to-purple-700 h-full rounded-full transition-all duration-700" :style="{ width: (count / maxSalesCount * 100) + '%' }"></div></div>
+                <span class="text-xs font-black text-purple-700 w-8">[[ count ]]</span>
               </div>
             </div>
           </div>
         </transition>
       </div>
 
-      <div v-if="loading" class="text-center py-20 text-gray-400 font-bold animate-pulse"><div class="w-12 h-12 border-4 border-gray-200 border-t-blue-500 rounded-full animate-spin mx-auto mb-4"></div>資料同步中...</div>
-      <div v-else-if="finalSortedData.length === 0" class="text-center py-20 text-gray-400 font-bold text-lg">此條件下目前無符合名單 📭</div>
+      <div v-if="loading" class="text-center py-20 text-gray-400 font-bold animate-pulse"><div class="w-12 h-12 border-4 border-gray-200 border-t-blue-500 rounded-full animate-spin mx-auto mb-4"></div>同步雲端資料中...</div>
+      <div v-else-if="finalSortedData.length === 0" class="text-center py-20 text-gray-400 font-bold text-lg">目前此條件無名單 📭</div>
 
-      <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        <div v-for="(item, index) in finalSortedData" :key="index" class="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden flex flex-col h-full border-t-[6px]" :style="{ borderTopColor: getCategoryColor(getCategory(item)) }">
-          <div class="p-5 flex flex-col flex-grow">
-            <div class="flex justify-between items-start mb-3">
-              <span class="bg-gray-100 text-gray-500 font-bold px-2 py-1 rounded-lg text-[10px] tracking-wider flex items-center gap-1">#[[ item.id ]] <span class="bg-gray-200 px-1 rounded">🏭 [[ item.industry || '一般' ]]</span></span>
-              <span class="bg-green-600 text-white font-bold px-2 py-1 rounded text-[10px] shadow-sm">[[ item.source ]]</span>
-            </div>
-            
-            <h2 class="text-xl font-black text-gray-800 leading-tight mb-3 flex items-start gap-2">[[ item.area ]][[ item.storeName ]] <button @click="copyText(item.area + item.storeName)" class="text-gray-300 hover:text-gray-500 active:scale-90 transition shrink-0">📄</button></h2>
-            
-            <div :class="['border border-dashed rounded-xl px-3 py-2 mb-4 text-[13px] font-bold flex items-center gap-2', getActionAlert(item).color]"><span>🔔</span> [[ getActionAlert(item).text ]]</div>
-            
-            <div class="bg-blue-50/50 rounded-xl p-4 mb-4 border border-blue-50 text-[13px]">
-              <p class="font-bold text-gray-700 mb-2 flex items-center gap-2">👤 負責人: [[ item.bossName || '未填' ]]</p>
-              <p class="font-bold text-gray-700 mb-2 flex items-center gap-2">📞 電話: [[ item.phone || '--' ]] <button @click="copyText(item.phone)" class="text-gray-300 hover:text-gray-500">📄</button></p>
-              <p class="font-bold text-gray-700 mb-2 flex items-center gap-2">🆔 Line: [[ item.lineId || '--' ]] <button @click="copyText(item.lineId)" class="text-gray-300 hover:text-gray-500">📄</button></p>
-              <p class="font-bold text-orange-600 mt-2 pt-2 border-t border-dashed border-blue-100">📝 需求: [[ item.adDemand || '無' ]]</p>
-            </div>
-
-            <div class="flex flex-wrap gap-1.5 mb-4">
-              <span v-for="tag in ['加Line','已讀','撥電話','是否撥通','Email']" :key="tag" :class="pillClass(tag, item)" class="px-2.5 py-1 rounded-full text-[10px] font-bold border transition-colors shadow-sm">[[ tag ]]</span>
-            </div>
-
-            <div class="mb-6">
-              <p class="text-xs font-bold text-gray-500 mb-1.5 flex items-center gap-1">📝 最新紀錄</p>
-              <div class="bg-gray-50 rounded-xl p-3 text-xs text-gray-600 min-h-[60px] whitespace-pre-wrap line-clamp-3 border border-gray-100 shadow-inner">[[ item.note || '無' ]]</div>
-            </div>
-
-            <div class="mt-auto space-y-2.5">
-              <div class="grid grid-cols-3 gap-2.5">
-                <button @click="openLineModal(item)" class="bg-white border border-gray-200 text-gray-700 py-3 rounded-2xl font-black text-xs shadow-sm active:bg-gray-50 flex flex-col items-center justify-center">💬<span class="mt-1">Line</span></button>
-                <a :href="'tel:' + item.phone" class="bg-white border border-gray-200 text-gray-700 py-3 rounded-2xl font-black text-xs shadow-sm active:bg-gray-50 flex flex-col items-center justify-center">📞<span class="mt-1">電話</span></a>
-                <a :href="'mailto:' + item.email" class="bg-white border border-gray-200 text-gray-700 py-3 rounded-2xl font-black text-xs shadow-sm active:bg-gray-50 flex flex-col items-center justify-center">✉️<span class="mt-1">Email</span></a>
+      <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+        <div v-for="(item, index) in finalSortedData" :key="index" class="bg-white rounded-[2rem] shadow-md border border-gray-100 overflow-hidden flex flex-col h-full border-t-[8px]" :style="{ borderTopColor: getCategoryColor(getCategory(item)) }">
+          <div class="p-5 md:p-6 flex flex-col flex-grow">
+            <div class="flex justify-between items-start mb-4">
+              <span class="bg-gray-100 text-gray-500 font-black px-2.5 py-1 rounded-xl text-[10px] tracking-widest flex items-center gap-1 shadow-inner">#[[ item.id ]] <span class="bg-gray-200 px-1.5 rounded">🏭 [[ item.industry || '一般' ]]</span></span>
+              <div class="text-right">
+                <span class="bg-green-600 text-white font-black px-2.5 py-1 rounded-xl text-[10px] shadow-md">[[ item.source ]]</span>
+                <p class="text-[9px] text-gray-400 mt-1 font-bold">[[ formatDate(item.formDate) ]]</p>
               </div>
-              <div class="grid grid-cols-3 gap-2.5">
-                <a :href="'https://www.google.com/maps/search/' + item.area + item.storeName" target="_blank" class="bg-white border border-gray-200 text-gray-700 py-3 rounded-2xl font-black text-xs shadow-sm active:bg-gray-50 flex flex-col items-center justify-center">🗺️<span class="mt-1">地圖</span></a>
-                <button @click="openUpdateModal(item)" class="bg-orange-500 text-white py-3 rounded-2xl font-black text-xs shadow-lg active:scale-95 flex flex-col items-center justify-center">📝<span class="mt-1">更新</span></button>
-                <button @click="openDispatch(item)" class="bg-purple-600 text-white py-3 rounded-2xl font-black text-xs shadow-lg active:scale-95 flex flex-col items-center justify-center">🚀<span class="mt-1">派單</span></button>
+            </div>
+            
+            <h2 class="text-2xl font-black text-gray-800 leading-tight mb-4 flex items-start gap-2">[[ item.area ]][[ item.storeName ]] <button @click="copyText(item.area + item.storeName)" class="text-gray-200 hover:text-gray-400 active:scale-90 transition shrink-0">📄</button></h2>
+            
+            <div :class="['border-2 border-dashed rounded-2xl px-4 py-3 mb-5 text-[14px] font-black flex items-center gap-2 shadow-sm', getActionAlert(item).color]"><span>🔔</span> [[ getActionAlert(item).text ]]</div>
+            
+            <div class="bg-blue-50/50 rounded-2xl p-4 mb-5 border border-blue-50 text-[14px] shadow-inner">
+              <p class="font-black text-gray-700 mb-2.5 flex items-center gap-2"><span class="w-6 text-center">👤</span> [[ item.bossName || '未填負責人' ]]</p>
+              <p class="font-black text-gray-700 mb-2.5 flex items-center gap-2"><span class="w-6 text-center">📞</span> [[ item.phone || '--' ]] <button @click="copyText(item.phone)" class="text-gray-300">📄</button></p>
+              <p class="font-black text-gray-700 mb-2.5 flex items-center gap-2"><span class="w-6 text-center">🆔</span> [[ item.lineId || '--' ]] <button @click="copyText(item.lineId)" class="text-gray-300">📄</button></p>
+              <p class="font-black text-orange-600 mt-3 pt-3 border-t border-dashed border-blue-100 flex items-start gap-2"><span class="w-6 text-center shrink-0 text-lg">📝</span> 需求: [[ item.adDemand || '無' ]]</p>
+            </div>
+
+            <div class="flex flex-wrap gap-2 mb-5">
+              <span v-for="tag in ['加Line','已讀','撥電話','是否撥通','Email']" :key="tag" :class="pillClass(tag, item)" class="px-3 py-1.5 rounded-full text-[11px] font-black border transition-all shadow-sm">[[ tag ]]</span>
+            </div>
+
+            <div class="mb-8">
+              <p class="text-xs font-black text-gray-400 mb-2 flex items-center gap-1 px-1">📝 最新紀錄追蹤</p>
+              <div class="bg-gray-50 rounded-2xl p-4 text-[13px] text-gray-600 min-h-[70px] whitespace-pre-wrap line-clamp-3 border border-gray-100 shadow-inner font-medium">[[ item.note || '無任何紀錄內容' ]]</div>
+            </div>
+
+            <div class="mt-auto space-y-3">
+              <div class="grid grid-cols-3 gap-3">
+                <button @click="openLineModal(item)" class="bg-white border-2 border-gray-100 text-gray-700 py-4 rounded-[1.25rem] font-black text-xs shadow-sm active:bg-gray-100 flex flex-col items-center justify-center gap-1 transition">💬<span>Line</span></button>
+                <a :href="'tel:' + item.phone" class="bg-white border-2 border-gray-100 text-gray-700 py-4 rounded-[1.25rem] font-black text-xs shadow-sm active:bg-gray-100 flex flex-col items-center justify-center gap-1 transition">📞<span>電話</span></a>
+                <a :href="'mailto:' + item.email" class="bg-white border-2 border-gray-100 text-gray-700 py-4 rounded-[1.25rem] font-black text-xs shadow-sm active:bg-gray-100 flex flex-col items-center justify-center gap-1 transition">✉️<span>Email</span></a>
+              </div>
+              <div class="grid grid-cols-3 gap-3">
+                <a :href="'http://googleusercontent.com/maps.google.com/3' + item.area + item.storeName" target="_blank" class="bg-white border-2 border-gray-100 text-gray-700 py-4 rounded-[1.25rem] font-black text-xs shadow-sm active:bg-gray-100 flex flex-col items-center justify-center gap-1 transition">🗺️<span>地圖</span></a>
+                <button @click="openUpdateModal(item)" class="bg-orange-500 text-white py-4 rounded-[1.25rem] font-black text-xs shadow-lg active:scale-95 flex flex-col items-center justify-center gap-1 transition">📝<span>更新</span></button>
+                <button @click="openDispatch(item)" class="bg-purple-600 text-white py-4 rounded-[1.25rem] font-black text-xs shadow-lg active:scale-95 flex flex-col items-center justify-center gap-1 transition">🚀<span>派單</span></button>
               </div>
             </div>
           </div>
@@ -136,56 +137,56 @@
       </div>
 
       <transition name="modal-fade">
-        <div v-if="showLineModal" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-gray-900/60 backdrop-blur-sm" @click.self="closeLineModal">
-          <div class="bg-white w-full max-w-md rounded-t-[2.5rem] sm:rounded-[2rem] p-7 shadow-2xl overflow-y-auto max-h-[90vh]">
-            <div class="flex justify-between items-center mb-6 border-b border-gray-100 pb-3">
-              <h3 class="text-xl font-black text-gray-800">🏠 [[ currentLineItem?.storeName ]]</h3>
-              <button @click="closeLineModal" class="text-gray-300 hover:text-gray-700 text-3xl font-bold transition">✕</button>
+        <div v-if="showLineModal" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-gray-900/60 backdrop-blur-md" @click.self="closeLineModal">
+          <div class="bg-white w-full max-w-md rounded-t-[3rem] sm:rounded-[2.5rem] p-8 shadow-2xl overflow-y-auto max-h-[92vh]">
+            <div class="flex justify-between items-center mb-6 pb-2 border-b border-gray-50">
+              <h3 class="text-2xl font-black text-gray-800 tracking-tight">🏠 [[ currentLineItem?.storeName ]]</h3>
+              <button @click="closeLineModal" class="text-gray-300 hover:text-gray-500 text-4xl font-light">✕</button>
             </div>
-            <button @click="jumpAndCopyName" class="w-full bg-blue-600 text-white font-black py-5 rounded-[1.5rem] shadow-xl shadow-blue-200 mb-8 active:scale-95 transition">🆔 打開 LINE 並複製名稱<p class="text-[11px] opacity-70 mt-1 font-bold tracking-wider">將自動複製：「👤[[ currentLineItem?.storeName ]]-」</p></button>
-            <p class="text-sm font-bold text-gray-500 mb-3 text-center tracking-widest">STEP 2: 傳送名片 (長按儲存圖檔)</p>
-            <img src="https://happy08200822.github.io/ezpretty-liff/card.jpg" class="max-h-36 mx-auto mb-8 rounded-2xl border-4 border-gray-50 shadow-md">
-            <div class="flex gap-1 bg-gray-100 p-1 rounded-2xl mb-4 shadow-inner">
-              <button v-for="t in ['first','follow','success']" :key="t" @click="lineScriptTab = t" :class="['flex-1 py-2.5 rounded-xl text-xs font-black transition', lineScriptTab === t ? 'bg-white text-blue-600 shadow-md' : 'text-gray-400']">[[ {first:'初次',follow:'二敲',success:'邀約'}[t] ]]</button>
+            <button @click="jumpAndCopyName" class="w-full bg-blue-600 text-white font-black py-5 rounded-[1.5rem] shadow-xl shadow-blue-100 mb-8 active:scale-95 transition text-lg flex flex-col items-center">🆔 打開 LINE 並複製名稱<span class="text-[11px] opacity-70 mt-1 font-bold">自動帶入：👤[[ currentLineItem?.storeName ]]-</span></button>
+            <p class="text-sm font-black text-gray-400 mb-4 text-center uppercase tracking-widest">STEP 2: 傳送名片 (長按儲存圖檔)</p>
+            <img src="https://happy08200822.github.io/ezpretty-liff/card.jpg" class="max-h-40 mx-auto mb-8 rounded-3xl border-4 border-gray-50 shadow-lg">
+            <div class="flex gap-1 bg-gray-100 p-1.5 rounded-2xl mb-4">
+              <button v-for="t in ['first','follow','success']" :key="t" @click="lineScriptTab = t" :class="['flex-1 py-3 rounded-xl text-xs font-black transition-all', lineScriptTab === t ? 'bg-white text-blue-600 shadow-md scale-105' : 'text-gray-400']">[[ {first:'初次',follow:'二敲',success:'邀約'}[t] ]]</button>
             </div>
-            <textarea readonly v-model="lineScriptContent" class="w-full h-28 p-4 bg-gray-50 border border-gray-200 rounded-2xl text-xs mb-4 resize-none shadow-inner leading-relaxed text-gray-600 font-bold"></textarea>
-            <button @click="copyScript" class="w-full bg-emerald-500 text-white font-black py-4 rounded-[1.25rem] shadow-xl shadow-emerald-100 active:scale-95 transition text-[15px]">📋 複製開發話術</button>
+            <textarea readonly v-model="lineScriptContent" class="w-full h-32 p-5 bg-gray-50 border border-gray-100 rounded-3xl text-sm mb-5 resize-none shadow-inner leading-relaxed text-gray-600 font-bold"></textarea>
+            <button @click="copyScript" class="w-full bg-emerald-500 text-white font-black py-5 rounded-[1.5rem] shadow-xl active:scale-95 transition text-lg">📋 複製開發話術</button>
           </div>
         </div>
       </transition>
 
       <transition name="modal-fade">
-        <div v-if="showUpdateModal" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-gray-900/60 backdrop-blur-sm" @click.self="closeUpdateModal">
-          <div class="bg-white w-full max-w-md rounded-t-[2.5rem] sm:rounded-[2rem] p-7 shadow-2xl overflow-y-auto max-h-[90vh]">
-            <div class="flex justify-between items-center mb-6 border-b border-gray-100 pb-3">
-              <h3 class="text-xl font-black text-gray-800 tracking-tight">📝 更新：[[ currentItem?.storeName ]]</h3>
-              <button @click="closeUpdateModal" class="text-gray-300 hover:text-gray-700 text-3xl font-bold transition">✕</button>
+        <div v-if="showUpdateModal" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-gray-900/60 backdrop-blur-md" @click.self="closeUpdateModal">
+          <div class="bg-white w-full max-w-md rounded-t-[3rem] sm:rounded-[2.5rem] p-8 shadow-2xl overflow-y-auto max-h-[92vh]">
+            <div class="flex justify-between items-center mb-6 pb-2 border-b border-gray-50">
+              <h3 class="text-xl font-black text-gray-800 tracking-tight">📝 更新進度</h3>
+              <button @click="closeUpdateModal" class="text-gray-300 hover:text-gray-500 text-4xl font-light">✕</button>
             </div>
-            <div class="grid grid-cols-2 gap-3 mb-6">
-              <button @click="editData.newTracking = '聯絡中'" :class="['py-4 rounded-2xl font-black text-sm transition shadow-sm', editData.newTracking === '聯絡中' ? 'bg-blue-600 text-white shadow-blue-200' : 'bg-gray-100 text-gray-500']">📞 聯絡中</button>
-              <button @click="editData.newTracking = '拒絕'" :class="['py-4 rounded-2xl font-black text-sm transition shadow-sm', editData.newTracking === '拒絕' ? 'bg-red-600 text-white shadow-red-200' : 'bg-gray-100 text-gray-500']">🚫 拒絕/無效</button>
+            <div class="grid grid-cols-2 gap-3 mb-8">
+              <button @click="editData.newTracking = '聯絡中'" :class="['py-5 rounded-[1.5rem] font-black text-sm transition shadow-sm', editData.newTracking === '聯絡中' ? 'bg-blue-600 text-white shadow-blue-100' : 'bg-gray-100 text-gray-500']">📞 聯絡中</button>
+              <button @click="editData.newTracking = '拒絕'" :class="['py-5 rounded-[1.5rem] font-black text-sm transition shadow-sm', editData.newTracking === '拒絕' ? 'bg-red-600 text-white shadow-red-100' : 'bg-gray-100 text-gray-500']">🚫 拒絕/無效</button>
             </div>
-            <p class="text-xs font-bold text-gray-400 mb-3 tracking-widest uppercase">📍 聯絡進度勾選</p>
-            <div class="flex flex-wrap gap-2 mb-6">
+            <p class="text-xs font-black text-gray-400 mb-4 tracking-widest uppercase px-1">📍 聯絡狀態勾選</p>
+            <div class="flex flex-wrap gap-2 mb-8">
               <button v-for="tag in ['加Line','已讀','撥電話','是否撥通','Email']" :key="tag" @click="toggleEditCheck(tag)"
-                      :class="['px-4 py-2.5 rounded-xl text-[11px] font-black border transition-all', isTagChecked(tag) ? 'bg-blue-600 text-white border-blue-700 shadow-md' : 'bg-white text-gray-400 border-gray-200 shadow-sm']">[[ tag ]]</button>
+                      :class="['px-4 py-2.5 rounded-xl text-[11px] font-black border transition-all shadow-sm', isTagChecked(tag) ? 'bg-blue-600 text-white border-blue-700 shadow-md scale-105' : 'bg-white text-gray-400 border-gray-200']">[[ tag ]]</button>
             </div>
-            <p class="text-xs font-bold text-gray-400 mb-3 tracking-widest uppercase">⚡ 快速紀錄器 (點擊自動累加)</p>
-            <div class="grid grid-cols-3 gap-2.5 mb-5 text-[11px]">
-              <button @click="addNoteAction('call')" class="py-3 bg-blue-50 text-blue-600 rounded-xl font-black border border-blue-100 active:bg-blue-100 transition">📞 撥打紀錄</button>
-              <button @click="addNoteAction('line')" class="py-3 bg-emerald-50 text-emerald-600 rounded-xl font-black border border-emerald-100 active:bg-emerald-100 transition">💬 傳Line紀錄</button>
-              <button @click="addNoteManual('無人接聽')" class="py-3 bg-gray-100 text-gray-600 rounded-xl font-black border border-gray-200 active:bg-gray-200">無人接聽</button>
+            <p class="text-xs font-black text-gray-400 mb-4 tracking-widest uppercase px-1">⚡ 快速紀錄器 (點擊累加次數)</p>
+            <div class="grid grid-cols-3 gap-3 mb-6">
+              <button @click="addNoteAction('call')" class="py-4 bg-blue-50 text-blue-600 rounded-2xl font-black border border-blue-100 active:bg-blue-100 transition shadow-sm text-xs">📞 撥打紀錄</button>
+              <button @click="addNoteAction('line')" class="py-4 bg-emerald-50 text-emerald-600 rounded-2xl font-black border border-emerald-100 active:bg-emerald-100 transition shadow-sm text-xs">💬 傳Line</button>
+              <button @click="addNoteManual('無人接聽')" class="py-4 bg-gray-100 text-gray-600 rounded-2xl font-black border border-gray-200 active:bg-gray-200 shadow-sm text-xs">無人接聽</button>
             </div>
-            <textarea v-model="editData.note" class="w-full h-44 p-4 bg-gray-50 border border-gray-200 rounded-2xl text-[13px] text-gray-600 mb-6 focus:ring-2 focus:ring-blue-500 outline-none resize-none font-mono shadow-inner leading-relaxed font-bold"></textarea>
-            <button @click="submitUpdate" :disabled="isUpdating" class="w-full bg-gray-800 text-white font-black py-5 rounded-[1.5rem] shadow-2xl shadow-gray-200 active:scale-95 transition flex justify-center items-center gap-3">
+            <textarea v-model="editData.note" class="w-full h-48 p-5 bg-gray-50 border border-gray-100 rounded-[2rem] text-sm text-gray-600 mb-8 focus:ring-4 focus:ring-blue-500/10 outline-none resize-none font-mono shadow-inner leading-relaxed font-bold"></textarea>
+            <button @click="submitUpdate" :disabled="isUpdating" class="w-full bg-gray-900 text-white font-black py-6 rounded-[1.75rem] shadow-2xl active:scale-95 transition flex justify-center items-center gap-3 text-lg">
               <span v-if="isUpdating" class="w-5 h-5 border-3 border-white/30 border-t-white rounded-full animate-spin"></span>
-              [[ isUpdating ? '正在儲存中...' : '💾 儲存所有更新' ]]
+              [[ isUpdating ? '同步雲端中...' : '💾 儲存所有更新' ]]
             </button>
           </div>
         </div>
       </transition>
 
-      <div v-if="toastMessage" class="fixed bottom-8 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white px-8 py-3.5 rounded-full text-sm font-black shadow-2xl z-50 transition-all tracking-wider">[[ toastMessage ]]</div>
+      <div v-if="toastMessage" class="fixed bottom-10 left-1/2 transform -translate-x-1/2 bg-gray-800/95 backdrop-blur text-white px-8 py-4 rounded-full text-sm font-black shadow-2xl z-50 transition-all tracking-wider border border-white/10 animate-bounce">[[ toastMessage ]]</div>
     </div>
 
     <script>
@@ -227,9 +228,11 @@
               const matchInd = this.filterIndustry.length === 0 || this.filterIndustry.includes(item.industry);
               let matchDate = true;
               if (this.filterStartDate || this.filterEndDate) {
-                const itemDate = new Date(item.formDate);
-                if (this.filterStartDate && itemDate < new Date(this.filterStartDate)) matchDate = false;
-                if (this.filterEndDate && itemDate > new Date(this.filterEndDate + 'T23:59:59')) matchDate = false;
+                const itemDate = this.parseSafeDate(item.formDate);
+                if (!itemDate) matchDate = false; else {
+                  if (this.filterStartDate && itemDate < new Date(this.filterStartDate)) matchDate = false;
+                  if (this.filterEndDate && itemDate > new Date(this.filterEndDate + 'T23:59:59')) matchDate = false;
+                }
               }
               return matchSearch && matchSrc && matchArea && matchInd && matchDate;
             });
@@ -275,11 +278,11 @@
               .then(res => res.json()).then(d => { this.salesData = d; this.loading = false; })
               .catch(e => { alert("抓取失敗: " + e.message); this.loading = false; });
           },
-          // 📝 更新面板專用
+          parseSafeDate(s) { if(!s) return null; let clean = String(s).split(" ")[0].replace(/[^\d\/\-\.]/g, ''); let d = new Date(clean); return isNaN(d.getTime()) ? null : d; },
           openUpdateModal(item) {
             this.currentItem = item;
             this.editData = JSON.parse(JSON.stringify(item));
-            if (!this.editData.note || this.editData.note === '無') {
+            if (!this.editData.note || this.editData.note === '無' || this.editData.note.trim() === '') {
               this.editData.note = "傳line紀錄（共0次）：\n撥打紀錄（共0次）：\n手動紀錄：";
             }
             this.showUpdateModal = true;
@@ -318,20 +321,18 @@
               progress: `${new Date().toLocaleDateString()} | ${this.editData.newTracking}`
             });
             fetch(GAS_URL + "?" + params.toString(), { method: "POST" })
-              .then(res => res.text()).then(r => { if(r==="Success") { this.showToast("更新成功！"); this.loadData(); this.closeUpdateModal(); } })
+              .then(res => res.text()).then(r => { if(r==="Success") { this.showToast("✅ 雲端同步成功！"); this.loadData(); this.closeUpdateModal(); } })
               .finally(() => this.isUpdating = false);
           },
-          // 💬 LINE 面板專用
           openLineModal(item) { this.currentLineItem = item; this.showLineModal = true; },
           closeLineModal() { this.showLineModal = false; },
           jumpAndCopyName() {
             const name = `👤${this.currentLineItem.storeName}-`;
             this.copyText(name);
-            this.showToast(`已複製：「${name}」準備跳轉 LINE...`);
+            this.showToast(`已複製：「${name}」跳轉中...`);
             setTimeout(() => window.open('https://line.me/ti/p/~' + (this.currentLineItem.lineId || this.currentLineItem.phone)), 800);
           },
-          copyScript() { this.copyText(this.lineScriptContent); this.showToast('✅ 話術已複製！'); },
-          // 🛠️ 核心通用
+          copyScript() { this.copyText(this.lineScriptContent); this.showToast('✅ 開發話術已複製！'); },
           getCategory(i) {
             const L=String(i.addLine).includes('✅'), M=String(i.readStatus).includes('✅'), N=String(i.callStatus).includes('✅'), O=String(i.isConnected).includes('✅');
             if (i.owner) return i.source === '業務自開件' ? 'self' : 'dispatched';
@@ -344,11 +345,11 @@
           getActionAlert(i) {
             const c = this.getCategory(i);
             if(c==='new') return {text:'🆕 新單請聯絡！', color:'text-green-600 bg-green-50 border-green-200'};
-            if(c==='unread') return {text:'📞 請一定要打電話！', color:'text-red-500 bg-red-50 border-red-200'};
-            if(c==='read') return {text:'🔥 已讀已通！該派單了！', color:'text-red-500 bg-red-50 border-red-200'};
+            if(c==='unread') return {text:'📞 請一定要打電話！', color:'text-red-600 bg-red-50 border-red-200'};
+            if(c==='read') return {text:'🔥 已讀已通！該派單了！', color:'text-red-700 bg-red-50 border-red-200'};
             if(c==='self') return {text:'💪 業務自開：' + i.owner, color:'text-teal-600 bg-teal-50 border-teal-200'};
             if(c==='dispatched') return {text:'🚀 已派單給：' + i.owner, color:'text-purple-600 bg-purple-50 border-purple-200'};
-            return {text:'📝 追蹤紀錄：' + (i.status || '未定義'), color:'text-gray-500 bg-gray-50 border-gray-200'};
+            return {text:'📝 追蹤：' + (i.status || '處理中'), color:'text-gray-500 bg-gray-50 border-gray-200'};
           },
           pillClass(t, i) {
             const m = {'加Line':'addLine','已讀':'readStatus','撥電話':'callStatus','是否撥通':'isConnected','Email':'emailSent'};
@@ -364,13 +365,13 @@
             if(t==='thisMonth') { this.filterStartDate = fmt(new Date(now.getFullYear(), now.getMonth(), 1)); this.filterEndDate = fmt(new Date(now.getFullYear(), now.getMonth()+1, 0)); }
             else if(t==='lastMonth') { this.filterStartDate = fmt(new Date(now.getFullYear(), now.getMonth()-1, 1)); this.filterEndDate = fmt(new Date(now.getFullYear(), now.getMonth(), 0)); }
             else if(t==='thisWeek') { const d = now.getDay()||7; this.filterStartDate = fmt(new Date(now.setDate(now.getDate()-d+1))); this.filterEndDate = fmt(new Date(now.setDate(now.getDate()+6))); }
-            else if(t==='lastWeek') { const d = now.getDay()||7; const lastMon = new Date(); lastMon.setDate(now.getDate()-d-6); this.filterStartDate = fmt(lastMon); const lastSun = new Date(lastMon); lastSun.setDate(lastMon.getDate()+6); this.filterEndDate = fmt(lastSun); }
           },
           validateDateRange() { if (this.filterStartDate && this.filterEndDate && this.filterStartDate > this.filterEndDate) [this.filterStartDate, this.filterEndDate] = [this.filterEndDate, this.filterStartDate]; },
           getTabCount(id) { return id==='all'?this.filteredData.length:this.filteredData.filter(i=>this.getCategory(i)===id).length; },
           getCategoryColor(c) { return {new:'#00C851',unread:'#ffbb33',read:'#ff4444',noline:'#33b5e5',dispatched:'#9c27b0',self:'#00897b',invalid:'#6c757d'}[c]||'#ccc'; },
-          copyText(text) { if (!text) return; const el = document.createElement('textarea'); el.value = text; document.body.appendChild(el); el.select(); document.execCommand('copy'); document.body.removeChild(el); this.showToast('已複製！'); },
-          showToast(m) { this.toastMessage = m; setTimeout(() => this.toastMessage = '', 2000); },
+          copyText(text) { if (!text) return; const el = document.createElement('textarea'); el.value = text; document.body.appendChild(el); el.select(); document.execCommand('copy'); document.body.removeChild(el); },
+          showToast(m) { this.toastMessage = m; setTimeout(() => this.toastMessage = '', 2500); },
+          formatDate(d) { if(!d) return ''; const t = new Date(d); return isNaN(t) ? d : `${t.getMonth()+1}/${t.getDate()}`; },
           openDispatch(item) { window.open('https://happy08200822.github.io/ezpretty-liff/dispatch.html?key=' + item.id + '&store=' + encodeURIComponent(item.storeName)); }
         }
       }).mount('#app');
