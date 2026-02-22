@@ -3,105 +3,95 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>🎯 ezPretty 業務競技場 Pro</title>
+  <title>🎯 ezPretty 業務競技場</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     [v-cloak] { display: none !important; }
-    body { font-family: 'PingFang TC', sans-serif; background-color: #f8fafc; }
+    body { font-family: 'PingFang TC', sans-serif; background-color: #f8f9fc; -webkit-tap-highlight-color: transparent; }
     .no-scrollbar::-webkit-scrollbar { display: none; }
-    .glass-morphism { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); }
+    .active-tab { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); transform: translateY(-2px); }
   </style>
 </head>
 <body class="pb-10">
-  <div id="app" v-cloak class="w-full max-w-7xl mx-auto px-4 pt-6">
-    
-    <div class="bg-gradient-to-br from-slate-800 to-slate-900 rounded-[2.5rem] p-6 mb-8 text-white shadow-2xl relative overflow-hidden">
-      <div class="absolute top-0 right-0 opacity-10 text-9xl font-black italic">ARENA</div>
-      <div class="flex justify-between items-center relative z-10">
-        <div class="text-center flex-1">
-          <div class="text-4xl mb-2">👦🏻</div>
-          <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">Kelvin</p>
-          <p class="text-2xl font-black text-blue-400">[[ stats.kelvin.deals ]] <span class="text-[10px] text-white/50">成交</span></p>
-        </div>
-        <div class="flex flex-col items-center px-4">
-          <div class="bg-white/10 px-3 py-1 rounded-full text-[10px] font-black mb-2">VS</div>
-          <div class="h-12 w-[1px] bg-white/20"></div>
-        </div>
-        <div class="text-center flex-1">
-          <div class="text-4xl mb-2">👨🏻‍💼</div>
-          <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">David</p>
-          <p class="text-2xl font-black text-emerald-400">[[ stats.david.deals ]] <span class="text-[10px] text-white/50">成交</span></p>
-        </div>
+  <div id="app" v-cloak class="w-full max-w-4xl mx-auto px-4 pt-6">
+
+    <div class="flex items-center justify-between mb-6 bg-white p-2 rounded-2xl shadow-sm border border-gray-100">
+      <button v-for="rep in ['All', 'Kelvin', 'David']" :key="rep" @click="setRep(rep)"
+        :class="['flex-1 py-2.5 rounded-xl text-sm font-black transition-all', currentRep === rep ? 'bg-gray-800 text-white shadow-md' : 'text-gray-400']">
+        [[ rep === 'All' ? '🌐 全體' : rep ]]
+      </button>
+    </div>
+
+    <div class="flex gap-3 mb-6">
+      <div class="flex-1 bg-white p-4 rounded-3xl border border-gray-100 shadow-sm">
+        <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">🔥 意願高</p>
+        <span class="text-2xl font-black text-red-500">[[ getStat('意願高') ]]</span>
+      </div>
+      <div class="flex-1 bg-white p-4 rounded-3xl border border-gray-100 shadow-sm">
+        <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">🗓️ 待展示</p>
+        <span class="text-2xl font-black text-blue-600">[[ getStat('已約展') ]]</span>
       </div>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-      <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100">
-        <h3 class="text-sm font-black text-slate-800 mb-4 flex items-center gap-2">
-          <span class="w-2 h-5 bg-indigo-500 rounded-full"></span> 銷售漏斗分佈
-        </h3>
-        <div class="h-48 flex justify-center">
-          <canvas id="funnelChart"></canvas>
-        </div>
+    <div class="flex overflow-x-auto gap-3 no-scrollbar mb-6 pb-2">
+      <button v-for="tab in tabs" :key="tab.id" @click="currentTab = tab.id"
+        :class="['flex-none w-24 h-24 flex flex-col items-center justify-center rounded-3xl border transition-all', currentTab === tab.id ? tab.activeClass + ' active-tab border-transparent' : 'bg-white text-gray-400 border-gray-100 shadow-sm']">
+        <span class="text-2xl mb-1">[[ tab.icon ]]</span>
+        <span class="text-[11px] font-black">[[ tab.label ]]</span>
+        <span class="text-[10px] mt-1 font-bold opacity-60">[[ getTabCount(tab.id) ]]</span>
+      </button>
+    </div>
+
+    <div class="flex gap-2 mb-6">
+      <div class="relative flex-1">
+        <input v-model="searchQuery" type="text" placeholder="搜尋店名或地區..." 
+          class="w-full bg-white border-none ring-1 ring-gray-200 rounded-2xl py-3 px-4 text-sm font-bold focus:ring-2 focus:ring-gray-800 outline-none shadow-sm">
       </div>
-      <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100 flex flex-col justify-between">
-        <h3 class="text-sm font-black text-slate-800 mb-4 flex items-center gap-2">
-          <span class="w-2 h-5 bg-rose-500 rounded-full"></span> 關鍵轉換指標 (本月)
-        </h3>
-        <div class="space-y-4">
-          <div v-for="metric in metrics" :key="metric.label" class="flex items-center justify-between">
-            <span class="text-xs font-bold text-slate-500">[[ metric.label ]]</span>
-            <div class="flex items-center gap-3 flex-1 px-4">
-              <div class="h-2 bg-slate-100 rounded-full flex-1 overflow-hidden">
-                <div class="h-full bg-slate-800" :style="{ width: metric.value + '%' }"></div>
-              </div>
-              <span class="text-xs font-black text-slate-800">[[ metric.value ]]%</span>
-            </div>
+      <button @click="toggleSort" class="bg-white ring-1 ring-gray-200 px-4 rounded-2xl flex items-center justify-center active:bg-gray-50 shadow-sm">
+        <span class="text-lg">[[ sortOrder === 'desc' ? '🔽' : '🔼' ]]</span>
+      </button>
+    </div>
+
+    <div class="grid grid-cols-1 gap-4">
+      <div v-for="item in processedData" :key="item.id" class="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 p-6 relative overflow-hidden">
+        
+        <div class="absolute top-6 right-6">
+          <span :class="['text-[10px] font-black px-2.5 py-1 rounded-lg border', getStatusBadge(item.status)]">[[ item.status ]]</span>
+        </div>
+
+        <div class="mb-4">
+          <p class="text-[10px] font-black text-gray-400 mb-1">[[ item.owner ]] 負責</p>
+          <h2 class="text-xl font-black text-gray-800 leading-tight">[[ item.area ]] [[ item.storeName ]]</h2>
+          <div class="flex gap-3 mt-2 text-xs font-bold text-blue-500">
+            <span>👤 [[ item.bossName ]]</span>
+            <a :href="'tel:' + item.phone" class="underline">📞 [[ item.phone ]]</a>
           </div>
         </div>
-      </div>
-    </div>
 
-    <div class="sticky top-4 z-50 glass-morphism border border-white shadow-xl rounded-3xl p-4 mb-8">
-      <div class="flex flex-wrap gap-3">
-        <select v-model="filter.owner" class="bg-slate-50 text-xs font-black p-3 rounded-2xl border-none ring-1 ring-slate-200 focus:ring-2 focus:ring-indigo-500">
-          <option value="All">🏆 全體業務</option>
-          <option value="Kelvin">👦🏻 Kelvin</option>
-          <option value="David">👨🏻‍💼 David</option>
-        </select>
-        
-        <select v-model="filter.status" class="bg-slate-50 text-xs font-black p-3 rounded-2xl border-none ring-1 ring-slate-200">
-          <option value="All">🎯 所有狀態</option>
-          <option v-for="tab in tabs" :key="tab.id" :value="tab.id">[[ tab.icon ]] [[ tab.label ]]</option>
-        </select>
-
-        <input v-model="filter.search" type="text" placeholder="🔍 搜尋地區或店名..." class="flex-1 bg-slate-50 text-xs font-black p-3 rounded-2xl border-none ring-1 ring-slate-200">
-
-        <button @click="toggleSort" class="bg-slate-800 text-white px-4 rounded-2xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition">
-          排序：[[ sortLabel ]] [[ isSortDesc ? '↓' : '↑' ]]
-        </button>
-      </div>
-    </div>
-
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      <div v-for="item in processedData" :key="item.id" class="bg-white rounded-[2rem] shadow-sm border border-slate-100 p-6 flex flex-col hover:shadow-xl transition-shadow duration-300">
-        <div class="flex justify-between items-start mb-4">
-          <h2 class="text-lg font-black text-slate-800">[[ item.area ]][[ item.storeName ]]</h2>
-          <span :class="['text-[10px] font-black px-2 py-1 rounded-lg', getStatusClass(item.status)]">[[ item.status ]]</span>
+        <div v-if="item.status === '已約展'" class="bg-blue-50 rounded-2xl p-4 mb-4">
+          <p class="text-[10px] font-black text-blue-400 mb-1">展示預約</p>
+          <p class="text-sm font-black text-blue-700">[[ item.demoTime ]] <span class="ml-2 opacity-60">([[ item.demoMethod ]])</span></p>
         </div>
-        <div class="flex gap-4 text-xs font-bold text-slate-500 mb-6">
-          <span>👤 [[ item.bossName ]]</span>
-          <span>📞 [[ item.phone ]]</span>
+
+        <div v-if="item.status.includes('意願')" class="bg-gray-50 rounded-2xl p-4 mb-4">
+          <p class="text-[10px] font-black text-gray-400 mb-1">最新備註</p>
+          <p class="text-xs font-bold text-gray-600 leading-relaxed italic">"[[ item.note || '尚無備註...' ]]"</p>
         </div>
-        <div class="mt-auto grid grid-cols-2 gap-3">
-          <button class="bg-slate-100 text-slate-600 font-black py-3 rounded-xl text-[11px]">💬 聯繫</button>
-          <button class="bg-indigo-600 text-white font-black py-3 rounded-xl text-[11px] shadow-lg shadow-indigo-100">更新進度</button>
+
+        <div class="grid grid-cols-2 gap-2 mt-2">
+          <button class="bg-gray-100 text-gray-600 font-black py-3.5 rounded-2xl text-xs active:scale-95 transition">💬 LINE 聯繫</button>
+          
+          <button v-if="item.status === '已拉群'" class="bg-amber-500 text-white font-black py-3.5 rounded-2xl text-xs shadow-lg shadow-amber-100 active:scale-95 transition">📅 約展時間</button>
+          <button v-if="item.status === '已約展'" class="bg-green-500 text-white font-black py-3.5 rounded-2xl text-xs shadow-lg shadow-green-100 active:scale-95 transition">✅ 展示回報</button>
+          <button v-if="item.status.includes('意願')" class="bg-gray-800 text-white font-black py-3.5 rounded-2xl text-xs shadow-lg shadow-gray-200 active:scale-95 transition">📝 更新進度</button>
         </div>
       </div>
-    </div>
 
+      <div v-if="processedData.length === 0" class="text-center py-20">
+        <p class="text-gray-300 font-black tracking-widest uppercase">No Records Found</p>
+      </div>
+    </div>
   </div>
 
   <script>
@@ -110,75 +100,61 @@
       delimiters: ['[[', ']]'],
       data() {
         return {
-          filter: { owner: 'All', status: 'All', search: '' },
-          sortBy: 'date', // 'date' or 'intent'
-          isSortDesc: true,
+          currentRep: 'All',
+          currentTab: '已拉群',
+          searchQuery: '',
+          sortOrder: 'desc',
           tabs: [
-            { id: '已拉群', icon: '🆕', label: '待約展' },
-            { id: '已約展', icon: '🗓️', label: '待展示' },
-            { id: '意願高', icon: '🔥', label: '意願高' },
-            { id: '意願中', icon: '🤔', label: '意願中' },
-            { id: '意願低', icon: '🧊', label: '意願低' },
-            { id: '拒絕', icon: '🚫', label: '拒絕' }
-          ],
-          stats: { kelvin: { deals: 12 }, david: { deals: 9 } },
-          metrics: [
-            { label: '約展轉化率 (約成/派單)', value: 68 },
-            { label: '展示成功率 (意願高/展示)', value: 42 }
+            { id: '已拉群', icon: '🆕', label: '待約展', activeClass: 'bg-amber-500 text-white' },
+            { id: '已約展', icon: '🗓️', label: '待展示', activeClass: 'bg-blue-600 text-white' },
+            { id: '意願高', icon: '🔥', label: '意願高', activeClass: 'bg-red-500 text-white' },
+            { id: '意願中', icon: '🤔', label: '意願中', activeClass: 'bg-orange-500 text-white' },
+            { id: '意願低', icon: '🧊', label: '意願低', activeClass: 'bg-teal-600 text-white' },
+            { id: '拒絕', icon: '🚫', label: '拒絕', activeClass: 'bg-gray-800 text-white' }
           ],
           salesData: [
-            { id: 1, owner: 'Kelvin', status: '意願高', area: '台中', storeName: '美緹美髮', bossName: '蔡老闆', phone: '0912-345-678', date: '2026-02-20' },
-            { id: 2, owner: 'David', status: '已約展', area: '台北', storeName: '星辰髮廊', bossName: '陳小姐', phone: '0987-654-321', date: '2026-02-21' },
-            // ... 更多資料
+            { id: 1, owner: 'Kelvin', status: '已拉群', area: '台中', storeName: '美緹國際', bossName: '蔡老闆', phone: '0912-345-678', note: '' },
+            { id: 2, owner: 'David', status: '已約展', area: '台北', storeName: '星辰髮廊', bossName: '陳小姐', phone: '0987-654-321', demoTime: '02/25 14:00', demoMethod: '線上', note: '' },
+            { id: 3, owner: 'Kelvin', status: '意願高', area: '高雄', storeName: '艾芮絲美學', bossName: '林經理', phone: '0922-333-444', note: '老闆非常滿意，預計這週五簽約' }
           ]
         }
       },
       computed: {
-        sortLabel() { return this.sortBy === 'date' ? '時間' : '意願'; },
         processedData() {
-          let result = this.salesData;
-          // 篩選業務
-          if (this.filter.owner !== 'All') result = result.filter(i => i.owner === this.filter.owner);
-          // 篩選狀態
-          if (this.filter.status !== 'All') result = result.filter(i => i.status === this.filter.status);
-          // 搜尋
-          if (this.filter.search) {
-            const s = this.filter.search.toLowerCase();
-            result = result.filter(i => i.storeName.includes(s) || i.area.includes(s));
+          let filtered = this.salesData;
+          if (this.currentRep !== 'All') filtered = filtered.filter(i => i.owner === this.currentRep);
+          filtered = filtered.filter(i => i.status === this.currentTab);
+          if (this.searchQuery) {
+            const s = this.searchQuery.toLowerCase();
+            filtered = filtered.filter(i => i.storeName.includes(s) || i.area.includes(s));
           }
-          // 排序
-          result.sort((a, b) => {
-            let valA = a.date;
-            let valB = b.date;
-            return this.isSortDesc ? (valB > valA ? 1 : -1) : (valA > valB ? 1 : -1);
-          });
-          return result;
-        }
-      },
-      methods: {
-        toggleSort() { this.isSortDesc = !this.isSortDesc; },
-        getStatusClass(s) {
-          if (s === '意願高') return 'bg-rose-100 text-rose-600';
-          if (s === '已約展') return 'bg-blue-100 text-blue-600';
-          return 'bg-slate-100 text-slate-600';
+          return filtered.sort((a, b) => this.sortOrder === 'desc' ? b.id - a.id : a.id - b.id);
         }
       },
       mounted() {
-        // 初始化 Chart.js
-        const ctx = document.getElementById('funnelChart').getContext('2d');
-        new Chart(ctx, {
-          type: 'doughnut',
-          data: {
-            labels: ['待約展', '待展示', '意願高', '其他'],
-            datasets: [{
-              data: [15, 8, 5, 12],
-              backgroundColor: ['#f59e0b', '#3b82f6', '#f43f5e', '#e2e8f0'],
-              borderWidth: 0,
-              hoverOffset: 10
-            }]
-          },
-          options: { plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10, weight: 'bold' } } } } }
-        });
+        const lastRep = localStorage.getItem('lastRep');
+        if (lastRep) this.currentRep = lastRep;
+      },
+      methods: {
+        setRep(name) {
+          this.currentRep = name;
+          localStorage.setItem('lastRep', name);
+        },
+        toggleSort() { this.sortOrder = this.sortOrder === 'desc' ? 'asc' : 'desc'; },
+        getTabCount(status) {
+          let d = this.salesData;
+          if (this.currentRep !== 'All') d = d.filter(i => i.owner === this.currentRep);
+          return d.filter(i => i.status === status).length;
+        },
+        getStat(status) {
+          let d = this.salesData;
+          if (this.currentRep !== 'All') d = d.filter(i => i.owner === this.currentRep);
+          return d.filter(i => i.status === status).length;
+        },
+        getStatusBadge(status) {
+          const badges = { '已拉群': 'border-amber-200 text-amber-600', '已約展': 'border-blue-200 text-blue-600', '意願高': 'border-red-200 text-red-600', '意願中': 'border-orange-200 text-orange-600', '意願低': 'border-teal-200 text-teal-600', '拒絕': 'border-gray-200 text-gray-600' };
+          return badges[status] || '';
+        }
       }
     }).mount('#app');
   </script>
