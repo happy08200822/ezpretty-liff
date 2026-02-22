@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <style>
+      [v-cloak] { display: none; }
+      body { font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif; background-color: #f4f6f9; }
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      .slide-fade-enter-active, .slide-fade-leave-active { transition: all 0.3s ease-in-out; }
+      .slide-fade-enter-from, .slide-fade-leave-to { transform: translateY(-10px); opacity: 0; max-height: 0; overflow: hidden; }
+      .slide-fade-enter-to, .slide-fade-leave-from { transform: translateY(0); opacity: 1; max-height: 800px; }
+      .modal-fade-enter-active, .modal-fade-leave-active { transition: all 0.3s ease-out; }
+      .modal-fade-enter-from, .modal-fade-leave-to { transform: translateY(100%); opacity: 0; }
+      .modal-fade-enter-to, .modal-fade-leave-from { transform: translateY(0); opacity: 1; }
+    </style>
+  </head>
+  <body class="pb-20">
+    <div id="app" v-cloak class="w-full 2xl:max-w-[1600px] mx-auto p-4 md:p-6">
+      
+      <div v-if="!loading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+        <div v-for="(item, index) in finalSortedData" :key="index" class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col h-full border-t-[6px]" :style="{ borderTopColor: getCategoryColor(getCategory(item)) }">
+          <div class="p-4 md:p-5 flex flex-col flex-grow">
+            <div class="mt-auto pt-2 grid grid-cols-3 gap-2">
+              <button @click="openLineModal(item)" class="flex items-center justify-center gap-1 bg-white border border-gray-200 text-gray-600 py-2.5 rounded-xl font-bold text-[12px] shadow-sm active:bg-gray-50 transition">💬 Line</button>
+              <a :href="'tel:' + item.phone" class="flex items-center justify-center gap-1 bg-white border border-gray-200 text-gray-600 py-2.5 rounded-xl font-bold text-[12px] shadow-sm transition">📞 電話</a>
+              <button @click="openUpdateModal(item)" class="flex items-center justify-center gap-1 bg-orange-500 text-white py-2.5 rounded-xl font-bold text-[12px] shadow-sm active:scale-95 transition">📝 更新</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <transition name="modal-fade">
+        <div v-if="showUpdateModal" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-gray-900/60 backdrop-blur-sm" @click.self="closeUpdateModal">
+          <div class="bg-white w-full max-w-md rounded-t-[2rem] sm:rounded-[2rem] p-5 md:p-6 max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div class="flex justify-between items-center mb-4 border-b pb-2">
+              <h3 class="text-lg font-black text-gray-800 tracking-tight">📝 更新：[[ currentItem?.storeName ]]</h3>
+              <button @click="closeUpdateModal" class="text-gray-400 font-bold">✕</button>
+            </div>
+
+            <p class="text-xs font-bold text-gray-500 mb-2">📌 當前狀態</p>
+            <div class="grid grid-cols-2 gap-2 mb-4">
+              <button @click="editData.newTracking = '聯絡中'" :class="['py-3 rounded-xl font-bold text-sm transition', editData.newTracking === '聯絡中' ? 'bg-blue-600 text-white shadow-lg' : 'bg-gray-100 text-gray-500']">📞 聯絡中</button>
+              <button @click="editData.newTracking = '拒絕'" :class="['py-3 rounded-xl font-bold text-sm transition', editData.newTracking === '拒絕' ? 'bg-red-600 text-white shadow-lg' : 'bg-gray-100 text-gray-500']">🚫 拒絕/無效</button>
+            </div>
+
+            <p class="text-xs font-bold text-gray-500 mb-2">📍 聯絡進度</p>
+            <div class="flex flex-wrap gap-2 mb-4">
+              <button v-for="tag in ['加Line','已讀','播電話','是否撥通','Email']" :key="tag" @click="toggleEditCheck(tag)"
+                      :class="['px-3 py-2 rounded-lg text-[11px] font-bold border transition', isTagChecked(tag) ? 'bg-blue-50 text-blue-600 border-blue-200' : 'bg-white text-gray-400 border-gray-100']">
+                [[ tag ]]
+              </button>
+            </div>
+
+            <p class="text-xs font-bold text-gray-500 mb-2">⚡ 快速紀錄 (點擊累加)</p>
+            <div class="grid grid-cols-3 gap-2 mb-4 text-[11px]">
+              <button @click="addNoteAction('call')" class="py-2 bg-blue-50 text-blue-600 rounded-lg font-bold border border-blue-100 shadow-sm">📞 撥打紀錄</button>
+              <button @click="addNoteAction('line')" class="py-2 bg-green-50 text-green-600 rounded-lg font-bold border border-green-100 shadow-sm">💬 傳Line紀錄</button>
+              <button @click="addNoteManual('無人接聽')" class="py-2 bg-gray-100 text-gray-600 rounded-lg font-bold shadow-sm">無人接聽</button>
+              <button @click="addNoteManual('忙碌中')" class="py-2 bg-gray-100 text-gray-600 rounded-lg font-bold shadow-sm">忙碌中</button>
+              <button @click="addNoteManual('請寄資料')" class="py-2 bg-gray-100 text-gray-600 rounded-lg font-bold shadow-sm">請寄資料</button>
+              <button @click="addNoteManual('已約時間')" class="py-2 bg-gray-100 text-gray-600 rounded-lg font-bold shadow-sm">已約時間</button>
+            </div>
+
+            <textarea v-model="editData.note" class="w-full h-40 p-3 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-600 mb-4 focus:ring-2 focus:ring-blue-500 outline-none resize-none leading-relaxed shadow-inner font-mono"></textarea>
+
+            <button @click="submitUpdate" :disabled="isUpdating" class="w-full bg-blue-600 text-white font-bold py-4 rounded-2xl shadow-xl active:scale-95 transition flex justify-center items-center gap-2">
+              <span v-if="isUpdating" class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+              [[ isUpdating ? '正在儲存...' : '💾 儲存更新' ]]
+            </button>
+          </div>
+        </div>
+      </transition>
+
+    </div>
+
+    <script>
+      const GAS_URL = "https://script.google.com/macros/s/你的正式版ID/exec";
+      const { createApp } = Vue;
+      createApp({
+        delimiters: ['[[', ']]'],
+        data() {
+          return {
+            loading: true, salesData: [], showUpdateModal: false, isUpdating: false,
+            currentItem: null,
+            editData: { newTracking: '', addLine: '', readStatus: '', callStatus: '', isConnected: '', emailSent: '', note: '' }
+          }
+        },
+        methods: {
+          openUpdateModal(item) {
+            this.currentItem = item;
+            // 拷貝當前資料到編輯區
+            this.editData = { ...item };
+            // 如果紀錄內容是空的，初始化模板
+            if (!this.editData.note || this.editData.note === '無') {
+              this.editData.note = "傳line紀錄（共0次）：\n撥打紀錄（共0次）：\n其他資訊：\n手動紀錄：";
+            }
+            this.showUpdateModal = true;
+          },
+          closeUpdateModal() { this.showUpdateModal = false; },
+          
+          isTagChecked(tag) {
+            const map = { '加Line': 'addLine', '已讀': 'readStatus', '撥電話': 'callStatus', '是否撥通': 'isConnected', 'Email': 'emailSent' };
+            return String(this.editData[map[tag]]).includes('✅');
+          },
+          toggleEditCheck(tag) {
+            const map = { '加Line': 'addLine', '已讀': 'readStatus', '撥電話': 'callStatus', '是否撥通': 'isConnected', 'Email': 'emailSent' };
+            const key = map[tag];
+            this.editData[key] = this.editData[key] === '✅' ? '' : '✅';
+          },
+          
+          // 🪄 字串累加魔法
+          addNoteAction(type) {
+            const now = new Date();
+            const timeStr = `[ ${now.getMonth()+1}/${now.getDate()} ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')} ]`;
+            const label = type === 'call' ? '撥打紀錄' : '傳line紀錄';
+            const actionText = type === 'call' ? '已撥打' : '已傳訊';
+            
+            let val = this.editData.note;
+            const regex = new RegExp(`${label}（共(\\d+)次）：`);
+            const match = val.match(regex);
+            
+            if (match) {
+              const count = parseInt(match[1]) + 1;
+              val = val.replace(regex, `${label}（共${count}次）：\n${timeStr} ${actionText}`);
+            }
+            this.editData.note = val;
+          },
+          addNoteManual(text) {
+            this.editData.note = this.editData.note.replace('手動紀錄：', `手動紀錄：\n[${text}] `);
+          },
+
+          submitUpdate() {
+            this.isUpdating = true;
+            const params = new URLSearchParams({
+              action: 'updateProgress', // 對應 Main.gs 裡的 handleUpdateProgress
+              key: this.currentItem.id,
+              isL: String(this.editData.addLine === '✅'),
+              isM: String(this.editData.readStatus === '✅'),
+              isN: String(this.editData.callStatus === '✅'),
+              isO: String(this.editData.isConnected === '✅'),
+              isQ: String(this.editData.emailSent === '✅'),
+              note: this.editData.note,
+              progress: `${new Date().toLocaleDateString()} | ${this.editData.newTracking}`
+            });
+
+            fetch(GAS_URL + "?" + params.toString(), { method: "POST" })
+              .then(res => res.text())
+              .then(result => {
+                if(result === "Success") {
+                  alert("更新成功！");
+                  this.loadData(); // 重新抓取資料
+                  this.closeUpdateModal();
+                }
+              })
+              .finally(() => { this.isUpdating = false; });
+          }
+        }
+      }).mount('#app');
+    </script>
+  </body>
+</html>
