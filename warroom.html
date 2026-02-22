@@ -173,9 +173,15 @@
               <button @click="closeUpdateModal" class="text-gray-300 hover:text-gray-500 text-4xl font-light">✕</button>
             </div>
             <div class="grid grid-cols-2 gap-3 mb-8">
-              <button @click="editData.newTracking = '聯絡中'" :class="['py-5 rounded-[1.5rem] font-black text-sm transition shadow-sm', editData.newTracking === '聯絡中' ? 'bg-blue-600 text-white shadow-blue-100' : 'bg-gray-100 text-gray-500']">📞 聯絡中</button>
-              <button @click="editData.newTracking = '拒絕'" :class="['py-5 rounded-[1.5rem] font-black text-sm transition shadow-sm', editData.newTracking === '拒絕' ? 'bg-red-600 text-white shadow-red-100' : 'bg-gray-100 text-gray-500']">🚫 拒絕/無效</button>
-            </div>
+  <button @click="editData.newTracking = '聯絡中'" 
+          :class="['py-4 rounded-[1.5rem] font-black text-sm transition-all shadow-sm', String(editData.newTracking || '').includes('聯絡中') ? 'bg-blue-600 text-white shadow-md ring-2 ring-blue-200 ring-offset-1 scale-[1.02]' : 'bg-gray-100 text-gray-500 hover:bg-gray-200']">
+    📞 聯絡中
+  </button>
+  <button @click="editData.newTracking = '拒絕/無效'" 
+          :class="['py-4 rounded-[1.5rem] font-black text-sm transition-all shadow-sm', (String(editData.newTracking || '').includes('拒絕') || String(editData.newTracking || '').includes('無效')) ? 'bg-red-600 text-white shadow-md ring-2 ring-red-200 ring-offset-1 scale-[1.02]' : 'bg-gray-100 text-gray-500 hover:bg-gray-200']">
+    🚫 拒絕/無效
+  </button>
+</div>
             <p class="text-xs font-black text-gray-400 mb-4 tracking-widest uppercase px-1">📍 聯絡狀態勾選</p>
             <div class="flex flex-wrap gap-2 mb-8">
               <button v-for="tag in ['加Line','已讀','撥電話','是否撥通','Email']" :key="tag" @click="toggleEditCheck(tag)"
