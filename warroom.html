@@ -169,7 +169,7 @@
         <div v-if="showUpdateModal" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-gray-900/60 backdrop-blur-md" @click.self="closeUpdateModal">
           <div class="bg-white w-full max-w-md rounded-t-[3rem] sm:rounded-[2.5rem] p-8 shadow-2xl overflow-y-auto max-h-[92vh]">
             <div class="flex justify-between items-center mb-6 pb-2 border-b border-gray-50">
-              <h3 class="text-xl font-black text-gray-800 tracking-tight">📝 更新進度</h3>
+              <h3 class="text-xl font-black text-gray-800 tracking-tight">📝 更新：[[ currentItem?.area ]][[ currentItem?.storeName ]]</h3>
               <button @click="closeUpdateModal" class="text-gray-300 hover:text-gray-500 text-4xl font-light">✕</button>
             </div>
             <div class="grid grid-cols-2 gap-3 mb-8">
@@ -292,9 +292,18 @@
           openUpdateModal(item) {
             this.currentItem = item;
             this.editData = JSON.parse(JSON.stringify(item));
-            if (!this.editData.note || this.editData.note === '無' || this.editData.note.trim() === '') {
+            
+            // 🌟 關鍵修正：去抓取妳試算表 P 欄 (callCount) 的舊紀錄
+            let oldRecord = this.editData.callCount || this.editData.note || '';
+            
+            // 如果舊紀錄是空的、或是寫著「無」，才套用預設模板
+            if (oldRecord.trim() === '' || oldRecord === '無' || oldRecord === '尚無紀錄') {
               this.editData.note = "傳line紀錄（共0次）：\n撥打紀錄（共0次）：\n手動紀錄：";
+            } else {
+              // 如果有舊紀錄，就直接顯示在文字框裡！
+              this.editData.note = oldRecord;
             }
+            
             this.showUpdateModal = true;
           },
           closeUpdateModal() { this.showUpdateModal = false; },
