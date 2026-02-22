@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>🎯 ezPretty 業務戰情室</title>
+  <title>🎯 ezPretty 業務競技場</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
   <style>
@@ -11,6 +11,10 @@
     body { font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif; background-color: #f4f6f9; -webkit-tap-highlight-color: transparent; }
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    
+    /* 質感動畫 */
+    .rep-active { color: white !important; text-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .card-transition-move { transition: transform 0.5s ease; }
   </style>
 </head>
 <body class="pb-20">
@@ -18,11 +22,14 @@
 
     <div class="flex justify-center mb-6">
       <div class="bg-gray-200/70 p-1.5 rounded-full flex w-full max-w-md shadow-inner relative">
-        <button @click="currentRep = 'Kelvin'" :class="['flex-1 py-3 rounded-full text-lg font-black transition-all duration-300 z-10', currentRep === 'Kelvin' ? 'text-white shadow-lg scale-100 bg-gradient-to-r from-blue-500 to-blue-700' : 'text-gray-500 hover:text-gray-700 scale-95']">
+        <button @click="setRep('All')" :class="['flex-1 py-3 rounded-full text-sm font-black transition-all duration-300 z-10', currentRep === 'All' ? 'bg-gray-800 text-white shadow-lg' : 'text-gray-500 hover:text-gray-700']">
+          🏆 全體
+        </button>
+        <button @click="setRep('Kelvin')" :class="['flex-1 py-3 rounded-full text-sm font-black transition-all duration-300 z-10', currentRep === 'Kelvin' ? 'bg-gradient-to-r from-blue-500 to-blue-700 text-white shadow-lg' : 'text-gray-500 hover:text-gray-700']">
           👦🏻 Kelvin
         </button>
-        <button @click="currentRep = 'David'" :class="['flex-1 py-3 rounded-full text-lg font-black transition-all duration-300 z-10', currentRep === 'David' ? 'text-white shadow-lg scale-100 bg-gradient-to-r from-emerald-500 to-emerald-700' : 'text-gray-500 hover:text-gray-700 scale-95']">
-          👨🏻‍(_) David
+        <button @click="setRep('David')" :class="['flex-1 py-3 rounded-full text-sm font-black transition-all duration-300 z-10', currentRep === 'David' ? 'bg-gradient-to-r from-emerald-500 to-emerald-700 text-white shadow-lg' : 'text-gray-500 hover:text-gray-700']">
+          👨🏻‍💼 David
         </button>
       </div>
     </div>
@@ -30,23 +37,23 @@
     <div class="grid grid-cols-2 gap-3 mb-6">
       <div class="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm flex items-center justify-between">
         <div>
-          <p class="text-[10px] font-black text-gray-400 tracking-wider mb-1">🔥 意願高 (即將成交)</p>
+          <p class="text-[10px] font-black text-gray-400 tracking-wider mb-1">🔥 意願高 (即將收單)</p>
           <div class="flex items-baseline gap-2">
             <span class="text-3xl font-black text-red-500">[[ getStat('意願高') ]]</span>
-            <span class="text-xs font-bold text-gray-400">家店家</span>
+            <span class="text-xs font-bold text-gray-400">家</span>
           </div>
         </div>
-        <div class="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center text-xl">💰</div>
+        <div class="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center text-lg">💰</div>
       </div>
       <div class="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm flex items-center justify-between">
         <div>
-          <p class="text-[10px] font-black text-gray-400 tracking-wider mb-1">📅 本週待展示</p>
+          <p class="text-[10px] font-black text-gray-400 tracking-wider mb-1">📅 待展示數量</p>
           <div class="flex items-baseline gap-2">
             <span class="text-3xl font-black text-blue-600">[[ getStat('已約展') ]]</span>
-            <span class="text-xs font-bold text-gray-400">場會議</span>
+            <span class="text-xs font-bold text-gray-400">場</span>
           </div>
         </div>
-        <div class="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center text-xl">🚀</div>
+        <div class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-lg">🚀</div>
       </div>
     </div>
 
@@ -59,67 +66,50 @@
       </button>
     </div>
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-      <div v-for="item in filteredData" :key="item.id" class="bg-white rounded-[2rem] shadow-sm border border-gray-100 p-5 relative overflow-hidden">
+    <transition-group name="card-transition" tag="div" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div v-for="item in filteredData" :key="item.id" class="bg-white rounded-[2rem] shadow-sm border border-gray-100 p-5 relative overflow-hidden flex flex-col">
         
         <div class="absolute left-0 top-0 bottom-0 w-1.5" :style="{ backgroundColor: getCategoryColor(item.status) }"></div>
 
         <div class="flex justify-between items-start mb-3 pl-2">
           <div>
-            <h2 class="text-xl font-black text-gray-800 leading-tight mb-1">[[ item.area ]][[ item.storeName ]]</h2>
-            <div class="flex gap-2 text-xs font-bold text-gray-500">
-              <span>👤 [[ item.bossName ]]</span>
-              <span>📞 [[ item.phone ]]</span>
+            <h2 class="text-lg font-black text-gray-800 leading-tight mb-1">[[ item.area ]][[ item.storeName ]]</h2>
+            <div class="flex flex-wrap gap-2 text-[11px] font-bold text-gray-400">
+              <span class="flex items-center gap-1">👤 [[ item.bossName ]]</span>
+              <span class="text-gray-200">|</span>
+              <span class="text-blue-500">📞 [[ item.phone ]]</span>
             </div>
           </div>
-          <span :class="['text-[10px] font-black px-2 py-1 rounded-lg', getStatusBadge(item.status)]">[[ item.status ]]</span>
-        </div>
-
-        <div v-if="item.status === '已約展'" class="bg-blue-50/50 border border-blue-100 rounded-xl p-3 mb-4 flex items-center gap-3">
-          <div class="text-3xl">🗓️</div>
-          <div>
-            <p class="text-[10px] font-black text-blue-400 mb-0.5">即將展示</p>
-            <p class="text-sm font-black text-blue-700">[[ item.demoTime ]]</p>
-            <p class="text-[11px] font-bold text-blue-500 mt-0.5">[[ item.demoMethod ]] | [[ item.demoLocation ]]</p>
+          <div class="flex flex-col items-end gap-1">
+             <span :class="['text-[9px] font-black px-2 py-0.5 rounded-full', item.owner === 'Kelvin' ? 'bg-blue-100 text-blue-600' : 'bg-emerald-100 text-emerald-600']">[[ item.owner ]]</span>
+             <span :class="['text-[9px] font-black px-2 py-0.5 rounded-md border', getStatusBadge(item.status)]">[[ item.status ]]</span>
           </div>
         </div>
 
-        <div v-if="item.status.includes('意願')" class="bg-orange-50/50 border border-orange-100 rounded-xl p-3 mb-4">
-          <p class="text-[10px] font-black text-orange-400 mb-1">📝 業務追蹤筆記</p>
-          <p class="text-xs font-bold text-gray-600 line-clamp-2">[[ item.note ]]</p>
+        <div v-if="item.status === '已約展'" class="bg-blue-50/50 border border-blue-100 rounded-2xl p-3 mb-4 flex items-center gap-3">
+          <div class="text-2xl">📅</div>
+          <div>
+            <p class="text-[10px] font-black text-blue-400 uppercase tracking-tighter">展示預定</p>
+            <p class="text-sm font-black text-blue-700">[[ item.demoTime ]]</p>
+            <p class="text-[10px] font-bold text-blue-500">📍 [[ item.demoLocation ]]</p>
+          </div>
+        </div>
+
+        <div v-if="item.status.includes('意願')" class="bg-gray-50 border border-gray-100 rounded-2xl p-3 mb-4">
+          <p class="text-[9px] font-black text-gray-400 mb-1 tracking-widest">📝 追蹤備註</p>
+          <p class="text-xs font-bold text-gray-600 line-clamp-2 italic">"[[ item.note || '尚無備註' ]]"</p>
         </div>
 
         <div class="grid grid-cols-2 gap-2 mt-auto">
+          <button class="bg-gray-100 text-gray-500 font-black py-3 rounded-xl text-[11px] active:bg-gray-200 shadow-sm">💬 LINE 聯繫</button>
           
-          <button class="bg-gray-100 text-gray-600 font-black py-3 rounded-xl text-xs active:bg-gray-200 flex items-center justify-center gap-1 shadow-sm">
-            💬 找老闆
-          </button>
-
-          <button v-if="item.status === '已拉群'" class="bg-[#F7B500] text-white font-black py-3 rounded-xl text-xs active:scale-95 transition shadow-md shadow-yellow-200">
-            📅 敲定展示時間
-          </button>
-
-          <button v-if="item.status === '已約展'" class="bg-[#06C755] text-white font-black py-3 rounded-xl text-xs active:scale-95 transition shadow-md shadow-green-200 flex items-center justify-center gap-1">
-            ✅ 展示完回報
-          </button>
-
-          <button v-if="item.status.includes('意願')" class="bg-purple-600 text-white font-black py-3 rounded-xl text-xs active:scale-95 transition shadow-md shadow-purple-200">
-            📝 更新進度
-          </button>
-
-          <button v-if="item.status === '拒絕'" class="bg-gray-800 text-white font-black py-3 rounded-xl text-xs active:scale-95 transition shadow-md">
-            💀 結案封存
-          </button>
-
+          <button v-if="item.status === '已拉群'" class="bg-amber-500 text-white font-black py-3 rounded-xl text-[11px] shadow-md shadow-amber-100 active:scale-95 transition">📅 約展時間</button>
+          <button v-if="item.status === '已約展'" class="bg-emerald-500 text-white font-black py-3 rounded-xl text-[11px] shadow-md shadow-emerald-100 active:scale-95 transition">✅ 展示完回報</button>
+          <button v-if="item.status.includes('意願')" class="bg-purple-600 text-white font-black py-3 rounded-xl text-[11px] shadow-md shadow-purple-100 active:scale-95 transition">✍️ 更新進度</button>
+          <button v-if="item.status === '拒絕'" class="bg-gray-400 text-white font-black py-3 rounded-xl text-[11px] shadow-md shadow-gray-100">💀 結案</button>
         </div>
       </div>
-      
-      <div v-if="filteredData.length === 0" class="col-span-full text-center py-20">
-        <div class="text-5xl mb-4 opacity-50">📭</div>
-        <p class="text-gray-400 font-bold tracking-widest">目前沒有此狀態的名單</p>
-      </div>
-
-    </div>
+    </transition-group>
   </div>
 
   <script>
@@ -128,54 +118,64 @@
       delimiters: ['[[', ']]'],
       data() {
         return {
-          currentRep: 'Kelvin', // 預設切換者
+          currentRep: 'All', // 預設進入全體模式
           currentTab: '已拉群',
           tabs: [
-            { id: '已拉群', icon: '🆕', label: '待約展', activeClass: 'bg-yellow-500 text-white', ringClass: 'ring-yellow-300' },
-            { id: '已約展', icon: '📅', label: '待展示', activeClass: 'bg-blue-500 text-white', ringClass: 'ring-blue-300' },
-            { id: '意願高', icon: '🔥', label: '意願高', activeClass: 'bg-red-500 text-white', ringClass: 'ring-red-300' },
-            { id: '意願中', icon: '🤔', label: '意願中', activeClass: 'bg-orange-400 text-white', ringClass: 'ring-orange-300' },
-            { id: '意願低', icon: '🧊', label: '意願低', activeClass: 'bg-teal-500 text-white', ringClass: 'ring-teal-300' },
-            { id: '拒絕', icon: '🚫', label: '戰死/拒絕', activeClass: 'bg-gray-600 text-white', ringClass: 'ring-gray-300' }
+            { id: '已拉群', icon: '🆕', label: '待約展', activeClass: 'bg-amber-500 text-white', ringClass: 'ring-amber-200' },
+            { id: '已約展', icon: '🗓️', label: '待展示', activeClass: 'bg-blue-600 text-white', ringClass: 'ring-blue-200' },
+            { id: '意願高', icon: '🔥', label: '意願高', activeClass: 'bg-red-600 text-white', ringClass: 'ring-red-200' },
+            { id: '意願中', icon: '🤔', label: '意願中', activeClass: 'bg-orange-500 text-white', ringClass: 'ring-orange-200' },
+            { id: '意願低', icon: '🧊', label: '意願低', activeClass: 'bg-teal-600 text-white', ringClass: 'ring-teal-200' },
+            { id: '拒絕', icon: '🚫', label: '拒絕', activeClass: 'bg-gray-800 text-white', ringClass: 'ring-gray-200' }
           ],
-          // 假資料 mockup
+          // 測試假資料
           salesData: [
-            { id: 1, owner: 'Kelvin', status: '已拉群', area: '台中', storeName: '美緹國際', bossName: '蔡老闆', phone: '0912345678', note: '' },
-            { id: 2, owner: 'David', status: '已約展', area: '台北', storeName: '星辰美髮', bossName: '陳老闆', phone: '0987654321', demoTime: '02/24 (二) 14:00', demoMethod: '線上', demoLocation: 'Google Meet', note: '' },
-            { id: 3, owner: 'Kelvin', status: '意願高', area: '高雄', storeName: '艾芮絲時尚', bossName: '林老闆', phone: '0922334455', note: '老闆對報表很滿意，說這週五要跟股東開會決定，週五下午打給他收單。' },
-            { id: 4, owner: 'Kelvin', status: '已約展', area: '台中', storeName: 'Sun n.', bossName: '王老闆', phone: '0933445566', demoTime: '02/25 (三) 10:00', demoMethod: '現場', demoLocation: '台中市北區三民路', note: '' },
-            { id: 5, owner: 'David', status: '意願中', area: '新竹', storeName: '剪刀手', bossName: '張老闆', phone: '0955667788', note: '覺得價格有點高，還在考慮，下個月再問。' }
+            { id: 1, owner: 'Kelvin', status: '已拉群', area: '台中', storeName: '美緹國際', bossName: '蔡老闆', phone: '0912-***-***', note: '' },
+            { id: 2, owner: 'David', status: '已約展', area: '台北', storeName: '星辰髮廊', bossName: '陳小姐', phone: '0987-***-***', demoTime: '02/24 14:00', demoLocation: 'Google Meet', note: '' },
+            { id: 3, owner: 'Kelvin', status: '意願高', area: '高雄', storeName: '艾芮絲美學', bossName: '林經理', phone: '0922-***-***', note: '老闆覺得系統預約功能很強，預計這週五簽約。' },
+            { id: 4, owner: 'David', status: '意願中', area: '台南', storeName: '金剪刀', bossName: '黃老闆', phone: '0933-***-***', note: '還在比價中，需要提供更多方案。' },
+            { id: 5, owner: 'Kelvin', status: '已約展', area: '彰化', storeName: '愛洛雅', bossName: '張老闆', phone: '0955-***-***', demoTime: '02/26 10:30', demoLocation: '彰化縣員林市...', note: '' }
           ]
         }
       },
       computed: {
         filteredData() {
-          return this.salesData.filter(i => i.owner === this.currentRep && i.status.includes(this.currentTab.replace('展示完，', '')));
+          let data = this.salesData;
+          // 第一層過濾：業務員
+          if (this.currentRep !== 'All') {
+            data = data.filter(i => i.owner === this.currentRep);
+          }
+          // 第二層過濾：銷售狀態
+          return data.filter(i => i.status === this.currentTab);
         }
       },
+      mounted() {
+        // 記憶功能：嘗試讀取上次選擇的業務模式
+        const lastRep = localStorage.getItem('lastRep');
+        if (lastRep) this.currentRep = lastRep;
+      },
       methods: {
-        getTabCount(statusKey) {
-          return this.salesData.filter(i => i.owner === this.currentRep && i.status.includes(statusKey.replace('展示完，', ''))).length;
+        setRep(name) {
+          this.currentRep = name;
+          localStorage.setItem('lastRep', name); // 儲存選擇
         },
-        getStat(statusKey) {
-          return this.salesData.filter(i => i.owner === this.currentRep && i.status.includes(statusKey)).length;
+        getTabCount(status) {
+          let data = this.salesData;
+          if (this.currentRep !== 'All') data = data.filter(i => i.owner === this.currentRep);
+          return data.filter(i => i.status === status).length;
+        },
+        getStat(status) {
+          let data = this.salesData;
+          if (this.currentRep !== 'All') data = data.filter(i => i.owner === this.currentRep);
+          return data.filter(i => i.status === status).length;
         },
         getCategoryColor(status) {
-          const colors = { '已拉群': '#eab308', '已約展': '#3b82f6', '意願高': '#ef4444', '意願中': '#f97316', '意願低': '#14b8a6', '拒絕': '#4b5563' };
-          for(let k in colors) if(status.includes(k)) return colors[k];
-          return '#ccc';
+          const colors = { '已拉群': '#f59e0b', '已約展': '#2563eb', '意願高': '#dc2626', '意願中': '#f97316', '意願低': '#0d9488', '拒絕': '#1f2937' };
+          return colors[status] || '#ccc';
         },
         getStatusBadge(status) {
-          const badges = {
-            '已拉群': 'bg-yellow-100 text-yellow-700',
-            '已約展': 'bg-blue-100 text-blue-700',
-            '意願高': 'bg-red-100 text-red-700',
-            '意願中': 'bg-orange-100 text-orange-700',
-            '意願低': 'bg-teal-100 text-teal-700',
-            '拒絕': 'bg-gray-100 text-gray-700'
-          };
-          for(let k in badges) if(status.includes(k)) return badges[k];
-          return 'bg-gray-100 text-gray-600';
+          const badges = { '已拉群': 'border-amber-200 text-amber-600', '已約展': 'border-blue-200 text-blue-600', '意願高': 'border-red-200 text-red-600', '意願中': 'border-orange-200 text-orange-600', '意願低': 'border-teal-200 text-teal-600', '拒絕': 'border-gray-200 text-gray-600' };
+          return badges[status] || '';
         }
       }
     }).mount('#app');
