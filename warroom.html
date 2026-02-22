@@ -202,8 +202,53 @@
         </div>
       </transition>
 
+</div>
+      </transition>
+
+      <transition name="modal-fade">
+        <div v-if="showDispatchModal" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-gray-900/60 backdrop-blur-md" @click.self="closeDispatchModal">
+          <div class="bg-white w-full max-w-md rounded-t-[3rem] sm:rounded-[2.5rem] p-8 shadow-2xl overflow-y-auto max-h-[92vh]">
+            
+            <div class="flex justify-between items-center mb-6 pb-2 border-b border-gray-100">
+              <h3 class="text-xl font-black text-gray-800 tracking-tight">🚀 派單：[[ currentItem?.area ]][[ currentItem?.storeName ]]</h3>
+              <button @click="closeDispatchModal" class="text-gray-300 hover:text-gray-700 text-4xl font-light">✕</button>
+            </div>
+
+            <p class="text-xs font-black text-gray-400 mb-3 tracking-widest uppercase px-1">STEP 1: 複製名稱 & 加好友創群</p>
+            <button @click="copyAndJumpForGroup" class="w-full bg-blue-600 text-white font-black py-4 rounded-[1.5rem] shadow-lg shadow-blue-100 mb-6 active:scale-95 transition flex flex-col items-center">
+              📋 複製名稱並跳轉 LINE
+              <span class="text-[11px] opacity-80 mt-1 tracking-wider">自動複製：「[[ currentItem?.area ]][[ currentItem?.storeName ]] + ezPretty討論」</span>
+            </button>
+
+            <p class="text-xs font-black text-gray-400 mb-3 tracking-widest uppercase px-1">STEP 2: 群組綁定</p>
+            <div class="flex gap-2 mb-3">
+              <select v-model="dispatchData.groupId" class="flex-grow p-3.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold text-gray-700 outline-none">
+                <option value="">🤖 請選擇偵測到的群組 ID...</option>
+                <option v-for="gid in availableGroupIds" :key="gid" :value="gid">[[ gid ]]</option>
+              </select>
+              <button @click="fetchGroupIds" class="bg-gray-100 border border-gray-200 px-4 rounded-xl font-black text-gray-600 active:bg-gray-200 transition shadow-sm">🔄</button>
+            </div>
+            <input type="text" v-model="dispatchData.groupLink" placeholder="🔗 貼上 LINE 群組邀請連結" class="w-full p-3.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold text-gray-700 outline-none mb-6 shadow-inner">
+
+            <p class="text-xs font-black text-gray-400 mb-3 tracking-widest uppercase px-1">STEP 3: 指派與交接</p>
+            <div class="flex gap-2 mb-4">
+              <button v-for="staff in ['Kelvin', 'David', 'WT']" :key="staff" @click="dispatchData.owner = staff"
+                      :class="['flex-1 py-3.5 rounded-xl font-black text-sm transition shadow-sm', dispatchData.owner === staff ? 'bg-purple-600 text-white shadow-md scale-105' : 'bg-gray-100 text-gray-500 hover:bg-gray-200']">
+                [[ staff ]]
+              </button>
+            </div>
+            <textarea v-model="dispatchData.initialDemand" placeholder="📝 初步了解的需求 / 主管交接備註..." class="w-full h-28 p-4 bg-gray-50 border border-gray-100 rounded-2xl text-sm text-gray-600 mb-6 focus:ring-2 focus:ring-purple-500/20 outline-none resize-none font-bold leading-relaxed shadow-inner"></textarea>
+            
+            <button @click="submitDispatch" :disabled="isDispatching" class="w-full bg-gray-900 text-white font-black py-5 rounded-[1.5rem] shadow-2xl active:scale-95 transition flex justify-center items-center gap-3 text-lg">
+              <span v-if="isDispatching" class="w-5 h-5 border-3 border-white/30 border-t-white rounded-full animate-spin"></span>
+              [[ isDispatching ? '派單同步寫入中...' : '🚀 確認派單並寫入' ]]
+            </button>
+          </div>
+        </div>
+      </transition>
       <div v-if="toastMessage" class="fixed bottom-10 left-1/2 transform -translate-x-1/2 bg-gray-800/95 backdrop-blur text-white px-8 py-4 rounded-full text-sm font-black shadow-2xl z-50 transition-all tracking-wider border border-white/10 animate-bounce">[[ toastMessage ]]</div>
     </div>
+      
 
     <script>
       const GAS_URL = "https://script.google.com/macros/s/AKfycbzIKHpWcWj0bOhaQsx-OynY5FVVorMJvTNON5PBOywj1q-Nd5EylLCSl-zTlFW9Rb5U/exec";
@@ -218,6 +263,11 @@
             showLineModal: false, currentLineItem: null, lineScriptTab: 'first',
             showUpdateModal: false, isUpdating: false, currentItem: null,
             editData: { newTracking: '', addLine: '', readStatus: '', callStatus: '', isConnected: '', emailSent: '', note: '' },
+            // 🌟 將下方兩行貼在這裡 🌟
+            showDispatchModal: false, isDispatching: false,
+            dispatchData: { groupId: '', groupLink: '', owner: 'Kelvin', initialDemand: '' },
+            availableGroupIds: [],
+            // 🌟 貼到這裡結束 🌟
             tabs: [
               { id: 'all', icon: '📂', label: '全部', activeClass: 'bg-gray-700 text-white', ringClass: 'ring-gray-300' },
               { id: 'new', icon: '🆕', label: '新單', activeClass: 'bg-[#00C851] text-white', ringClass: 'ring-green-300' },
@@ -397,7 +447,60 @@
           copyText(text) { if (!text) return; const el = document.createElement('textarea'); el.value = text; document.body.appendChild(el); el.select(); document.execCommand('copy'); document.body.removeChild(el); },
           showToast(m) { this.toastMessage = m; setTimeout(() => this.toastMessage = '', 2500); },
           formatDate(d) { if(!d) return ''; const t = new Date(d); return isNaN(t) ? d : `${t.getMonth()+1}/${t.getDate()}`; },
-          openDispatch(item) { window.open('https://happy08200822.github.io/ezpretty-liff/dispatch.html?key=' + item.id + '&store=' + encodeURIComponent(item.storeName)); }
+         // 🌟 刪掉原本的 openDispatch，把這整段貼在 methods 的最下面 🌟
+          openDispatch(item) {
+            this.currentItem = item;
+            this.dispatchData = { 
+              groupId: item.groupId || '', 
+              groupLink: item.groupLink || '', 
+              owner: item.owner || 'Kelvin', 
+              initialDemand: item.initialDemand || item.adDemand || '' 
+            };
+            this.showDispatchModal = true;
+            this.fetchGroupIds(); // 打開時去 GAS 抓最新群組 ID
+          },
+          closeDispatchModal() { this.showDispatchModal = false; },
+          
+          copyAndJumpForGroup() {
+            const groupName = `${this.currentItem.area || ''}${this.currentItem.storeName || ''} + ezPretty討論`;
+            this.copyText(groupName);
+            this.showToast(`已複製：「${groupName}」跳轉 LINE 中...`);
+            const target = this.currentItem.lineId || this.currentItem.phone || '';
+            setTimeout(() => window.open('https://line.me/ti/p/~' + target), 800);
+          },
+
+          fetchGroupIds() {
+            fetch(GAS_URL + "?action=getGroupIds")
+              .then(res => res.json())
+              .then(data => { this.availableGroupIds = data; this.showToast("🔄 群組 ID 已更新"); })
+              .catch(err => console.log(err));
+          },
+
+          submitDispatch() {
+            this.isDispatching = true;
+            const params = new URLSearchParams({
+              action: 'submitDispatch',
+              key: this.currentItem.id,
+              groupId: this.dispatchData.groupId,
+              groupLink: this.dispatchData.groupLink,
+              owner: this.dispatchData.owner,
+              initialDemand: this.dispatchData.initialDemand
+            });
+            fetch(GAS_URL + "?" + params.toString(), { method: "POST" })
+              .then(res => res.text())
+              .then(r => { 
+                if(r === "Success") { 
+                  this.showToast("🚀 派單寫入成功！"); 
+                  this.loadData(); 
+                  this.closeDispatchModal(); 
+                } 
+              })
+              .finally(() => this.isDispatching = false);
+          }
+          // 🌟 貼到這裡結束 🌟
+        } // 這是 methods 結尾的大括號
+      }).mount('#app');
+    </script>
         }
       }).mount('#app');
     </script>
