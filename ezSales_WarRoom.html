@@ -14,151 +14,174 @@
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     .expand-enter-active, .expand-leave-active { transition: all 0.2s ease-out; max-height: 400px; overflow: hidden; }
     .expand-enter-from, .expand-leave-to { max-height: 0; opacity: 0; }
-    
-    /* 標籤選中樣式 */
     .chip-active { background-color: #1e293b !important; color: white !important; border-color: transparent !important; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
-    
-    /* 隱藏原生 input month 的預設樣式以符合 UI */
     input[type="month"]::-webkit-calendar-picker-indicator { cursor: pointer; opacity: 0.6; }
   </style>
 </head>
 <body class="pb-10">
   <div id="app" v-cloak class="w-full max-w-4xl mx-auto px-3 pt-4">
 
-    <div class="flex bg-gray-200 rounded-xl p-1 mb-3">
-      <button v-for="rep in ['All', 'Kelvin', 'David']" :key="rep" @click="setRep(rep)"
-        :class="['flex-1 py-2 rounded-lg text-xs font-black transition-all', currentRep === rep ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500']">
-        [[ rep === 'All' ? '🌐 全體' : rep ]]
-      </button>
+    <div v-if="isLoading" class="fixed inset-0 bg-slate-50 z-50 flex flex-col items-center justify-center">
+      <div class="relative flex justify-center items-center">
+        <div class="absolute animate-ping w-16 h-16 rounded-full bg-indigo-400 opacity-20"></div>
+        <div class="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-indigo-600 z-10"></div>
+      </div>
+      <p class="mt-6 text-indigo-600 font-black tracking-widest text-xs animate-pulse">連線 ezPretty 中區戰情中心...</p>
+      <p class="mt-2 text-slate-400 font-bold text-[9px]">同步最新戰報數據中</p>
     </div>
 
-    <div class="bg-white px-4 py-3 rounded-2xl card-shadow border border-slate-100 mb-3">
-      <div class="flex justify-between items-center mb-1.5">
-        <span class="text-[10px] font-black text-slate-400">$[[ formatNumber(stats.sales) ]]</span>
-        <span class="text-[10px] font-black text-rose-500">目標 $[[ formatNumber(targetAmount) ]]</span>
-      </div>
-      <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-        <div class="bg-indigo-600 h-full transition-all duration-1000" :style="{ width: (stats.sales / targetAmount * 100) + '%' }"></div>
-      </div>
-    </div>
-
-    <div class="bg-white rounded-2xl card-shadow border border-slate-100 mb-4 overflow-hidden">
-      <button @click="showStats = !showStats" class="w-full px-4 py-2 flex justify-between items-center bg-slate-50/50">
-        <span class="text-[9px] font-black text-slate-500 tracking-widest uppercase">戰報數據分析</span>
-        <span class="text-[10px] font-bold text-slate-400">[[ showStats ? '▲ 點擊收合' : '▼ 點擊展開' ]]</span>
-      </button>
-      <transition name="expand">
-        <div v-if="showStats" class="p-4 space-y-4 border-t border-slate-100">
-          <div class="grid grid-cols-2 gap-3 text-center">
-            <div class="bg-blue-50 p-2 rounded-xl border border-blue-100 text-blue-700">
-              <p class="text-[8px] font-black opacity-70">🏢 公司件/展示</p>
-              <p class="text-base font-black">[[ stats.corp.assign ]] / [[ stats.corp.demo ]]</p>
-            </div>
-            <div class="bg-emerald-50 p-2 rounded-xl border border-emerald-100 text-emerald-700">
-              <p class="text-[8px] font-black opacity-70">🚀 自開發/展示</p>
-              <p class="text-base font-black">[[ stats.self.assign ]] / [[ stats.self.demo ]]</p>
-            </div>
-          </div>
-          <div>
-            <div class="flex justify-between mb-1">
-              <span v-for="s in intentStats" :key="s.label" :class="['text-[8px] font-black', s.color]">[[ s.label ]]:[[ s.count ]]</span>
-            </div>
-            <div class="w-full flex h-1 rounded-full overflow-hidden bg-slate-100">
-              <div v-for="s in intentStats" :key="s.label" :class="[s.bgColor]" :style="{ width: (s.count / (stats.total || 1) * 100) + '%' }"></div>
-            </div>
-          </div>
-        </div>
-      </transition>
-    </div>
-
-    <div class="space-y-3 mb-6">
-      <div class="relative">
-        <input v-model="searchQuery" type="text" placeholder="🔍 搜尋店名或區域..." 
-          class="w-full bg-white border-none ring-1 ring-slate-200 rounded-xl py-3 px-4 text-xs font-bold focus:ring-2 focus:ring-slate-800 outline-none shadow-sm">
-      </div>
-
-      <div class="flex gap-2 overflow-x-auto no-scrollbar pb-1 items-center">
-        <button v-for="d in dateFilters" :key="d.id" @click="timeRange = d.id"
-          :class="['flex-none px-4 py-1.5 rounded-full text-[10px] font-black border transition-all', timeRange === d.id ? 'chip-active' : 'bg-white text-slate-400 border-slate-200']">
-          [[ d.label ]]
-        </button>
-        <div class="relative flex-none">
-          <input type="month" v-model="customMonth" @change="timeRange = 'custom'"
-            class="bg-white rounded-full px-3 py-1.5 text-[10px] font-black focus:outline-none transition-all border"
-            :class="timeRange === 'custom' ? 'chip-active' : 'text-slate-400 border-slate-200'">
-        </div>
-      </div>
-
-      <div class="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-        <button v-for="t in tabs" :key="t.id" @click="currentTab = t.id"
-          :class="['flex-none px-4 py-1.5 rounded-full text-[10px] font-black border transition-all', currentTab === t.id ? 'chip-active' : 'bg-white text-slate-400 border-slate-200']">
-          [[ t.label ]]
+    <div v-show="!isLoading">
+      <div class="flex bg-gray-200 rounded-xl p-1 mb-3">
+        <button v-for="rep in ['All', 'Kelvin', 'David']" :key="rep" @click="setRep(rep)"
+          :class="['flex-1 py-2 rounded-lg text-xs font-black transition-all', currentRep === rep ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500']">
+          [[ rep === 'All' ? '🌐 全體' : rep ]]
         </button>
       </div>
-    </div>
 
-    <div class="space-y-4">
-      <div v-for="item in processedData" :key="item.id" class="bg-white rounded-[2rem] p-5 card-shadow border border-slate-100 relative">
-        
-        <div class="absolute top-5 right-6 text-right">
-          <p class="text-[10px] font-black text-indigo-500 mb-0.5">👤 [[ item.owner ]]</p>
-          <p class="text-[9px] font-black text-slate-400 tracking-tighter uppercase">📅 [[ item.assignDate ]]</p>
+      <div class="bg-white px-4 py-3 rounded-2xl card-shadow border border-slate-100 mb-3">
+        <div class="flex justify-between items-center mb-1.5">
+          <span class="text-[10px] font-black text-slate-400">$[[ formatNumber(stats.sales) ]]</span>
+          <span class="text-[10px] font-black text-rose-500">目標 $[[ formatNumber(targetAmount) ]]</span>
         </div>
-
-        <div class="mb-2">
-          <div class="flex items-center gap-1.5 mb-1.5">
-            <span :class="['text-[8px] font-black px-1.5 py-0.5 rounded text-white', item.source === '公司件' ? 'bg-blue-500' : 'bg-emerald-500']">[[ item.source ]]</span>
-            <span class="text-[9px] font-black text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded uppercase">[[ item.industry ]]</span>
-          </div>
-          <h2 class="text-lg font-black text-slate-800 leading-tight pr-20">[[ item.area ]] [[ item.storeName ]]</h2>
-        </div>
-
-        <div class="mb-4 space-y-1.5">
-          <div class="bg-blue-50/50 p-2.5 rounded-xl border-l-4 border-blue-400">
-            <p class="text-[8px] font-black text-blue-400 uppercase mb-0.5 tracking-wider">💡 廣告需求 (J 欄)</p>
-            <p class="text-[11px] font-bold text-slate-600 line-clamp-2">[[ item.adsReq || '無填寫需求' ]]</p>
-          </div>
-          <div class="bg-amber-50/50 p-2.5 rounded-xl border-l-4 border-amber-400">
-            <p class="text-[8px] font-black text-amber-500 uppercase mb-0.5 tracking-wider">🚩 主管備註 (T 欄)</p>
-            <p class="text-[11px] font-bold text-slate-600 line-clamp-2">[[ item.managerNote || '暫無備註' ]]</p>
-          </div>
-        </div>
-
-        <div class="space-y-1 text-[11px] font-bold text-slate-500 bg-slate-50 p-3 rounded-2xl mb-4 border border-slate-100">
-          <div class="flex justify-between py-0.5 border-b border-slate-200/50 pb-1">
-            <span class="text-slate-400">🎬 展示日期</span>
-            <span class="text-slate-700">[[ item.demoDate ]] ([[ item.demoMethod ]])</span>
-          </div>
-          <div class="flex justify-between py-0.5 border-b border-slate-200/50 pb-1">
-            <span class="text-slate-400">🏆 展示結果</span>
-            <span :class="item.demoResult === '拒絕' ? 'text-rose-500' : 'text-slate-700'">[[ item.demoResult ]]</span>
-          </div>
-          <div class="flex justify-between py-0.5 border-b border-slate-200/50 pb-1">
-            <span class="text-slate-400">⌛ 填表時間</span>
-            <span class="text-slate-400 font-medium text-[10px]">[[ item.trackTime ]]</span>
-          </div>
-          <div class="flex justify-between py-0.5">
-            <span class="text-slate-400">💰 成交/金額</span>
-            <span class="text-emerald-600 font-black">[[ item.dealDate ? '已成交' : '尚未成交' ]] / $[[ formatNumber(item.salesAmount) ]]</span>
-          </div>
-        </div>
-
-        <div class="grid grid-cols-3 gap-2">
-          <button class="py-2.5 bg-slate-100 rounded-xl text-[10px] font-black text-slate-600 active:bg-slate-200 transition">LINE ID</button>
-          <button class="py-2.5 bg-slate-100 rounded-xl text-[10px] font-black text-slate-600 active:bg-slate-200 transition">電話</button>
-          <button class="py-2.5 bg-slate-100 rounded-xl text-[10px] font-black text-slate-600 active:bg-slate-200 transition">群組連結</button>
-          <button class="py-2.5 bg-amber-500 rounded-xl text-[10px] font-black text-white active:scale-95 shadow-sm shadow-amber-200 transition">約展回報</button>
-          <button class="py-2.5 bg-blue-600 rounded-xl text-[10px] font-black text-white active:scale-95 shadow-sm shadow-blue-200 transition">展示回報</button>
-          <button class="py-2.5 bg-emerald-600 rounded-xl text-[10px] font-black text-white active:scale-95 shadow-sm shadow-emerald-200 transition">追蹤回報</button>
+        <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+          <div class="bg-indigo-600 h-full transition-all duration-1000" :style="{ width: (stats.sales / targetAmount * 100) + '%' }"></div>
         </div>
       </div>
-    </div>
-    
-    <div v-if="processedData.length === 0" class="text-center py-20">
-      <p class="text-slate-300 font-black tracking-widest uppercase text-sm">無符合條件的名單</p>
-    </div>
 
-  </div>
+      <div class="bg-white rounded-2xl card-shadow border border-slate-100 mb-4 overflow-hidden">
+        <button @click="showStats = !showStats" class="w-full px-4 py-2 flex justify-between items-center bg-slate-50/50">
+          <span class="text-[9px] font-black text-slate-500 tracking-widest uppercase">戰報數據分析</span>
+          <span class="text-[10px] font-bold text-slate-400">[[ showStats ? '▲ 點擊收合' : '▼ 點擊展開' ]]</span>
+        </button>
+        <transition name="expand">
+          <div v-if="showStats" class="p-4 space-y-4 border-t border-slate-100">
+            <div class="grid grid-cols-2 gap-3 text-center">
+              <div class="bg-blue-50 p-2 rounded-xl border border-blue-100 text-blue-700">
+                <p class="text-[8px] font-black opacity-70">🏢 公司件/展示</p>
+                <p class="text-base font-black">[[ stats.corp.assign ]] / [[ stats.corp.demo ]]</p>
+              </div>
+              <div class="bg-emerald-50 p-2 rounded-xl border border-emerald-100 text-emerald-700">
+                <p class="text-[8px] font-black opacity-70">🚀 自開發/展示</p>
+                <p class="text-base font-black">[[ stats.self.assign ]] / [[ stats.self.demo ]]</p>
+              </div>
+            </div>
+            <div>
+              <div class="flex justify-between mb-1">
+                <span v-for="s in intentStats" :key="s.label" :class="['text-[8px] font-black', s.color]">[[ s.label ]]:[[ s.count ]]</span>
+              </div>
+              <div class="w-full flex h-1 rounded-full overflow-hidden bg-slate-100">
+                <div v-for="s in intentStats" :key="s.label" :class="[s.bgColor]" :style="{ width: (s.count / (stats.total || 1) * 100) + '%' }"></div>
+              </div>
+            </div>
+          </div>
+        </transition>
+      </div>
+
+      <div class="space-y-3 mb-6">
+        <div class="relative">
+          <input v-model="searchQuery" type="text" placeholder="🔍 搜尋店名或區域..." 
+            class="w-full bg-white border-none ring-1 ring-slate-200 rounded-xl py-3 px-4 text-xs font-bold focus:ring-2 focus:ring-slate-800 outline-none shadow-sm">
+        </div>
+
+        <div class="flex gap-2 overflow-x-auto no-scrollbar pb-1 items-center">
+          <button v-for="d in dateFilters" :key="d.id" @click="timeRange = d.id"
+            :class="['flex-none px-4 py-1.5 rounded-full text-[10px] font-black border transition-all', timeRange === d.id ? 'chip-active' : 'bg-white text-slate-400 border-slate-200']">
+            [[ d.label ]]
+          </button>
+          <div class="relative flex-none">
+            <input type="month" v-model="customMonth" @change="timeRange = 'custom'"
+              class="bg-white rounded-full px-3 py-1.5 text-[10px] font-black focus:outline-none transition-all border"
+              :class="timeRange === 'custom' ? 'chip-active' : 'text-slate-400 border-slate-200'">
+          </div>
+        </div>
+
+        <div class="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+          <button v-for="t in tabs" :key="t.id" @click="currentTab = t.id"
+            :class="['flex-none px-4 py-1.5 rounded-full text-[10px] font-black border transition-all flex items-center gap-1.5', currentTab === t.id ? 'chip-active' : 'bg-white text-slate-400 border-slate-200']">
+            [[ t.label ]]
+            <span :class="currentTab === t.id ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-400'" class="px-1.5 py-0.5 rounded-md text-[9px]">
+              [[ getTabCount(t.id) ]]
+            </span>
+          </button>
+        </div>
+      </div>
+
+      <div v-if="processedData.length > 0">
+        <div v-for="section in categorizedData" :key="section.title" class="mb-10">
+          <div class="flex items-center gap-2 mb-4 px-1">
+            <span :class="[section.color, 'text-white text-[11px] font-black px-2.5 py-1 rounded-md shadow-sm tracking-widest']">
+              [[ section.title ]]
+            </span>
+            <span class="text-[10px] font-black text-slate-400 bg-slate-200/50 px-2 py-0.5 rounded-full">
+              共 [[ section.items.length ]] 件
+            </span>
+            <div class="flex-1 h-px bg-slate-200 ml-2"></div>
+          </div>
+
+          <div class="space-y-4">
+            <div v-for="item in section.items" :key="item.id" class="bg-white rounded-[2rem] p-5 card-shadow border border-slate-100 relative">
+              <div class="absolute top-5 right-6 text-right">
+                <p class="text-[10px] font-black text-indigo-500 mb-0.5">👤 [[ item.owner ]]</p>
+                <p class="text-[9px] font-black text-slate-400 tracking-tighter uppercase">📅 [[ item.assignDate ]]</p>
+              </div>
+
+              <div class="mb-2">
+                <div class="flex items-center gap-1.5 mb-1.5">
+                  <span class="text-[9px] font-black text-slate-500 bg-slate-100 px-2 py-0.5 rounded uppercase">[[ item.industry ]]</span>
+                </div>
+                <h2 class="text-lg font-black text-slate-800 leading-tight pr-20">[[ item.area ]] [[ item.storeName ]]</h2>
+              </div>
+
+              <div class="mb-4 space-y-1.5">
+                <div class="bg-blue-50/50 p-2.5 rounded-xl border-l-4 border-blue-400">
+                  <p class="text-[8px] font-black text-blue-400 uppercase mb-0.5 tracking-wider">💡 廣告需求 (J 欄)</p>
+                  <p class="text-[11px] font-bold text-slate-600 line-clamp-2">[[ item.adsReq || '無填寫需求' ]]</p>
+                </div>
+                <div class="bg-amber-50/50 p-2.5 rounded-xl border-l-4 border-amber-400">
+                  <p class="text-[8px] font-black text-amber-500 uppercase mb-0.5 tracking-wider">🚩 主管備註 (T 欄)</p>
+                  <p class="text-[11px] font-bold text-slate-600 line-clamp-2">[[ item.managerNote || '暫無備註' ]]</p>
+                </div>
+              </div>
+
+              <div class="space-y-1 text-[11px] font-bold text-slate-500 bg-slate-50 p-3 rounded-2xl mb-4 border border-slate-100">
+                <div class="flex justify-between py-0.5 border-b border-slate-200/50 pb-1">
+                  <span class="text-slate-400">🎬 展示日期</span>
+                  <span class="text-slate-700">[[ item.demoDate ]] ([[ item.demoMethod ]])</span>
+                </div>
+                <div class="flex justify-between py-0.5 border-b border-slate-200/50 pb-1">
+                  <span class="text-slate-400">🏆 展示結果</span>
+                  <span :class="item.demoResult === '拒絕' ? 'text-rose-500' : 'text-slate-700'">[[ item.demoResult ]]</span>
+                </div>
+                <div class="flex justify-between py-0.5 border-b border-slate-200/50 pb-1">
+                  <span class="text-slate-400">⌛ 填表時間</span>
+                  <span class="text-slate-400 font-medium text-[10px]">[[ item.trackTime ]]</span>
+                </div>
+                <div class="flex justify-between py-0.5">
+                  <span class="text-slate-400">💰 成交/金額</span>
+                  <span class="text-emerald-600 font-black">
+                    [[ item.status === '已成交' ? '已成交' + (item.dealDate ? ' (' + item.dealDate + ')' : '') : '尚未成交' ]] / $[[ formatNumber(item.salesAmount) ]]
+                  </span>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-3 gap-2">
+                <button @click="copyLineId(item.lineId)" class="py-2.5 bg-slate-100 rounded-xl text-[10px] font-black text-slate-600 active:bg-slate-200 transition">LINE ID</button>
+                <button @click="callPhone(item.phone)" class="py-2.5 bg-slate-100 rounded-xl text-[10px] font-black text-slate-600 active:bg-slate-200 transition">電話</button>
+                <button @click="openGroup(item.groupLink)" class="py-2.5 bg-slate-100 rounded-xl text-[10px] font-black text-slate-600 active:bg-slate-200 transition">群組連結</button>
+                
+                <button @click="pendingFeature" class="py-2.5 bg-amber-500 rounded-xl text-[10px] font-black text-white active:scale-95 shadow-sm shadow-amber-200 transition">約展回報</button>
+                <button @click="pendingFeature" class="py-2.5 bg-blue-600 rounded-xl text-[10px] font-black text-white active:scale-95 shadow-sm shadow-blue-200 transition">展示回報</button>
+                <button @click="pendingFeature" class="py-2.5 bg-emerald-600 rounded-xl text-[10px] font-black text-white active:scale-95 shadow-sm shadow-emerald-200 transition">追蹤回報</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div v-if="processedData.length === 0" class="text-center py-20">
+        <p class="text-slate-300 font-black tracking-widest uppercase text-sm">無符合條件的名單</p>
+      </div>
+    </div> </div>
 
   <script>
     const { createApp } = Vue;
@@ -166,11 +189,12 @@
       delimiters: ['[[', ']]'],
       data() {
         return {
-          currentRep: 'Kelvin', 
+          isLoading: true, // 🌟 新增：動畫狀態
+          currentRep: localStorage.getItem('ezPretty_Rep') || 'Kelvin', // 🌟 新增：讀取記憶
           showStats: false, 
           currentTab: '已拉群', 
           timeRange: 'thisMonth', 
-          customMonth: '', // 儲存 HTML5 月份選擇器的值 (YYYY-MM)
+          customMonth: '', 
           searchQuery: '',
           dateFilters: [
             { id: 'today', label: '今日' }, 
@@ -180,52 +204,194 @@
             { id: 'all', label: '全部' }
           ],
           tabs: [
-            { id: '已拉群', label: '已拉群' }, { id: '約展中', label: '約展中' }, { id: '意願高', label: '意願高' }, 
-            { id: '意願中', label: '意願中' }, { id: '意願低', label: '意願低' }, { id: '成交', label: '成交' }, { id: '拒絕', label: '拒絕' }
+            { id: '已拉群', label: '已拉群' }, 
+            { id: '已約展', label: '已約展' }, 
+            { id: '展示完，意願度高', label: '意願高' }, 
+            { id: '展示完，意願度中', label: '意願中' }, 
+            { id: '展示完，意願度低', label: '意願低' }, 
+            { id: '已成交', label: '已成交' }, 
+            { id: '已拒絕', label: '已拒絕' },
+            { id: '已約展，被放鳥', label: '被放鳥' },
+            { id: '重複單', label: '重複單' }
           ],
-          // 暫時的靜態模擬數據 (下一步由 GAS 替換)
-          stats: { sales: 78500, total: 20, corp: { assign: 10, demo: 4 }, self: { assign: 10, demo: 8 } },
-          intentStats: [
-            { label: '成交', count: 3, color: 'text-amber-500', bgColor: 'bg-amber-500' },
-            { label: '高', count: 5, color: 'text-rose-500', bgColor: 'bg-rose-500' },
-            { label: '中', count: 7, color: 'text-orange-400', bgColor: 'bg-orange-400' },
-            { label: '低', count: 3, color: 'text-blue-400', bgColor: 'bg-blue-400' },
-            { label: '拒', count: 2, color: 'text-slate-300', bgColor: 'bg-slate-300' }
-          ],
-          salesData: [
-            { 
-              id: 1, owner: 'Kelvin', status: '已拉群', source: '公司件', industry: '美髮業', area: '台中', storeName: '美緹國際', 
-              adsReq: '希望能優化線上預約轉單率。', managerNote: '老闆非常在意價格，多強調系統能省下的人事成本。',
-              assignDate: '2026/02/20', demoDate: '02/25', demoMethod: '線上', demoResult: '待定', trackTime: '2026/02/22 10:00', dealDate: '', salesAmount: 0 
-            },
-            { 
-              id: 2, owner: 'David', status: '意願高', source: '自開發', industry: '美容業', area: '台北', storeName: '星辰沙龍', 
-              adsReq: '無填寫需求', managerNote: '本週五前務必再打一通電話確認老闆意願。',
-              assignDate: '2026/02/18', demoDate: '02/20', demoMethod: '現場', demoResult: '順利', trackTime: '2026/02/21 15:30', dealDate: '', salesAmount: 0 
-            }
-          ]
+          salesData: [] 
         }
       },
       computed: {
         targetAmount() { return this.currentRep === 'All' ? 240000 : 120000; },
-        processedData() {
+        
+        baseData() {
           let d = this.salesData;
-          // 1. 業務過濾
+          
           if (this.currentRep !== 'All') d = d.filter(i => i.owner === this.currentRep);
-          // 2. 狀態過濾
+          
+          if (this.timeRange !== 'all') {
+            const now = new Date();
+            d = d.filter(i => {
+              let dateStr = i.assignDate; 
+              
+              if (i.status === '已成交') {
+                dateStr = i.dealDate || i.assignDate;        
+              } else if (i.status === '已約展') {
+                dateStr = i.demoDate || i.assignDate;        
+              } else if (i.status && i.status.includes('意願')) {
+                dateStr = i.trackTime || i.assignDate;       
+              }
+              
+              if (!dateStr) return false; 
+              
+              const pureDateStr = dateStr.split(' ')[0]; 
+              const dObj = new Date(pureDateStr);
+              if (isNaN(dObj)) return true; 
+              
+              if (this.timeRange === 'today') {
+                return dObj.toDateString() === now.toDateString();
+              } else if (this.timeRange === 'thisWeek') {
+                const day = now.getDay() || 7; 
+                const startOfWeek = new Date(now);
+                startOfWeek.setDate(now.getDate() - day + 1);
+                startOfWeek.setHours(0,0,0,0);
+                return dObj >= startOfWeek;
+              } else if (this.timeRange === 'thisMonth') {
+                return dObj.getMonth() === now.getMonth() && dObj.getFullYear() === now.getFullYear();
+              } else if (this.timeRange === 'lastMonth') {
+                let m = now.getMonth() - 1;
+                let y = now.getFullYear();
+                if (m < 0) { m = 11; y--; }
+                return dObj.getMonth() === m && dObj.getFullYear() === y;
+              } else if (this.timeRange === 'custom' && this.customMonth) {
+                const [cy, cm] = this.customMonth.split('-');
+                return dObj.getFullYear() === parseInt(cy) && (dObj.getMonth() + 1) === parseInt(cm);
+              }
+              return true;
+            });
+          }
+          return d;
+        },
+
+        stats() {
+          const d = this.baseData;
+          const totalSales = d.filter(i => i.status === '已成交').reduce((sum, i) => sum + (Number(i.salesAmount) || 0), 0);
+          
+          const selfItems = d.filter(i => i.source && i.source.includes('自開'));
+          const corpItems = d.filter(i => !i.source || !i.source.includes('自開')); 
+          
+          return { 
+            sales: totalSales, 
+            total: d.length || 1, 
+            corp: { 
+              assign: corpItems.length, 
+              demo: corpItems.filter(i => i.demoDate !== '').length 
+            }, 
+            self: { 
+              assign: selfItems.length, 
+              demo: selfItems.filter(i => i.demoDate !== '').length 
+            } 
+          };
+        },
+
+        intentStats() {
+          const d = this.baseData;
+          const countMatch = (keyword) => d.filter(i => i.status && i.status.includes(keyword)).length;
+          
+          return [
+            { label: '成交', count: countMatch('成交'), color: 'text-amber-500', bgColor: 'bg-amber-500' },
+            { label: '高', count: countMatch('意願度高'), color: 'text-rose-500', bgColor: 'bg-rose-500' },
+            { label: '中', count: countMatch('意願度中'), color: 'text-orange-400', bgColor: 'bg-orange-400' },
+            { label: '低', count: countMatch('意願度低'), color: 'text-blue-400', bgColor: 'bg-blue-400' },
+            { label: '拒', count: countMatch('拒絕') + countMatch('放鳥'), color: 'text-slate-300', bgColor: 'bg-slate-300' }
+          ];
+        },
+
+        processedData() {
+          let d = this.baseData;
+          
           if (this.currentTab) d = d.filter(i => i.status === this.currentTab);
-          // 3. 搜尋過濾
           if (this.searchQuery) {
             const s = this.searchQuery.toLowerCase();
-            d = d.filter(i => i.storeName.includes(s) || i.area.includes(s) || i.adsReq.includes(s) || i.managerNote.includes(s));
+            d = d.filter(i => (i.storeName && i.storeName.includes(s)) || (i.area && i.area.includes(s)));
           }
-          // 4. 日期過濾 (此處預留給 GAS 串接後進行邏輯處理)
+
+          d.sort((a, b) => {
+            const getT = (dateStr, def) => {
+              if (!dateStr) return def;
+              const pureDate = dateStr.split(' ')[0]; 
+              const t = new Date(pureDate).getTime();
+              return isNaN(t) ? def : t;
+            };
+
+            const tab = this.currentTab;
+
+            if (tab === '已拉群') {
+              return getT(a.assignDate, Infinity) - getT(b.assignDate, Infinity);
+            } 
+            else if (tab.includes('意願')) {
+              return getT(a.trackTime, Infinity) - getT(b.trackTime, Infinity);
+            } 
+            else if (tab === '已約展') {
+              return getT(a.demoDate, Infinity) - getT(b.demoDate, Infinity);
+            } 
+            else if (tab === '已成交') {
+              return getT(b.dealDate, 0) - getT(a.dealDate, 0);
+            } 
+            else {
+              return getT(b.assignDate, 0) - getT(a.assignDate, 0);
+            }
+          });
+
           return d;
+        },
+
+        categorizedData() {
+          const d = this.processedData;
+          
+          const self = d.filter(i => i.source && i.source.includes('自開'));
+          const corp = d.filter(i => !i.source || !i.source.includes('自開')); 
+          
+          const result = [];
+          if (corp.length > 0) result.push({ title: '🏢 公司分配', color: 'bg-blue-500', items: corp });
+          if (self.length > 0) result.push({ title: '🚀 業務自開', color: 'bg-emerald-500', items: self });
+          return result;
         }
       },
       methods: {
-        setRep(n) { this.currentRep = n; },
-        formatNumber(v) { return v.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ","); }
+        setRep(n) { 
+          this.currentRep = n; 
+          localStorage.setItem('ezPretty_Rep', n); // 🌟 新增：寫入記憶
+        },
+        formatNumber(v) { return v ? v.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",") : "0"; },
+        getTabCount(statusId) { return this.baseData.filter(i => i.status === statusId).length; },
+
+        async fetchData() {
+          this.isLoading = true; // 🌟 新增：開始載入
+          const GAS_URL = 'https://script.google.com/macros/s/AKfycbzIKHpWcWj0bOhaQsx-OynY5FVVorMJvTNON5PBOywj1q-Nd5EylLCSl-zTlFW9Rb5U/exec';
+          try {
+            const response = await fetch(`${GAS_URL}?action=getWarRoomData`);
+            const data = await response.json();
+            this.salesData = data.filter(item => item.owner && item.owner.trim() !== '');
+          } catch (error) {
+            console.error('抓取資料失敗:', error);
+          } finally {
+            this.isLoading = false; // 🌟 新增：結束載入
+          }
+        },
+
+        copyLineId(id) {
+          if (!id) return alert('客戶未提供 LINE ID');
+          navigator.clipboard.writeText(id).then(() => alert(`已複製 LINE ID: ${id}`));
+        },
+        callPhone(phone) {
+          if (!phone) return alert('客戶未提供電話');
+          window.location.href = `tel:${phone}`;
+        },
+        openGroup(link) {
+          if (!link) return alert('尚無群組連結');
+          window.open(link, '_blank');
+        },
+        pendingFeature() { alert('功能建置中，敬請期待！'); }
+      },
+      mounted() {
+        this.fetchData();
       }
     }).mount('#app');
   </script>
